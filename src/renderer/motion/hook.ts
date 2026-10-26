@@ -282,7 +282,11 @@ export function createHookLayer(
             rotation: key.rot * facing,
           };
         const shadow = frame.shadow;
-        if (state.floorShadow) output.shadow = { ...shadow, opacity: 0 };
+        if (state.floorShadow)
+          output.shadow = {
+            ...shadow,
+            opacity: shadow.opacity * Math.max(0, 1 - (Math.abs(key.rot) - 8) / 6),
+          };
         else if (state.surfaceY !== null || key.lift > 1e-4)
           output.shadow = {
             x: p.x,

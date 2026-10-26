@@ -31,6 +31,9 @@ export const mascotV2Motion: CharacterMotionRig = {
         // Same sign convention as the shoulders: positive bends outward on both sides.
         'arm-l-fore': { rotation: p.elbowL },
         'arm-r-fore': { rotation: -p.elbowR },
+        // Pupils: follow part of the gaze (the face plane turns too) plus their own channel. The
+        // rig's distance constraint keeps them inside the eyes.
+        eyes: { x: (0.5 * p.gazeX + p.pupilX) * 14, y: (0.5 * p.gazeY + p.pupilY) * 10 },
       },
     };
   },
