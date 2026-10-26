@@ -38,9 +38,8 @@ export type GaitDef = GaitSpec;
  *                 direction (default).
  *  mirror-hidden  asymmetric character: mirror, but swap facing within a frame at the apex of a
  *                 tiny step-pivot hop so the flip is hidden in the action.
- *  authored       the rig has a three-quarter turnaround (turnHead/turnBody channels): never
- *                 mirror; the head turns toward travel ~100 ms before the body, both hold ~0.6
- *                 while walking and ease back to the camera on arrival.
+ *  authored       the rig has a three-quarter turnaround (turnHead/turnBody channels): turn the
+ *                 whole character at the pivot, mirror it to face travel, and reset on arrival.
  */
 export type TurnStyle = 'cheat' | 'mirror-hidden' | 'authored';
 
@@ -308,6 +307,8 @@ export class Locomotion {
         this.speedScale =
           command.speed ?? Math.min(1.35, Math.max(1, 1 + (distanceBH - 1.5) * 0.12));
         const direction = Math.sign(this.target.x - this.x) || this.facingTo;
+        this.facingOnArrival =
+          command.faceOnArrival ?? ((caps.turnStyle ?? 'cheat') === 'authored' ? 1 : direction);
         // Reversing always plays a readable turn first, never a mid-stride flip.
         if (direction !== this.facingTo) this.beginTurn(direction, now, true);
         else if (this.state !== 'moving') this.enter('anticipate', now);
@@ -342,9 +343,14 @@ export class Locomotion {
       ? (authored.stride / authored.seconds) * 1.6 * bh * tempo * this.speedScale
       : def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
     const style = caps.turnStyle ?? 'cheat';
-    // Only mirror-hidden characters are ever mirrored; cheat and authored stay front-facing.
-    const cheat = style !== 'mirror-hidden';
-    const facing = cheat ? 1 : this.facingAt(now);
+    // Authored rigs flip the complete body at the turn pivot so legs and gait face travel.
+    const cheat = style === 'cheat';
+    const facing =
+      style === 'authored'
+        ? this.authoredFacing(now)
+        : style === 'mirror-hidden'
+          ? this.facingAt(now)
+          : 1;
     const forward = Math.sign(this.facingTo) || 1;
     let desired = 0;
 
@@ -460,9 +466,7 @@ export class Locomotion {
     if (travelling && dt > 0) {
       const distance = Math.abs(v) * dt;
       this.sincePause += distance;
-      if (authored)
-        this.authoredPhase +=
-          (distance / (authored.stride * bh)) * (style === 'authored' ? Math.sign(v) : 1);
+      if (authored) this.authoredPhase += distance / (authored.stride * bh);
       if (flying && !authored) {
         // Spend the distance in the air: weight w(s) is 0 on the ground, normalised to mean 1.
         const s = this.phase % 1;
@@ -603,7 +607,8 @@ export class Locomotion {
     // Travel posture weight: in while setting off, held while travelling, out on arrival.
     const weightTarget =
       this.state === 'moving' || this.state === 'pausing' || this.state === 'anticipate' ? 1 : 0;
-    this.travelWeight += (weightTarget - this.travelWeight) * (1 - Math.exp(-dt * 6));
+    // Blend authored contacts with a little more runway so takeoff and landing don't pop.
+    this.travelWeight += (weightTarget - this.travelWeight) * (1 - Math.exp(-dt * 4.5));
     pose.lean = (pose.lean ?? 0) + leanValue;
     pose.hairSwoop = -0.6 * leanValue;
 
@@ -640,12 +645,16 @@ export class Locomotion {
         this.state !== 'arriving' &&
         this.state !== 'fadeOut' &&
         this.state !== 'fadeIn';
-      const headTarget = travelling3q ? TURN_HOLD * forward : 0;
+      const turnSide = facing < 0 ? -1 : 1;
+      const headTarget = travelling3q ? TURN_HOLD * forward * turnSide : 0;
       if (headTarget !== this.turnHeadTarget) {
         this.turnHeadTarget = headTarget;
         this.turnHeadChangedAt = now;
       }
-      if (now - this.turnHeadChangedAt >= TURN_BODY_LAG) this.turnBodyTarget = this.turnHeadTarget;
+      const bodyMayFollow = this.state !== 'turning' || turnSide === forward;
+      if (!bodyMayFollow) this.turnBodyTarget = 0;
+      else if (now - this.turnHeadChangedAt >= TURN_BODY_LAG)
+        this.turnBodyTarget = this.turnHeadTarget;
       out.turnHead = this.turnHead.update(dt, this.turnHeadTarget);
       out.turnBody = this.turnBody.update(dt, this.turnBodyTarget);
     }
@@ -653,8 +662,8 @@ export class Locomotion {
       x: this.x,
       y: this.y,
       lift: lift,
-      // Beat facing (e.g. the skip twirl) only applies to mirroring characters.
-      facing: cheat ? 1 : facing * facingScale,
+      // Beat facing (e.g. the skip twirl) only applies to mirror-hidden characters.
+      facing: style === 'mirror-hidden' ? facing * facingScale : facing,
       opacity,
       scaleX,
       scaleY,
@@ -676,6 +685,7 @@ export class Locomotion {
   private turnBodyTarget = 0;
   private turnHeadChangedAt = 0;
   private authoredPhase = 0;
+  private facingOnArrival = 1;
   private beats: 'all' | 'start' | 'none' = 'all';
   private mood: MoodId | null = null;
   private moveStart = 0;
@@ -710,7 +720,22 @@ export class Locomotion {
     this.phase = 0;
     this.landing = 0;
     this.swingTarget = 0;
+    this.facingTo = this.facingOnArrival;
     this.enter('idle', now);
+  }
+
+  /** Smoothly collapse through the side view while turning, then ease back to the idle facing. */
+  private authoredFacing(now: number) {
+    if (this.state === 'turning') {
+      const duration = TURN_LEAD + TURN + TURN_TAIL;
+      const progress = smootherstep(clamp01((now - this.stateStart) / duration));
+      return this.facingFrom + (this.facingTo - this.facingFrom) * progress;
+    }
+    if (this.state === 'arriving') {
+      const progress = smootherstep((now - this.stateStart) / 0.32);
+      return this.facingTo + (this.facingOnArrival - this.facingTo) * progress;
+    }
+    return this.facingTo;
   }
 
   /** Plant both feet exactly where they were last drawn (mid-route pause): continuous. */

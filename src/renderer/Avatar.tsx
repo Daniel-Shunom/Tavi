@@ -82,7 +82,8 @@ export function Avatar({
       height = 1;
     let position: Point = { x: latest.current.state.config.x, y: latest.current.state.config.y };
     let pointer: Point | null = null;
-    let facing: -1 | 1 = 1;
+    let facing: -1 | 1 = 1,
+      facingScaleX = 1;
     const smoother = new AttentionSmoother();
     const rig = attachmentRigs[manifest.id];
     const layer: AttachmentLayer | null = rig
@@ -268,6 +269,7 @@ export function Avatar({
         // Teleports (anchor jumps, restored views) must not whip attachment springs.
         if (Math.hypot(position.x - previous.x, position.y - previous.y) > 0.08) layer?.reset();
         if (output.facing !== undefined) facing = output.facing;
+        facingScaleX = output.facingScaleX ?? facing;
         const handledPresence = output.presence !== undefined;
         if (output.presence) hidden = output.presence.hidden;
         // Build the render frame: ambient loop, expressions, tuck, motion.
@@ -354,7 +356,7 @@ export function Avatar({
           if (wrapper.style.transformOrigin !== origin) wrapper.style.transformOrigin = origin;
           const degrees = Math.round(placement.rotation * 100) / 100;
           const transform =
-            (degrees ? `rotate(${String(degrees)}deg)` : '') + (facing < 0 ? ' scaleX(-1)' : '');
+            (degrees ? `rotate(${String(degrees)}deg)` : '') + ` scaleX(${String(facingScaleX)})`;
           if (wrapper.style.transform !== transform.trim())
             wrapper.style.transform = transform.trim();
           const climbing =

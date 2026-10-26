@@ -277,6 +277,7 @@ export function createHookLayer(
         nodes: bound.nodes,
         position: { x: p.x, y: p.y },
         facing: p.facing < 0 ? -1 : 1,
+        facingScaleX: p.facing,
         shadow: frame.shadow,
       };
       if (state) {

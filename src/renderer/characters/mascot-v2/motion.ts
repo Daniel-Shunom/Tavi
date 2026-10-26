@@ -19,6 +19,7 @@ export const mascotV2Motion: CharacterMotionRig = {
     // The unfolded body binding: this file bends the elbows itself.
     const base = bindMascotBody(frame);
     const p = frame.pose;
+    const gazeToLocal = frame.placement.facing < 0 ? -1 : 1;
     return {
       tracks: [
         ...base.tracks,
@@ -43,7 +44,10 @@ export const mascotV2Motion: CharacterMotionRig = {
         'arm-r-fore': { rotation: -p.elbowR },
         // Pupils: follow part of the gaze (the face plane turns too) plus their own channel. The
         // rig's distance constraint keeps them inside the eyes.
-        eyes: { x: (0.5 * p.gazeX + p.pupilX) * 14, y: (0.5 * p.gazeY + p.pupilY) * 10 },
+        eyes: {
+          x: (0.5 * p.gazeX + p.pupilX) * gazeToLocal * 14,
+          y: (0.5 * p.gazeY + p.pupilY) * 10,
+        },
       },
     };
   },

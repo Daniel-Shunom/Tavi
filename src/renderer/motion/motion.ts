@@ -194,7 +194,8 @@ export class MotionLayer {
     const distance = Math.hypot(dx, dy);
     if (distance < 1e-4) return null;
     return {
-      x: (dx / distance) * frame.facing * 0.65,
+      // Pose gaze is a screen-space target; the rig binding converts it to local coordinates.
+      x: (dx / distance) * 0.65,
       y: (dy / distance) * 0.35,
     };
   }

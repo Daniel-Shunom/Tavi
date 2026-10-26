@@ -29,7 +29,7 @@ describe('gaze follows locomotion destination', () => {
 
   it('looks screen-left while travelling left, including when the rig mirrors', () => {
     const frames = travelGaze(0.8, 0.3, 'mirror-hidden');
-    const screenGaze = frames.map((frame) => frame.pose.gazeX * frame.placement.facing);
+    const screenGaze = frames.map((frame) => frame.pose.gazeX);
     expect(screenGaze.some((x) => x < -0.3)).toBe(true);
     expect(screenGaze.filter((x) => x < -0.2).length).toBeGreaterThan(screenGaze.length / 2);
   });

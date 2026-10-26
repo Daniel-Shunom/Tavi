@@ -68,6 +68,9 @@ try {
             const ctx = shot.getContext('2d');
             ctx.fillStyle = '#f3f1ec';
             ctx.fillRect(0, 0, 300, 400);
+            ctx.translate(150, 0);
+            ctx.scale(frame.placement.facing, 1);
+            ctx.translate(-150, 0);
             ctx.drawImage(canvas, 0, 0);
             const label = document.createElement('figcaption');
             label.textContent = `${(i / 60).toFixed(1)}s · turn ${frame.pose.turnHead.toFixed(2)} · eyes ${frame.pose.gazeX.toFixed(2)}`;
@@ -79,6 +82,7 @@ try {
               gaze: frame.pose.gazeX,
               head: frame.pose.turnHead,
               body: frame.pose.turnBody,
+              facing: frame.placement.facing,
               clip: frame.clips.find((c) => c.role === `gait:${gait}`)?.time,
             });
           }

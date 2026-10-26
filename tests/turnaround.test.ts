@@ -5,12 +5,18 @@ import { describe, expect, it } from 'vitest';
 import { manifestSchema } from '../src/renderer/characters/manifest';
 import { mascotV2 } from '../src/renderer/characters/mascot-v2/manifest';
 import { mascotV2Motion, turnTime } from '../src/renderer/characters/mascot-v2/motion';
-import { neutralPose } from '../src/renderer/motion/types';
+import { neutralPose, type MotionFrame } from '../src/renderer/motion/types';
 import { MotionLayer } from '../src/renderer/motion/motion';
 // @ts-expect-error -- plain .mjs pipeline module without type declarations
 import * as turnStep from '../tools/mascot-remix/steps/turn.mjs';
 
 const { addTurnaround } = turnStep as { addTurnaround: (rml: string) => string };
+
+function boundEyeX(frame: MotionFrame) {
+  const eyes = mascotV2Motion.bind(frame).nodes['eyes'];
+  if (!eyes || eyes.x === undefined) throw new Error('Mascot v2 binding must expose pupil X');
+  return eyes.x;
+}
 
 const source = readFileSync('art/mascot-remix/scene.rml', 'utf8');
 const TRACKS = ['tavi/turnHead', 'tavi/turnBody'];
@@ -161,15 +167,18 @@ describe('Lyla v2 turnaround', () => {
       const frame = layer.update(i / 60);
       if (frame.status.locomotion.startsWith('moving:')) {
         moving++;
-        expect(frame.pose.turnHead * direction).toBeGreaterThan(0.3);
+        expect(frame.pose.turnHead * frame.placement.facing * direction).toBeGreaterThan(0.3);
         expect(frame.pose.gazeX * direction).toBeGreaterThan(0);
-        expect(frame.placement.facing).toBe(1);
+        const pupilX = boundEyeX(frame);
+        expect(pupilX * frame.placement.facing * direction).toBeGreaterThan(0);
+        expect(frame.placement.facing).toBe(direction);
       }
       final = frame;
     }
     expect(moving).toBeGreaterThan(5);
     expect(Math.abs(final.pose.turnHead)).toBeLessThan(0.05);
     expect(Math.abs(final.pose.turnBody)).toBeLessThan(0.05);
+    expect(final.placement.facing).toBe(1);
   });
 
   it('turns into the return walk before stepping and resets to idle after arriving home', () => {
@@ -198,14 +207,17 @@ describe('Lyla v2 turnaround', () => {
       frame = layer.update(i / 60);
       if (!frame.status.locomotion.startsWith('moving:')) continue;
       sawLeftwardTravel = true;
-      expect(frame.pose.turnHead).toBeLessThan(-0.3);
-      expect(frame.pose.turnBody).toBeLessThan(-0.3);
-      expect(frame.pose.gazeX).toBeLessThan(0);
-      expect(frame.placement.facing).toBe(1);
+      expect(frame.pose.turnHead * frame.placement.facing).toBeLessThan(-0.3);
+      if (frame.time - 12.1 > 0.5)
+        expect(frame.pose.turnBody * frame.placement.facing).toBeLessThan(-0.3);
+      expect(frame.pose.gazeX * frame.placement.facing).toBeGreaterThan(0);
+      expect(boundEyeX(frame) * frame.placement.facing).toBeLessThan(0);
+      expect(frame.placement.facing).toBe(-1);
     }
     expect(sawLeftwardTravel).toBe(true);
     expect(frame.placement.x).toBeCloseTo(0.3, 2);
     expect(Math.abs(frame.pose.turnHead)).toBeLessThan(0.05);
     expect(Math.abs(frame.pose.turnBody)).toBeLessThan(0.05);
+    expect(frame.placement.facing).toBe(1);
   });
 });

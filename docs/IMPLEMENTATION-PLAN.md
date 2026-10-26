@@ -257,3 +257,7 @@ Voice output, voice cloning, gameplay/screen understanding, autonomous desktop c
 ## 10. Recommended next task
 
 Implement work package A first: audit the actual rig, fix unapplied pose channels, surface optional captions, remove misleading gesture aliases, and make six small performances clearly readable at stream size. Then add attention and the reaction policy before expanding the number of animations. Review that checkpoint before committing scarce time to a new rig or provider stack.
+
+## Deferred: UI-aware expression and event animations
+
+After the current movement and direction pass, review and polish the existing expression animations. Then design UI-aware reactions for streamer events, including donation reactions that vary by tier, subscriptions, and other meaningful events, plus additional playful custom animations. Route these through the shared cue and interruption policy so they respect quiet, stop, and streamer priority. Also revisit the current full-body 180-degree turn and replace it with a conventional animator-style turn that flows into the direction's walk cycle. These are later milestones, not part of the current movement work.

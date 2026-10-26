@@ -92,6 +92,8 @@ export interface MotionOutput {
   position?: Point;
   /** -1 faces left, 1 faces right. The renderer mirrors exactly when this changes. */
   facing?: -1 | 1;
+  /** Continuous horizontal orientation. Passes smoothly through zero during authored turns. */
+  facingScaleX?: number;
   /**
    * Normalized y of a ground line below which the body is cut (climb, hop-off). null = no mask.
    * When absent during climb choreographies the renderer masks at the character's home line.

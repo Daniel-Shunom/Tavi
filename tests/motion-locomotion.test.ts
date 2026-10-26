@@ -162,7 +162,7 @@ describe('locomotion', () => {
     expect(moveAt - gazeAt).toBeGreaterThanOrEqual(0.08);
   });
 
-  it('authored turnaround: head leads body toward travel, holds ~0.6, returns to camera', () => {
+  it('authored turnaround: head leads body, the whole sprite faces travel, then returns front', () => {
     const caps = { feet: true, turnStyle: 'authored' as const };
     const loco = new Locomotion(7);
     loco.place(0.45, 0.9);
@@ -175,12 +175,13 @@ describe('locomotion', () => {
     for (let i = 0; i <= 60 * 12; i++) {
       const t = i / 60;
       const f = loco.update(i ? 1 / 60 : 0, t, profile, stage, caps);
-      expect(f.facing).toBe(1);
+      if (f.state === 'moving') expect(f.facing).toBe(-1);
       const head = f.pose.turnHead ?? 0,
         body = f.pose.turnBody ?? 0;
-      if (head < -0.3 && headAt === Infinity) headAt = t;
-      if (body < -0.3 && bodyAt === Infinity) bodyAt = t;
-      if (f.state === 'moving') hold = Math.min(hold, body);
+      const worldTurn = (value: number) => value * f.facing * -1;
+      if (worldTurn(head) > 0.3 && headAt === Infinity) headAt = t;
+      if (worldTurn(body) > 0.3 && bodyAt === Infinity) bodyAt = t;
+      if (f.state === 'moving') hold = Math.max(hold, worldTurn(body));
       if (!f.moving && t > 1 && arrivedAt === Infinity) arrivedAt = t;
       if (
         arrivedAt < Infinity &&
@@ -191,7 +192,7 @@ describe('locomotion', () => {
         settledAt = t;
     }
     expect(bodyAt - headAt).toBeGreaterThanOrEqual(0.08);
-    expect(hold).toBeCloseTo(-0.6, 1);
+    expect(hold).toBeCloseTo(0.6, 1);
     expect(settledAt - arrivedAt).toBeLessThan(0.6);
   });
 
