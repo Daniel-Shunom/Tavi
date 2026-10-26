@@ -4,6 +4,7 @@
 import { RuntimeLoader } from '@rive-app/webgl2';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
 import avatarURL from '../../characters/mascot/mascot.riv?url';
+import avatarV2URL from '../../characters/mascot-v2/mascot-v2.riv?url';
 import { MotionLayer } from '../motion';
 import { createMotionRig, type MotionRig } from '../rive/motionRig';
 import { lylaPatch, lylaRig } from '../../characters/mascot/motionRig';
@@ -46,10 +47,14 @@ function stageCanvas(id: string) {
   return { host, canvas };
 }
 
+// ?character=v2 loads Lyla v2 (already carries the runtime names and control tracks).
+const useV2 = new URLSearchParams(location.search).get('character') === 'v2';
+const patch = useV2 ? { artboard: lylaRig.artboard } : lylaPatch;
+
 async function main() {
   const [runtime, bytes] = await Promise.all([
     RuntimeLoader.awaitInstance(),
-    fetch(avatarURL).then(async (r) => new Uint8Array(await r.arrayBuffer())),
+    fetch(useV2 ? avatarV2URL : avatarURL).then(async (r) => new Uint8Array(await r.arrayBuffer())),
   ]);
   const before = stageCanvas('before');
   const after = stageCanvas('after');
@@ -59,8 +64,8 @@ async function main() {
     'position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(20,24,40,.55),rgba(20,24,40,0))';
   after.host.insertBefore(shadow, after.canvas);
   const rigs: [MotionRig, MotionRig] = [
-    await createMotionRig(runtime, before.canvas, bytes, lylaPatch, lylaRig),
-    await createMotionRig(runtime, after.canvas, bytes, lylaPatch, lylaRig),
+    await createMotionRig(runtime, before.canvas, bytes, patch, lylaRig),
+    await createMotionRig(runtime, after.canvas, bytes, patch, lylaRig),
   ];
   const stage = { aspect: 16 / 9, bodyHeight: 0.3, margin: 0.02 };
   const layer = new MotionLayer(7, settings, stage, { feet: true });
@@ -280,6 +285,12 @@ async function main() {
     lab: {
       express,
       moveTo,
+      /** Travel with an explicit gait id from the gait library. */
+      walk: (x: number, gait: string) => {
+        home = x;
+        legacy.target = x;
+        layer.moveTo({ x, at: clock, gait });
+      },
       show,
       hide,
       settings: (next: Partial<MotionSettings>) => {

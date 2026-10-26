@@ -101,3 +101,15 @@ describe('configuration migration', () => {
     ).toBe(true);
   });
 });
+
+describe('movement style', () => {
+  it('defaults older saved configs to auto and accepts a chosen gait', () => {
+    const older: Record<string, unknown> = { ...defaults };
+    delete older['movementStyle'];
+    expect(configSchema.parse(older).movementStyle).toBe('auto');
+    const patch = { type: 'configure', patch: { movementStyle: 'skip' } };
+    expect(commandSchema.safeParse(patch).success).toBe(true);
+    const bad = { type: 'configure', patch: { movementStyle: 'teleport' } };
+    expect(commandSchema.safeParse(bad).success).toBe(false);
+  });
+});

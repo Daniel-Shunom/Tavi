@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { scriptSchema } from './cue.js';
 import { expressionIdSchema, sequenceIdSchema, targetSchema } from './expressions.js';
-import { anchorSchema, movementSchema, pointSchema } from './locomotion.js';
+import { anchorSchema, movementSchema, movementStyles, pointSchema } from './locomotion.js';
 import { choreographyPreferenceSchema, presenceTransitionSchema } from './presence.js';
 import type { CharacterCatalog } from './capabilities.js';
 import {
@@ -35,6 +35,8 @@ export const configObjectSchema = z
     captions: z.object({ studio: z.boolean(), overlay: z.boolean() }).strict(),
     /** Entrance/exit choreography for tuck away and bring back. */
     presenceStyle: choreographyPreferenceSchema,
+    /** How it moves when the studio repositions it: auto (motion layer chooses) or a gait. */
+    movementStyle: z.enum(movementStyles),
     /** Equipped attachments, tints and custom colours. Added after v2; defaulted on load. */
     wardrobe: wardrobeSchema,
     /** Webcam, game/VOD and chat rectangles and the floor line. Added after v2; defaulted on load. */
@@ -57,6 +59,7 @@ export const defaults: Config = {
   y: 0.72,
   captions: { studio: true, overlay: false },
   presenceStyle: 'random',
+  movementStyle: 'auto',
   wardrobe: defaultWardrobe,
   scene: defaultScene,
 };
