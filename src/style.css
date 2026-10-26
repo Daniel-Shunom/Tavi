@@ -1675,6 +1675,11 @@ input[type='range'] {
 .avatar-shadow {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(8 6 18 / 0.85), rgb(8 6 18 / 0.35) 55%, transparent);
+  background: radial-gradient(
+    closest-side,
+    rgb(8 6 18 / 0.85),
+    rgb(8 6 18 / 0.35) 55%,
+    transparent
+  );
   pointer-events: none;
 }
