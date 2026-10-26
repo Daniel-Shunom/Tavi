@@ -4,6 +4,12 @@ import { expressionIdSchema, sequenceIdSchema, targetSchema } from './expression
 import { anchorSchema, movementSchema, pointSchema } from './locomotion.js';
 import { choreographyPreferenceSchema, presenceTransitionSchema } from './presence.js';
 import type { CharacterCatalog } from './capabilities.js';
+import {
+  defaultWardrobe,
+  normalizeWardrobe,
+  wardrobeSchema,
+  type ItemCatalog,
+} from './wardrobe.js';
 
 export const CONFIG_VERSION = 2;
 /** Used when a saved character id is unknown. Characters themselves live in manifests. */
@@ -27,6 +33,8 @@ export const configObjectSchema = z
     captions: z.object({ studio: z.boolean(), overlay: z.boolean() }).strict(),
     /** Entrance/exit choreography for tuck away and bring back. */
     presenceStyle: choreographyPreferenceSchema,
+    /** Equipped attachments, tints and custom colours. Added after v2; defaulted on load. */
+    wardrobe: wardrobeSchema,
   })
   .strict();
 export type Config = z.infer<typeof configObjectSchema>;
@@ -45,6 +53,7 @@ export const defaults: Config = {
   y: 0.72,
   captions: { studio: true, overlay: false },
   presenceStyle: 'random',
+  wardrobe: defaultWardrobe,
 };
 const legacyAppearance = {
   riveHair: 'hair',
@@ -81,7 +90,12 @@ export function migrateConfig(raw: unknown): unknown {
 }
 export const configSchema = z.preprocess(migrateConfig, configObjectSchema);
 /** Keeps the character id and appearance consistent with what the manifests offer. */
-export function normalizeConfig(config: Config, catalog: CharacterCatalog | undefined): Config {
+export function normalizeConfig(
+  input: Config,
+  catalog: CharacterCatalog | undefined,
+  items?: ItemCatalog,
+): Config {
+  const config = { ...input, wardrobe: normalizeWardrobe(input.wardrobe, items) };
   if (!catalog) return config;
   const character =
     catalog[config.character] ?? catalog[fallbackCharacterId] ?? Object.values(catalog)[0];
@@ -180,7 +194,12 @@ export function initialState(config: Config = defaults): State {
   };
 }
 /** Pure configuration and control transitions. Performances are scheduled by the service. */
-export function reduce(state: State, command: Command, catalog?: CharacterCatalog): State {
+export function reduce(
+  state: State,
+  command: Command,
+  catalog?: CharacterCatalog,
+  items?: ItemCatalog,
+): State {
   if (command.type === 'configure') {
     const { appearance, ...rest } = command.patch;
     const merged = configObjectSchema.parse({
@@ -188,7 +207,7 @@ export function reduce(state: State, command: Command, catalog?: CharacterCatalo
       ...rest,
       appearance: { ...state.config.appearance, ...appearance },
     });
-    return { ...state, config: normalizeConfig(merged, catalog) };
+    return { ...state, config: normalizeConfig(merged, catalog, items) };
   }
   if (command.type === 'retract') return { ...state, retracted: command.value };
   if (command.type === 'quiet') return { ...state, quiet: command.value };
