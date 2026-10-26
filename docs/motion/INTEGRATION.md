@@ -94,3 +94,14 @@ Plus one-shots: `groan-sigh`, `stop-and-sigh`, `slump-hmph`, `skip-twirl`, `stom
 ## Rig adapter
 
 `rive/motionRig.ts` loads the .riv with an in-memory `RigPatch` (`rive/patch.ts`): runtime names on chosen nodes and single-property control tracks for joystick channels. Per frame: reset to rest, authored clips (played forward in real time, not scrubbed), channel writes (`value`, `weight`), additive node offsets, `artboard.advance`, draw with lean/facing/squash placement. A new character supplies a manifest like `rigs/lyla.ts` and a binding like `rigs/lylaBinding.ts`.
+
+## Authored gait cycles (Lyla v2)
+
+`mascot-v2` provides authored in-place cycles under the `authoredGaitClips` handles:
+`walk-cycle` (`tavi/gait/walk`, 42 frames = 0.7 s, two steps) and `trudge-cycle`
+(`tavi/gait/trudge`, 80 frames = 1.33 s, small dragged steps, crouched and leaning). They loop.
+They key the foot IK targets (the planted foot slides back by ±14 u for walk and ±9 u for
+trudge, so the stage speed for a planted foot is 56 u per cycle and 36 u per cycle), the hip
+bob, the torso twist and lean, the shoulder swing and the head. The motion layer moves the
+character, and node offsets stay additive on top. Play them by time: frame / 60 s. Other gaits
+fall back to the procedural cycles. Source: `tools/mascot-remix/author.mjs` (step 6).

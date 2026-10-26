@@ -9,6 +9,8 @@
 //   - an opening mouth that morphs from the line: tavi/mouthOpen, tavi/mouthWide
 //   - hand poses on each forearm (rest, open, fist, point, thumb): tavi/handL, tavi/handR
 //   - arms drawn in front of the hair on demand: tavi/armsFront
+//   - in-place gait cycles for the gait system: tavi/gait/walk (42 f), tavi/gait/trudge (80 f)
+//   - body-state poses: sit_floor, swing_legs, sleep_breath, zzz
 // The original art and animations are not changed. Source: "Mascot / Avatar Customization" by
 // alisketch (CC BY 4.0), remixed.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -67,6 +69,20 @@ export const lylaSpec = {
     positionTimelines: ['mouth X', 'mouth Y'],
   },
   /** Brow path vertices: inner/outer end and their rest y. */
+  /** Rest transforms of the parts gait cycles key (absolute values in their parents). */
+  gait: {
+    footL: { id: '0:2559', x: 288.5, y: 525.5 },
+    footR: { id: '0:2506', x: 322.5, y: 525.5 },
+    hip: { id: '0:2207', y: -150 },
+    torso: { id: '0:2206' },
+    neck: { id: '0:5358' },
+    armL: { id: '0:5038' },
+    armR: { id: '0:4914' },
+    /** The head node (Zs float above it). */
+    head: { id: '0:437' },
+    /** Hip drop for sitting on the floor (measured by the body-states work on v1). */
+    seatDrop: 106,
+  },
   brows: {
     L: { inner: '0:478', innerY: -4.513, outer: '0:476', outerY: 8.527 },
     R: { inner: '0:484', innerY: -4.513, outer: '0:482', outerY: 8.527 },
@@ -430,6 +446,218 @@ export function authorTavi(source, spec = lylaSpec) {
           [30, armRules.R.front],
         ]),
     ),
+  );
+
+  // --- 6. Authored gait cycles (in place; locomotion moves the character) -----------------
+  // Names and loop lengths follow motion/systems/gaits/library.ts (authoredGaitClips): one cycle
+  // is two steps. Feet are IK targets: the planted foot slides back at ground speed while the
+  // other lifts and swings forward; hips bob (low at contact), the torso counter-twists and the
+  // arms swing opposite the legs.
+  const g = spec.gait;
+  const cycle = ({ name, frames, stride, lift, bob, crouch, lean, twist, swing, head }) => {
+    const half = frames / 2;
+    const foot = (part, plantStart) => {
+      // Planted: front -> back over half a cycle; swing: back -> front, lifted at mid-swing.
+      const at = (f) => ((f % frames) + frames) % frames;
+      const keysX = new Map(),
+        keysY = new Map();
+      keysX.set(at(plantStart), part.x + stride);
+      keysY.set(at(plantStart), part.y);
+      keysX.set(at(plantStart + half), part.x - stride);
+      keysY.set(at(plantStart + half), part.y);
+      keysX.set(at(plantStart + half * 1.5), part.x);
+      keysY.set(at(plantStart + half * 1.5), part.y - lift);
+      /** Sorted keys over 0..frames, closing the loop (frame 0 interpolated if needed). */
+      const close = (map) => {
+        const sorted = [...map.entries()].sort((a, b) => a[0] - b[0]);
+        const first = sorted[0];
+        if (first && first[0] !== 0) {
+          // Interpolate the value at frame 0 from the wrap-around segment.
+          const last = sorted[sorted.length - 1];
+          const span = frames - last[0] + first[0];
+          const value = last[1] + ((first[1] - last[1]) * (frames - last[0])) / span;
+          sorted.unshift([0, value]);
+        }
+        sorted.push([frames, sorted[0][1]]);
+        return sorted;
+      };
+      return keyed(part.id, { x: close(keysX), y: close(keysY) });
+    };
+    const wave = (value, base, offset = 0) => [
+      [0, base + value * Math.cos(offset)],
+      [half / 2, base + value * Math.cos(offset + Math.PI / 2)],
+      [half, base + value * Math.cos(offset + Math.PI)],
+      [half * 1.5, base + value * Math.cos(offset + Math.PI * 1.5)],
+      [frames, base + value * Math.cos(offset)],
+    ];
+    const body =
+      foot(g.footL, 0) +
+      foot(g.footR, half) +
+      keyed(g.hip.id, {
+        y: [
+          [0, g.hip.y + crouch + bob],
+          [half / 2, g.hip.y + crouch - bob],
+          [half, g.hip.y + crouch + bob],
+          [half * 1.5, g.hip.y + crouch - bob],
+          [frames, g.hip.y + crouch + bob],
+        ],
+      }) +
+      keyed(g.torso.id, { rotation: wave(twist, lean) }) +
+      keyed(g.armL.id, { rotation: wave(swing, 0) }) +
+      keyed(g.armR.id, { rotation: wave(swing, 0) }) +
+      keyed(g.neck.id, { rotation: wave(twist * 0.5, head, Math.PI) });
+    return `<LinearAnimation duration="${String(frames)}" loopValue="loop" name="${name}" id="${id()}">${body}</LinearAnimation>`;
+  };
+  tracks.push(
+    cycle({
+      name: 'tavi/gait/walk',
+      frames: 42,
+      stride: 14,
+      lift: 11,
+      bob: 3,
+      crouch: 0,
+      lean: 0.02,
+      twist: 0.03,
+      swing: 0.12,
+      head: 0,
+    }),
+  );
+  tracks.push(
+    cycle({
+      name: 'tavi/gait/trudge',
+      frames: 80,
+      stride: 9,
+      lift: 3,
+      bob: 2,
+      crouch: 7,
+      lean: 0.08,
+      twist: 0.02,
+      swing: 0.05,
+      head: 0.07,
+    }),
+  );
+
+  // --- 7. Body-state poses (names from docs/motion/BODY-STATES-RESEARCH.md; bones only) -------
+  // sit_floor: one-frame pose, hips dropped onto the seat with the feet drawn in.
+  tracks.push(
+    anim(
+      'sit_floor',
+      keyed(g.hip.id, { y: [[0, g.hip.y + g.seatDrop]] }) +
+        keyed(g.footL.id, { x: [[0, g.footL.x + 9]], y: [[0, g.footL.y]] }) +
+        keyed(g.footR.id, { x: [[0, g.footR.x - 9]], y: [[0, g.footR.y]] }) +
+        keyed(g.armL.id, { rotation: [[0, 0.25]] }) +
+        keyed(g.armR.id, { rotation: [[0, -0.25]] }),
+      1,
+    ),
+  );
+  // swing_legs: 1 s loop, feet alternate forward/up (layer over a ledge sit).
+  tracks.push(
+    `<LinearAnimation duration="60" loopValue="loop" name="swing_legs" id="${id()}">` +
+      keyed(g.footL.id, {
+        x: [
+          [0, g.footL.x - 6],
+          [30, g.footL.x + 6],
+          [60, g.footL.x - 6],
+        ],
+        y: [
+          [0, g.footL.y],
+          [15, g.footL.y - 9],
+          [30, g.footL.y],
+          [60, g.footL.y],
+        ],
+      }) +
+      keyed(g.footR.id, {
+        x: [
+          [0, g.footR.x + 6],
+          [30, g.footR.x - 6],
+          [60, g.footR.x + 6],
+        ],
+        y: [
+          [0, g.footR.y],
+          [30, g.footR.y],
+          [45, g.footR.y - 9],
+          [60, g.footR.y],
+        ],
+      }) +
+      `</LinearAnimation>`,
+  );
+  // sleep_breath: 5 s loop, belly then shoulders (2-3% torso scale).
+  tracks.push(
+    `<LinearAnimation duration="300" loopValue="loop" name="sleep_breath" id="${id()}">` +
+      keyed(g.torso.id, {
+        scaleY: [
+          [0, 1],
+          [120, 1.025],
+          [300, 1],
+        ],
+        scaleX: [
+          [0, 1],
+          [100, 1.012],
+          [300, 1],
+        ],
+      }) +
+      keyed(g.neck.id, {
+        y: [
+          [0, -101.578],
+          [140, -102.8],
+          [300, -101.578],
+        ],
+      }) +
+      `</LinearAnimation>`,
+  );
+  // zzz: 2 s loop of three Zs rising and fading above the head (hidden at rest).
+  const zIds = [id(), id(), id()];
+  const zShape = (zid, x, y, size) =>
+    `<Shape x="${String(x)}" y="${String(y)}" opacity="0" name="z" id="${zid}"><PointsPath name="Path" id="${id()}">` +
+    `<StraightVertex x="${String(-size / 2)}" y="${String(-size / 2)}" name="a" id="${id()}"/>` +
+    `<StraightVertex x="${String(size / 2)}" y="${String(-size / 2)}" name="b" id="${id()}"/>` +
+    `<StraightVertex x="${String(-size / 2)}" y="${String(size / 2)}" name="c" id="${id()}"/>` +
+    `<StraightVertex x="${String(size / 2)}" y="${String(size / 2)}" name="d" id="${id()}"/>` +
+    `</PointsPath><Stroke thickness="4" cap="round" join="round" name="Stroke" id="${id()}"><SolidColor colorValue="FF6F7AD8" name="Color" id="${id()}"/></Stroke></Shape>`;
+  const zSpots = [
+    [62, -150, 12],
+    [80, -175, 16],
+    [100, -205, 20],
+  ];
+  insertAfterOpen(
+    g.head.id,
+    block(
+      'zzz',
+      `<Node name="tavi/zzz" id="${id()}">` +
+        zIds.map((zid, i) => zShape(zid, ...zSpots[i])).join('') +
+        `</Node>`,
+    ),
+  );
+  tracks.push(
+    `<LinearAnimation duration="120" loopValue="loop" name="zzz" id="${id()}">` +
+      zIds
+        .map((zid, i) => {
+          const start = i * 25;
+          const [x, y] = zSpots[i];
+          return keyed(zid, {
+            opacity: [
+              [0, 0],
+              [start, 0],
+              [start + 15, 1],
+              [start + 60, 0],
+              [120, 0],
+            ],
+            y: [
+              [0, y + 20],
+              [start, y + 20],
+              [start + 60, y - 10],
+              [120, y + 20],
+            ],
+            x: [
+              [0, x],
+              [start + 30, x + 6],
+              [start + 60, x],
+              [120, x],
+            ],
+          });
+        })
+        .join('') +
+      `</LinearAnimation>`,
   );
 
   // Animations go at the end of the lyla artboard (before its closing tag).
