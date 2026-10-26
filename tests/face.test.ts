@@ -241,6 +241,22 @@ describe('face layer', () => {
     };
     expect(settle(1.2)).toBeLessThan(settle(0.65) - 0.15);
   });
+  it('leaves channels held by a body state alone (acting layers over sitting)', () => {
+    const layer = new FaceLayer(face, { ownBlinks: false });
+    let values = {} as ReturnType<FaceLayer['update']>['values'];
+    for (let frame = 0; frame < 90; frame++)
+      values = layer.update({
+        dt: 1 / 60,
+        time: frame / 60,
+        reducedMotion: true,
+        held: new Set(['bob', 'shift', 'footLY', 'footRY']),
+        cues: [{ expression: 'excited', intensity: 1, weight: 1, elapsed: frame / 60 }],
+      }).values;
+    expect(values.bob ?? 0).toBe(0);
+    expect(values.footLY ?? 0).toBe(0);
+    expect(Math.abs(values.browL ?? 0)).toBeGreaterThan(0.8);
+    expect(values.armL ?? 0).toBeGreaterThan(1);
+  });
   it('is frame-rate independent', () => {
     const run = (fps: number) => {
       const state = { value: 0, velocity: 0 };

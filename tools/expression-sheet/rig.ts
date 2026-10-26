@@ -49,7 +49,10 @@ export async function createSheetRig(
       { zoom = 1, focus = 0.3, dt = 1 / 60 }: { zoom?: number; focus?: number; dt?: number } = {},
     ) {
       const bodyHeight = zoom === 1 ? height * 0.96 : height * zoom;
-      rig.frame(dt, bindLyla(frame), {
+      // Same rest as the app's renderer (the wave clip at 0 resets the forearm bones, which
+      // otherwise keep the last clip's pose between cards).
+      const rest = { role: 'wave', time: 0, mix: 1 };
+      rig.frame(dt, bindLyla({ ...frame, clips: [rest, ...frame.clips] }), {
         x: width / 2,
         y: zoom === 1 ? height * 0.98 : height / 2 + (1 - focus) * bodyHeight,
         height: bodyHeight,

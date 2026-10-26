@@ -51,8 +51,8 @@ export const corePoses: ActingPoses = {
       mouthY: 0.9,
       squash: -0.3,
       gazeY: -0.25,
-      armL: 1.45,
-      armR: 1.45,
+      armL: 1.1,
+      armR: 1.1,
       bob: -0.01,
     },
     strong: {
@@ -62,8 +62,8 @@ export const corePoses: ActingPoses = {
       mouthY: 1,
       squash: -0.45,
       gazeY: -0.35,
-      armL: 1.75,
-      armR: 1.75,
+      armL: 1.25,
+      armR: 1.25,
       bob: -0.016,
     },
     onset: {
@@ -73,7 +73,7 @@ export const corePoses: ActingPoses = {
     keys: {
       channels: {
         bob: hops(0, 0.42, 0.02, 3),
-        squash: hops(0, 0.42, 0.25, 3),
+        squash: hops(0, 0.42, 0.22, 3),
         footLY: pulses([0.18, 1.02], 0.035, 0.24),
         footRY: pulses([0.6], 0.035, 0.24),
         armL: pulses([0.1, 0.52, 0.94], 0.25, 0.3),
@@ -413,8 +413,8 @@ export const corePoses: ActingPoses = {
       squash: -0.55,
       headY: -0.01,
       lean: -0.05,
-      armL: 0.15,
-      armR: 0.15,
+      armL: 0.4,
+      armR: 0.4,
       bob: -0.01,
     },
     strong: {
@@ -425,8 +425,8 @@ export const corePoses: ActingPoses = {
       squash: -0.8,
       headY: -0.016,
       lean: -0.09,
-      armL: 0.3,
-      armR: 0.3,
+      armL: 0.65,
+      armR: 0.65,
       bob: -0.02,
     },
     onset: {
