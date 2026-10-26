@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { State, Gesture } from '../../shared/protocol';
 import { Director, performancePose, smooth, type PerformanceAction } from './performance';
 import type { RiveRig } from './riveRig';
+// MOTION LAYER HOOK (motion agent): procedural idle life, walking and entrances/exits.
+// Set to false to restore the previous clip-scrub renderer. See docs/motion/INTEGRATION.md.
+import type { AvatarMotion } from './motion/avatarMotion';
+const MOTION_LAYER: boolean = true;
 const actions: Partial<Record<Gesture, PerformanceAction>> = {
   wave: 'wave',
   smile: 'nod',
@@ -28,6 +32,7 @@ export function Avatar({
   const [error, setError] = useState('');
   useEffect(() => {
     let cancelled = false,
+      motion: AvatarMotion | undefined, // MOTION LAYER HOOK
       rig: RiveRig | undefined,
       frame: number | null = null;
     let clock = 0,
@@ -48,14 +53,16 @@ export function Avatar({
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     function resize() {
       const element = host.current;
-      if (!element || !rig) return;
+      if (!element || (!rig && !motion)) return;
       width = element.clientWidth;
       height = element.clientHeight;
-      rig.resize(width, height);
+      rig?.resize(width, height);
+      motion?.resize(width, height); // MOTION LAYER HOOK
     }
     const observer = new ResizeObserver(resize);
     function stop() {
-      if (frame !== null && rig) rig.runtime.cancelAnimationFrame(frame);
+      const runtime = motion?.runtime ?? rig?.runtime; // MOTION LAYER HOOK
+      if (frame !== null && runtime) runtime.cancelAnimationFrame(frame);
       frame = null;
       last = null;
     }
@@ -63,16 +70,31 @@ export function Avatar({
       console.error('Tavi character renderer:', reason);
       stop();
       rig?.dispose();
+      motion?.dispose(); // MOTION LAYER HOOK
       if (!cancelled)
         setError('The character could not load. Check graphics acceleration and refresh.');
     }
     function draw(now: number) {
       frame = null;
-      if (cancelled || !rig || document.hidden) return;
+      if (cancelled || (!rig && !motion) || document.hidden) return;
       try {
         const dt = last === null ? 0 : Math.min(0.1, Math.max(0, (now - last) / 1000));
         last = now;
         clock += dt;
+        // MOTION LAYER HOOK: the motion layer drives everything; the legacy path below is unused.
+        if (motion) {
+          const result = motion.frame(dt, clock, latest.current);
+          const element = host.current;
+          if (element) {
+            element.dataset['performance'] = result.status.expressions[0] ?? 'idle';
+            element.dataset['retracted'] = String(latest.current.retracted);
+            element.dataset['locomotion'] = result.status.locomotion;
+            element.dataset['ready'] = 'true';
+          }
+          frame = motion.runtime.requestAnimationFrame(draw);
+          return;
+        }
+        if (!rig) return;
         const current = latest.current,
           config = current.config;
         if (current.quiet !== quiet) {
@@ -154,7 +176,8 @@ export function Avatar({
     }
     function visibility() {
       if (document.hidden) stop();
-      else if (rig && !cancelled && frame === null) frame = rig.runtime.requestAnimationFrame(draw);
+      else if ((rig || motion) && !cancelled && frame === null)
+        frame = (motion?.runtime ?? rig?.runtime)?.requestAnimationFrame(draw) ?? null;
     }
     const isCancelled = () => cancelled;
     async function mount() {
@@ -162,6 +185,27 @@ export function Avatar({
         const element = host.current,
           target = canvas.current;
         if (!element || !target) return;
+        // MOTION LAYER HOOK: load the motion-driven renderer instead of the clip-scrub rig.
+        if (MOTION_LAYER) {
+          const motionModule = await import('./motion/avatarMotion');
+          if (isCancelled()) return;
+          const loadedMotion = await motionModule.createAvatarMotion(
+            target,
+            latest.current,
+            presentation,
+            clock,
+          );
+          if (isCancelled()) {
+            loadedMotion.dispose();
+            return;
+          }
+          motion = loadedMotion;
+          resize();
+          observer.observe(element);
+          document.addEventListener('visibilitychange', visibility);
+          frame = motion.runtime.requestAnimationFrame(draw);
+          return;
+        }
         const module = await import('./riveRig');
         if (isCancelled()) return;
         const loaded = await module.createRiveRig(target);
@@ -185,6 +229,7 @@ export function Avatar({
       observer.disconnect();
       document.removeEventListener('visibilitychange', visibility);
       rig?.dispose();
+      motion?.dispose(); // MOTION LAYER HOOK
     };
   }, [presentation]);
   return (
