@@ -28,6 +28,11 @@ try {
     timeout: 30000,
   });
   await mkdir('test-results/expressions', { recursive: true });
+  // Start from a visible companion regardless of earlier runs.
+  const back = page.getByRole('button', { name: 'Bring Tavi back', exact: true });
+  if (await back.count()) await back.click();
+  await expect(page.getByRole('button', { name: 'Tuck away', exact: true })).toBeVisible();
+  await page.waitForTimeout(2000);
   const dock = page.getByRole('group', { name: 'Try an expression' });
   const expected = {
     wave: ['glance', 'wave', 'content'],
@@ -75,10 +80,20 @@ try {
   // Retract and restore emit seeded choreography cues; retract interrupts immediately.
   await page.getByRole('button', { name: 'Tuck away', exact: true }).click();
   await expect.poll(async () => (await state(page)).performance.presence?.kind).toBe('exit');
-  await expect(page.locator('.portrait-space canvas')).toHaveCSS('opacity', '0', { timeout: 5000 });
+  // The motion layer may exit by walking or climbing out rather than fading, so check state.
+  await expect(page.locator('.portrait-space .avatar-renderer')).toHaveAttribute(
+    'data-retracted',
+    'true',
+  );
   await page.getByRole('button', { name: 'Bring Tavi back', exact: true }).click();
   await expect.poll(async () => (await state(page)).performance.presence?.kind).toBe('enter');
-  await expect(page.locator('.portrait-space canvas')).toHaveCSS('opacity', '1', { timeout: 5000 });
+  await expect(page.locator('.portrait-space .avatar-renderer')).toHaveAttribute(
+    'data-retracted',
+    'false',
+  );
+  await expect(page.locator('.portrait-space .avatar-body')).toHaveCSS('opacity', '1', {
+    timeout: 15000,
+  });
   // A reconnecting overlay shows current state without replaying finished cues.
   const fresh = await (
     await browser.newContext({ viewport: { width: 1280, height: 720 } })
@@ -90,6 +105,20 @@ try {
   await expect(fresh.locator('.avatar-renderer')).toHaveAttribute('data-performance', 'idle', {
     timeout: 8000,
   });
+  // Wardrobe: equip an item, see it on stage, then remove it.
+  await page.getByRole('link', { name: 'Wardrobe', exact: true }).click();
+  await page.getByRole('radio', { name: 'Pom beanie' }).click();
+  await expect
+    .poll(async () => (await state(page)).config.wardrobe.attachments['head.top'])
+    .toBe('beanie');
+  await page.waitForTimeout(800);
+  await page
+    .locator('.portrait-space')
+    .screenshot({ path: 'test-results/expressions/wardrobe.png' });
+  await page.getByRole('radiogroup', { name: 'Hat' }).getByRole('radio', { name: 'None' }).click();
+  await expect
+    .poll(async () => (await state(page)).config.wardrobe.attachments['head.top'])
+    .toBeUndefined();
   if (errors.length) throw new Error(errors.join('\n'));
   console.log(
     'Expression browser checks passed: six core reactions, studio/overlay agreement, cancel, conversation caption, provider label, retract/restore choreography, reconnect without replay.',
