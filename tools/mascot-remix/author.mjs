@@ -6,7 +6,8 @@
 //   - control tracks `tavi/<channel>` keying each joystick axis from -1.25 to 1.25 (no in-memory
 //     patch needed for this file)
 //   - brow tilt (inner end up/down) via brow vertex keys: tavi/browTiltL, tavi/browTiltR
-//   - an opening mouth that morphs from the line: tavi/mouthOpen, tavi/mouthWide
+//   - a Duolingo-style mouth shape library (filled shapes, teeth and tongue; one mouth at a time):
+//     tavi/mouthShape, tavi/mouthOpen, tavi/mouthWide, tavi/mouthTilt, tavi/mouthPop
 //   - hand poses on each forearm (rest, open, fist, point, thumb): tavi/handL, tavi/handR
 //   - arms drawn in front of the hair on demand: tavi/armsFront
 //   - in-place gait cycles for the gait system: tavi/gait/walk (42 f), tavi/gait/trudge (80 f)
@@ -64,6 +65,13 @@ export const lylaSpec = {
     vertices: { right: '0:554', middle: '0:555', left: '0:2703' },
     stroke: 4.3523202,
     lineColor: 'FFEB0066',
+    /** Mouth library fills (variants may recolour lips; interior, teeth, tongue stay readable). */
+    colors: {
+      interior: 'FF7A1238',
+      teeth: 'FFFFFFFF',
+      tongue: 'FFFF7C98',
+      lips: 'FFEB0066',
+    },
     /** Lower-lip drop when fully open (units). */
     depth: 20,
     smileTimeline: 'mouth smile frown',
@@ -238,39 +246,284 @@ export function authorTavi(source, spec = lylaSpec) {
   insertAfterOpen(spec.arms.L.fore, block('hand-l', handL.content));
   insertAfterOpen(spec.arms.R.fore, block('hand-r', handR.content));
 
-  // --- 3. Opening mouth (one mouth at a time) ------------------------------------------------
-  // The open mouth is a filled, lip-outlined copy of the mouth line whose lower lip separates as
-  // `tavi/mouthOpen` rises: at 0 it is flat and exactly on the line. The line's stroke hands over
-  // to it within the first 8% of opening (same geometry, so it reads as one mouth throughout).
-  // Its corners and upper lip copy the line's smile/frown keys, and its wrapper copies the line's
-  // position keys, so an open smile and an open frown both follow the curve. `tavi/mouthWide`
-  // scales the wrapper: -1 round (O/U) .. 0 neutral .. 1 wide (E).
+  // --- 3. Mouth shape library (Duolingo-style; one mouth visible at a time) -------------------
+  // The closed mouth is the original `mouth` line. Every other mouth is its own filled shape
+  // (dark interior, separate teeth and tongue fills clipped to it, no outline), selected by
+  // `tavi/mouthShape`; the line's opacity is keyed on the same frames, so exactly one shows.
+  // Continuous axes act on the selected shape: `tavi/mouthOpen` (height), `tavi/mouthWide`
+  // (width), `tavi/mouthTilt` (lopsided) and `tavi/mouthPop` (the squash that hides a swap).
+  // Shapes are drawn around the line's own origin, so the mouth's rest centre is unchanged.
   const m = spec.mouth;
-  const mouthIds = {
-    wrap: id(),
-    shape: id(),
-    path: id(),
-    right: id(),
-    top: id(),
-    left: id(),
-    bottom: id(),
+  const mouthIds = { wrap: id(), axes: id(), pop: id(), solo: id() };
+  /** Smooth closed path through points; `sharp` indices become corners. */
+  const blob = (points, sharp = [], tension = 0.36) => {
+    const n = points.length;
+    return points
+      .map(([x, y], i) => {
+        if (sharp.includes(i))
+          return `<StraightVertex x="${x.toFixed(2)}" y="${y.toFixed(2)}" name="v" id="${id()}"/>`;
+        const [px, py] = points[(i - 1 + n) % n];
+        const [nx, ny] = points[(i + 1) % n];
+        const angle = Math.atan2(ny - py, nx - px);
+        const inD = Math.hypot(x - px, y - py) * tension;
+        const outD = Math.hypot(nx - x, ny - y) * tension;
+        return `<CubicDetachedVertex inRotation="${(angle + Math.PI).toFixed(4)}" inDistance="${inD.toFixed(2)}" outRotation="${angle.toFixed(4)}" outDistance="${outD.toFixed(2)}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" name="v" id="${id()}"/>`;
+      })
+      .join('');
   };
-  const lipStroke = `<Stroke thickness="${String(m.stroke)}" cap="round" join="round" name="lips" id="${id()}"><SolidColor colorValue="${m.lineColor}" name="Color" id="${id()}"/></Stroke>`;
+  const paint = (color) =>
+    `<Fill name="Fill" id="${id()}"><SolidColor colorValue="${color}" name="Color" id="${id()}"/></Fill>`;
+  const stroke = (color, width) =>
+    `<Stroke thickness="${String(width)}" cap="round" join="round" transformAffectsStroke="false" name="Stroke" id="${id()}"><SolidColor colorValue="${color}" name="Color" id="${id()}"/></Stroke>`;
+  const C = m.colors;
+  /** An open mouth: interior fill plus optional teeth/tongue clipped to it. */
+  const open = (name, points, { sharp = [], teeth, tongue } = {}) => {
+    const interior = id();
+    const clip = () => `<ClippingShape sourceId="${interior}" name="clip" id="${id()}"/>`;
+    // First child draws on top: teeth, then tongue, then the interior.
+    const teethShape = teeth
+      ? `<Shape x="0" y="${String(teeth.y)}" name="tavi/mouth/teeth" id="${id()}"><Rectangle width="${String(teeth.w ?? 48)}" height="${String(teeth.h)}" cornerRadiusTL="2" name="Path" id="${id()}"/>${paint(C.teeth)}${clip()}</Shape>`
+      : '';
+    const tongueShape = tongue
+      ? `<Shape x="${String(tongue.x ?? 0)}" y="${String(tongue.y)}" name="tavi/mouth/tongue" id="${id()}"><Ellipse width="${String(tongue.w)}" height="${String(tongue.h)}" name="Path" id="${id()}"/>${paint(C.tongue)}${clip()}</Shape>`
+      : '';
+    return {
+      name,
+      content:
+        teethShape +
+        tongueShape +
+        `<Shape name="tavi/mouth/interior" id="${interior}"><PointsPath isClosed="true" name="Path" id="${id()}">${blob(points, sharp)}</PointsPath>${paint(C.interior)}</Shape>`,
+    };
+  };
+  /** A closed mouth drawn as a stroke (deadpan, squiggle, frown, blep). */
+  const line = (name, points, extra = '') => ({
+    name,
+    content:
+      extra +
+      `<Shape name="tavi/mouth/lips" id="${id()}"><PointsPath name="Path" id="${id()}">${points
+        .map(
+          ([x, y]) =>
+            `<StraightVertex x="${String(x)}" y="${String(y)}" radius="3" name="v" id="${id()}"/>`,
+        )
+        .join('')}</PointsPath>${stroke(C.lips, m.stroke)}</Shape>`,
+  });
+  // Index 0 is the original line (an empty selection). Coordinates: mouth-local units, +y down;
+  // the line spans x -18..18 around y 0.
+  const library = [
+    { name: 'line', content: '' },
+    open(
+      'smile open',
+      [
+        [-15, -2],
+        [0, -0.5],
+        [15, -2],
+        [9, 7],
+        [0, 10],
+        [-9, 7],
+      ],
+      { sharp: [0, 2], tongue: { y: 9, w: 13, h: 6 } },
+    ),
+    open(
+      'grin teeth',
+      [
+        [-19, -3],
+        [0, -1.5],
+        [19, -3],
+        [12, 10],
+        [0, 14],
+        [-12, 10],
+      ],
+      { sharp: [0, 2], teeth: { y: -1.5, h: 7 } },
+    ),
+    open(
+      'laugh',
+      [
+        [-17, -4],
+        [0, -3],
+        [17, -4],
+        [13, 13],
+        [0, 21],
+        [-13, 13],
+      ],
+      { sharp: [0, 2], teeth: { y: -3.5, h: 5 }, tongue: { y: 18, w: 22, h: 12 } },
+    ),
+    open(
+      'd grin',
+      [
+        [-21, -5],
+        [21, -5],
+        [16, 9],
+        [0, 19],
+        [-16, 9],
+      ],
+      { sharp: [0, 1], teeth: { y: -4, h: 6 }, tongue: { y: 16, w: 20, h: 9 } },
+    ),
+    open('o small', [
+      [0, -3],
+      [6.5, 3.5],
+      [0, 11],
+      [-6.5, 3.5],
+    ]),
+    open(
+      'O shock',
+      [
+        [0, -4],
+        [10, 7],
+        [0, 21],
+        [-10, 7],
+      ],
+      { tongue: { y: 18, w: 13, h: 7 } },
+    ),
+    open(
+      'gasp',
+      [
+        [-8, -2],
+        [8, -2],
+        [11, 9],
+        [0, 17],
+        [-11, 9],
+      ],
+      { teeth: { y: -1.5, h: 4 } },
+    ),
+    open(
+      'shout',
+      [
+        [-17, -4],
+        [17, -4],
+        [3, 19],
+        [-3, 19],
+      ],
+      { sharp: [0, 1], tongue: { y: 15, w: 14, h: 8 } },
+    ),
+    open(
+      'worry',
+      [
+        [-17, 1],
+        [-11, -2.5],
+        [-5, 1],
+        [0, -2],
+        [5, 1],
+        [11, -2.5],
+        [17, 1],
+        [11, 5.5],
+        [5, 3],
+        [0, 6],
+        [-5, 3],
+        [-11, 5.5],
+      ],
+      { sharp: [0, 6], teeth: { y: -0.5, h: 3.5 } },
+    ),
+    open(
+      'smirk',
+      [
+        [-9, 0],
+        [4, -0.5],
+        [17, -7],
+        [15, 0],
+        [5, 5],
+        [-5, 3],
+      ],
+      { sharp: [0, 2] },
+    ),
+    open(
+      'grimace',
+      [
+        [-18, -3],
+        [18, -3],
+        [19, 6],
+        [-19, 6],
+      ],
+      { sharp: [0, 1, 2, 3], teeth: { y: 1.5, h: 5 } },
+    ),
+    {
+      name: 'pout',
+      content: `<Shape x="0" y="2" name="tavi/mouth/lips" id="${id()}"><Ellipse width="11" height="8" name="Path" id="${id()}"/>${paint(C.lips)}</Shape>`,
+    },
+    line(
+      'blep',
+      [
+        [-12, -1],
+        [0, 2],
+        [12, -1],
+      ],
+      `<Shape x="5" y="5.5" name="tavi/mouth/tongue" id="${id()}"><Ellipse width="9" height="10" name="Path" id="${id()}"/>${paint(C.tongue)}</Shape>`,
+    ),
+    line('squiggle', [
+      [-15, 1],
+      [-9, -2],
+      [-3, 2],
+      [3, -2],
+      [9, 2],
+      [15, -1],
+    ]),
+    line('flat', [
+      [-12, 1],
+      [12, 1],
+    ]),
+    open(
+      'yawn',
+      [
+        [0, -5],
+        [12, 8],
+        [0, 27],
+        [-12, 8],
+      ],
+      { tongue: { y: 23, w: 16, h: 9 } },
+    ),
+    open(
+      'wail',
+      [
+        [-15, 8],
+        [-9, -1],
+        [0, -3.5],
+        [9, -1],
+        [15, 8],
+        [0, 6.5],
+      ],
+      { sharp: [0, 4], tongue: { y: 7, w: 12, h: 5 } },
+    ),
+    line('frown line', [
+      [-13, 4],
+      [0, -1.5],
+      [13, 4],
+    ]),
+    open(
+      'F/V',
+      [
+        [-11, -1],
+        [11, -1],
+        [10, 5],
+        [-10, 5],
+      ],
+      { sharp: [0, 1, 2, 3], teeth: { y: 0.5, h: 3 } },
+    ),
+    open(
+      'L',
+      [
+        [-12, -2],
+        [12, -2],
+        [8, 9],
+        [0, 12],
+        [-8, 9],
+      ],
+      { sharp: [0, 1], teeth: { y: -2, h: 3 }, tongue: { y: 3, w: 10, h: 7 } },
+    ),
+  ];
+  const shapeIds = library.map(() => id());
   insertAfterElement(
     m.line,
     block(
-      'mouth-open',
+      'mouth-shapes',
       `<Node x="${String(m.x)}" y="${String(m.y)}" name="tavi/mouth" id="${mouthIds.wrap}">` +
-        `<Shape opacity="0" name="tavi/mouthInterior" id="${mouthIds.shape}">` +
-        `<PointsPath isClosed="true" name="Path" id="${mouthIds.path}">` +
-        `<CubicDetachedVertex x="${String(m.right[0])}" y="${String(m.right[1])}" name="R" id="${mouthIds.right}"/>` +
-        `<CubicDetachedVertex inDistance="11.687" outRotation="3.1415927" outDistance="11.686" x="${String(m.middle[0])}" y="${String(m.middle[1])}" name="upper lip" id="${mouthIds.top}"/>` +
-        `<StraightVertex x="${String(m.left[0])}" y="${String(m.left[1])}" name="L" id="${mouthIds.left}"/>` +
-        `<CubicDetachedVertex inRotation="3.1415927" inDistance="11.687" outDistance="11.686" x="${String(m.middle[0])}" y="${String(m.middle[1])}" name="lower lip" id="${mouthIds.bottom}"/>` +
-        `</PointsPath>` +
-        lipStroke +
-        fill(MOUTH) +
-        `</Shape></Node>`,
+        `<Node name="tavi/mouth/axes" id="${mouthIds.axes}">` +
+        `<Node name="tavi/mouth/pop" id="${mouthIds.pop}">` +
+        `<Solo activeComponentId="${shapeIds[0]}" scaleX="1.2" scaleY="1.2" name="tavi/mouth/shapes" id="${mouthIds.solo}">` +
+        library
+          .map(
+            (shape, i) => `<Node name="${shape.name}" id="${shapeIds[i]}">${shape.content}</Node>`,
+          )
+          .join('') +
+        `</Solo></Node></Node></Node>`,
     ),
   );
   /** Copies a timeline's keys on `from` onto `to` (fresh ids), inside that timeline. */
@@ -295,11 +548,7 @@ export function authorTavi(source, spec = lylaSpec) {
         block(`mirror-${timeline.toLowerCase().replace(/[^a-z]+/g, '-')}`, copies) +
         rml.slice(end);
   };
-  mirrorKeys(m.smileTimeline, [
-    [m.vertices.right, mouthIds.right],
-    [m.vertices.middle, mouthIds.top],
-    [m.vertices.left, mouthIds.left],
-  ]);
+  // The shapes follow the line's position and rotation keys (mouth X / mouth Y).
   for (const timeline of m.positionTimelines) mirrorKeys(timeline, [[m.line, mouthIds.wrap]]);
 
   // --- 4. Arms in front of the hair (draw rules on each shoulder group) -------------------------
@@ -366,55 +615,81 @@ export function authorTavi(source, spec = lylaSpec) {
       anim('tavi/browTilt' + side, tilt(brow.inner, brow.innerY, brow.outer, brow.outerY)),
     );
   }
-  // Open mouth: 0 closed (only the line) .. 1 fully open. Hand-over in the first 8%: the line
-  // fades out while the open mouth, still flat on the same curve, fades in.
+  // Mouth shape selection: shape k is held from frame 10k (scrub to (10k + 5) / (10 * count) of
+  // the track). The line's opacity switches on exactly the same frames: 1 only for shape 0.
+  const shapeFrames = library.map((_, i) => i * 10);
+  tracks.push(
+    anim(
+      'tavi/mouthShape',
+      keyedIds(
+        mouthIds.solo,
+        'activeComponentId',
+        shapeFrames.map((frame, i) => [frame, shapeIds[i]]),
+      ) +
+        `<KeyedObject objectId="${m.line}" id="${id()}"><KeyedProperty property="opacity" id="${id()}">${shapeFrames
+          .map(
+            (frame, i) =>
+              `<KeyFrameDouble value="${i === 0 ? '1' : '0'}" interpolationType="hold" frame="${String(frame)}" id="${id()}"/>`,
+          )
+          .join('')}</KeyedProperty></KeyedObject>`,
+      library.length * 10,
+    ),
+  );
+  // Height: frame 0 squashed (70%) .. 60 tall (115%).
   tracks.push(
     anim(
       'tavi/mouthOpen',
-      keyed(m.line, {
-        opacity: [
-          [0, 1],
-          [5, 0],
-          [60, 0],
+      keyed(mouthIds.axes, {
+        scaleY: [
+          [0, 0.7],
+          [60, 1.15],
         ],
-      }) +
-        keyed(mouthIds.shape, {
-          opacity: [
-            [0, 0],
-            [5, 1],
-            [60, 1],
-          ],
-        }) +
-        keyed(mouthIds.bottom, {
-          y: [
-            [0, m.middle[1]],
-            [60, m.middle[1] + m.depth],
-          ],
-          inDistance: [
-            [0, 11.687],
-            [60, 14],
-          ],
-          outDistance: [
-            [0, 11.686],
-            [60, 14],
-          ],
-        }),
+      }),
     ),
   );
-  // Mouth width: frame 0 round (O/U), 30 neutral, 60 wide (E).
+  // Width: frame 0 narrow and a little taller (round) .. 30 as drawn .. 60 wide and flatter.
   tracks.push(
     anim(
       'tavi/mouthWide',
       keyed(mouthIds.wrap, {
         scaleX: [
-          [0, 0.55],
+          [0, 0.6],
           [30, 1],
           [60, 1.25],
         ],
         scaleY: [
-          [0, 1.2],
+          [0, 1.15],
           [30, 1],
-          [60, 0.85],
+          [60, 0.88],
+        ],
+      }),
+    ),
+  );
+  // Lopsided: frame 0 tipped toward screen-left .. 30 level .. 60 toward screen-right.
+  tracks.push(
+    anim(
+      'tavi/mouthTilt',
+      keyed(mouthIds.axes, {
+        rotation: [
+          [0, -0.35],
+          [30, 0],
+          [60, 0.35],
+        ],
+      }),
+    ),
+  );
+  // Swap pop: frame 0 normal .. 60 squashed to 60% (the face layer dips it while shapes swap).
+  tracks.push(
+    anim(
+      'tavi/mouthPop',
+      keyed(mouthIds.pop, {
+        scaleX: [
+          [0, 1],
+          [60, 1.15],
+        ],
+        scaleY: [
+          [0, 1],
+          [60, 0.6],
         ],
       }),
     ),

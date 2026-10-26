@@ -30,10 +30,13 @@ import {
   WifiOff,
   Zap,
   CircleAlert,
+  UserRound,
+  MessageCircle,
 } from 'lucide-react';
 import { TwitchPanel } from './TwitchPanel';
 import { AiPanel } from './AiPanel';
 import { WardrobePanel } from './WardrobePanel';
+import { CharacterCreator } from './CharacterCreator';
 import { BodyStateDock, SceneEditor } from './StatesPanel';
 import { Avatar } from './renderer/Avatar';
 import { catalog, characters } from './renderer/characters/registry';
@@ -49,14 +52,18 @@ import {
   sequences,
   type ExpressionId,
   type SequenceId,
+  type Target,
 } from '../shared/expressions';
 import { anchors, movementStyles, type AnchorId } from '../shared/locomotion';
+import { anchorPoint } from '../shared/attention';
 import { choreographies, choreographyIds } from '../shared/presence';
 type Cue = { expression: ExpressionId } | { sequence: SequenceId };
 /** The six core reactions plus a greeting and peek, offered when the character supports them. */
-const coreCues: { cue: Cue; label: string; icon: ReactNode }[] = [
+const coreCues: { cue: Cue; label: string; icon: ReactNode; target?: Target }[] = [
   { cue: { sequence: 'greeting' }, label: 'wave', icon: <Hand /> },
-  { cue: { expression: 'listening' }, label: 'listen', icon: <Eye /> },
+  { cue: { expression: 'listening' }, label: 'listen', icon: <Eye />, target: 'streamer' },
+  // Looks at the real chat panel from the scene layout (shared/attention.ts).
+  { cue: { expression: 'glance' }, label: 'chat', icon: <MessageCircle />, target: 'chat' },
   { cue: { sequence: 'doubt-then-nod' }, label: 'really?', icon: <CircleAlert /> },
   { cue: { sequence: 'caught-innocent' }, label: 'oops', icon: <Cloud /> },
   { cue: { sequence: 'restrained-approval' }, label: 'nice', icon: <Check /> },
@@ -76,6 +83,7 @@ const personalities = {
 };
 const sections = [
   { id: 'appearance', name: 'Make it yours', icon: <Palette /> },
+  { id: 'creator', name: 'Character', icon: <UserRound /> },
   { id: 'wardrobe', name: 'Wardrobe', icon: <Shirt /> },
   { id: 'personality', name: 'Personality', icon: <Heart /> },
   { id: 'expressions', name: 'Expressions', icon: <Smile /> },
@@ -104,8 +112,8 @@ export function Studio({
       removeEventListener('keydown', onKey);
     };
   }, [connected, send]);
-  const perform = (cue: Cue) => {
-    send({ type: 'perform', ...cue });
+  const perform = (cue: Cue, target?: Target) => {
+    send({ type: 'perform', ...cue, ...(target ? { target } : {}) });
   };
   const [tab, setTab] = useState<'character' | 'scene'>('character');
   const [lighting, setLighting] = useState<'moonlight' | 'daydream' | 'afterhours'>('moonlight');
@@ -168,7 +176,8 @@ export function Studio({
     setActive(current);
   }
   function anchor(value: AnchorId) {
-    patch({ anchor: value, x: anchors[value].x, y: anchors[value].y });
+    const point = anchorPoint(value, c.scene);
+    patch({ anchor: value, x: point.x, y: point.y });
   }
   return (
     <div className={`companion-studio ${spacious ? 'tools-expanded' : ''}`}>
@@ -344,7 +353,7 @@ export function Studio({
                       : expressions[entry.cue.expression].meaning
                   }
                   onClick={() => {
-                    perform(entry.cue);
+                    perform(entry.cue, entry.target);
                   }}
                 >
                   {entry.icon}
@@ -640,6 +649,28 @@ export function Studio({
                   )}
                 </fieldset>
               </section>
+              <section className="tool-section" id="creator">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">
+                      <UserRound size={14} /> Character
+                    </span>
+                    <h2>Make them look like you, or not.</h2>
+                    <p>Skin, face, build, hair and features are separate choices. Mix freely.</p>
+                  </div>
+                </div>
+                <CharacterCreator
+                  characterId={c.character}
+                  variant={c.variant}
+                  disabled={!connected}
+                  onChange={(variant) => {
+                    patch({ variant });
+                  }}
+                  onUseCharacter={(character) => {
+                    patch({ character });
+                  }}
+                />
+              </section>
               <section className="tool-section" id="wardrobe">
                 <div className="section-heading">
                   <div>
@@ -810,6 +841,12 @@ export function Studio({
                     </div>
                   </div>
                 </fieldset>
+                {!c.scene.chat.enabled ? (
+                  <p className="helper-note">
+                    No chat panel is placed, so {c.name} looks to the right for chat. Place it in
+                    the scene editor so glances and pointing aim at your real chat.
+                  </p>
+                ) : null}
                 <div className="range-row">
                   <label className="field checkbox-field">
                     <input

@@ -61,7 +61,12 @@ export function skinPalette(tone: SkinTone, undertone: Undertone): SkinPalette {
     base,
     shade,
     highlight,
-    blush: fromOklch({ l: Math.max(0.3, lb.l - 0.06), c: Math.max(0.1, lb.c + 0.06), h: 22 }),
+    // Rosier, never darker on deep tones (a darker blush reads as shadows under the eyes).
+    blush: fromOklch({
+      l: lb.l + (lb.l < 0.6 ? 0.13 - 0.1 * lb.l : -0.04),
+      c: Math.max(0.09, lb.c + 0.05),
+      h: lb.l < 0.6 ? 32 : 22,
+    }),
     nose: adjust(shade, { dl: -0.12, kc: 1.05 }),
     mouth: mouthLine(lb.l),
   };

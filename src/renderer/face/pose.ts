@@ -173,7 +173,15 @@ export function sampleFacePose(def: FacePose, intensity: number, elapsed: number
   if (def.onset && elapsed < onsetEnd) {
     const accent = scaled(def.onset.pose, accentGain(intensity));
     const into = elapsed - (def.onset.hold ?? 0);
-    values = lerpValues(accent, values, smoothstep(into / def.onset.seconds));
+    const blend = smoothstep(into / def.onset.seconds);
+    const base = values;
+    values = lerpValues(accent, base, blend);
+    // Shape ids are chosen, never blended: the onset's choice holds for the first half.
+    for (const name of discreteChannels) {
+      const chosen = blend < 0.5 ? (def.onset.pose[name] ?? base[name]) : base[name];
+      if (chosen === undefined) values = withoutKey(values, name);
+      else values[name] = chosen;
+    }
   }
   if (def.keys) {
     const t = def.keys.every ? elapsed % def.keys.every : elapsed;
@@ -181,10 +189,25 @@ export function sampleFacePose(def: FacePose, intensity: number, elapsed: number
     for (const [name, keys] of Object.entries(def.keys.channels) as [
       FaceChannel,
       [number, number][],
-    ][])
+    ][]) {
+      if (discreteChannels.has(name)) {
+        // Discrete keys are steps that replace the pose's choice while non-zero (a yawn shape).
+        let step = 0;
+        for (const [time, value] of keys) if (t >= time) step = value;
+        if (step !== 0) values[name] = step;
+        continue;
+      }
       values[name] = (values[name] ?? 0) + sampleKeys(keys, t) * gain;
+    }
   }
   return values;
+}
+
+function withoutKey(values: FaceValues, name: FaceChannel): FaceValues {
+  const out: FaceValues = {};
+  for (const [key, value] of Object.entries(values) as [FaceChannel, number][])
+    if (key !== name) out[key] = value;
+  return out;
 }
 
 /** Every channel a pose touches in any variant, onset or keys. */

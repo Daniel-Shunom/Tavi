@@ -29,7 +29,7 @@ export const channelInfo: Record<Channel, { label: string; meaning: string }> = 
   },
 };
 
-export const targets = ['streamer', 'chat', 'pointer', 'neutral'] as const;
+export const targets = ['streamer', 'chat', 'game', 'pointer', 'neutral'] as const;
 export type Target = (typeof targets)[number];
 export const targetSchema = z.enum(targets);
 

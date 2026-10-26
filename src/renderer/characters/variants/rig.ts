@@ -12,10 +12,21 @@ export interface Selector {
   under?: string;
   /** For gradients: which stop (0 = first in the file). Omit for every stop / solid fills. */
   stop?: number;
+  /** Parts another workstream may rebuild (e.g. the mouth): skipped when absent, never fatal. */
+  optional?: boolean;
 }
 
 export type ColorRole =
-  'skin' | 'skinShade' | 'skinHighlight' | 'blush' | 'nose' | 'mouth' | 'irisDark' | 'irisLight';
+  /** skinLid: eyelid patches that blend into the face gradient at eye height. */
+  | 'skin'
+  | 'skinShade'
+  | 'skinHighlight'
+  | 'skinLid'
+  | 'blush'
+  | 'nose'
+  | 'mouth'
+  | 'irisDark'
+  | 'irisLight';
 
 export type OverlayAnchor =
   'head' | 'face' | 'hairBack' | 'hairLeft' | 'hairRight' | 'upper' | 'forearmL' | 'forearmR';
@@ -134,7 +145,7 @@ export interface ResolvedRig {
 /** Resolves selectors to component indices; every selector must match something. */
 export function resolveRig(rig: VariantRig, index: RigIndex): ResolvedRig {
   const need = (selector: Selector, found: number[]) => {
-    if (!found.length)
+    if (!found.length && !selector.optional)
       throw new Error(
         `${rig.character} variant rig: nothing matches ${selector.name}` +
           (selector.under ? ` under ${selector.under}` : ''),

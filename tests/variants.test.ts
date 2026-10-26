@@ -102,6 +102,11 @@ describe('variant rig contract', () => {
           `${String(edit.index)}.${String(edit.property)}`,
         ).toBe(false);
   }, 60_000);
+  it('blends the blush normally on human tones (multiply would shadow deep skin)', () => {
+    const deep = variantEdits(source, rig, withChanges(originalVariant, { skin: { tone: '9' } }));
+    expect(deep.uints.map((u) => [u.property, u.value])).toEqual([[747, 3]]);
+    expect(variantEdits(source, rig, originalVariant).uints).toEqual([]);
+  });
   it('leaves the original look byte-identical', () => {
     expect(isOriginal(originalVariant)).toBe(true);
     expect(applyVariant(source, rig, originalVariant)).toEqual(source);

@@ -18,10 +18,6 @@ export const mascotV2VariantRig: VariantRig = {
   colors: {
     skin: [
       { name: 'face', stop: 0 },
-      { name: 'lid' },
-      { name: 'lid_2' },
-      { name: 'lower lid' },
-      { name: 'lower lid 2' },
       { name: 'ear', under: 'head', stop: 1 },
       ...arms,
       ...legs,
@@ -30,9 +26,11 @@ export const mascotV2VariantRig: VariantRig = {
     ],
     skinShade: [{ name: 'neck' }, { name: 'ear', under: 'head', stop: 0 }, { name: 'crease' }],
     skinHighlight: [{ name: 'face', stop: 1 }],
+    skinLid: [{ name: 'lid' }, { name: 'lid_2' }, { name: 'lower lid' }, { name: 'lower lid 2' }],
     blush: [{ name: 'blush' }],
     nose: [{ name: 'nose' }],
-    mouth: [{ name: 'mouth' }],
+    // The mouth is being rebuilt as a shape library; recolour it only while it exists.
+    mouth: [{ name: 'mouth', optional: true }],
     irisDark: [
       { name: 'pupil', stop: 0 },
       { name: 'pupil_2', stop: 0 },

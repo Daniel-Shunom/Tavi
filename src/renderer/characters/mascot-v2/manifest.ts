@@ -15,6 +15,10 @@ export const mascotV2ControlTracks = {
   'ctl.brow-tilt-r': 'tavi/browTiltR',
   'ctl.mouth-open': 'tavi/mouthOpen',
   'ctl.mouth-wide': 'tavi/mouthWide',
+  'ctl.mouth-tilt': 'tavi/mouthTilt',
+  'ctl.mouth-pop': 'tavi/mouthPop',
+  // mouth.shape: the selected mouth from the library (ids in ./mouth.ts).
+  'ctl.mouth-shape': 'tavi/mouthShape',
   'ctl.hand-l': 'tavi/handL',
   'ctl.hand-r': 'tavi/handR',
   'ctl.arms-front': 'tavi/armsFront',
