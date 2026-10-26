@@ -224,6 +224,23 @@ describe('face layer', () => {
     expect(count('worried')).toBeGreaterThan(count('deadpan'));
     expect(count('listening')).toBeGreaterThanOrEqual(3);
   });
+  it('scales acting with personality amplitude', () => {
+    const settle = (amplitude: number) => {
+      const layer = new FaceLayer(face, { ownBlinks: false });
+      let browL = 0;
+      for (let frame = 0; frame < 90; frame++)
+        browL =
+          layer.update({
+            dt: 1 / 60,
+            time: frame / 60,
+            reducedMotion: true,
+            amplitude,
+            cues: [{ expression: 'impressed', intensity: 0.5, weight: 1, elapsed: 2 }],
+          }).values.browL ?? 0;
+      return browL;
+    };
+    expect(settle(1.2)).toBeLessThan(settle(0.65) - 0.15);
+  });
   it('is frame-rate independent', () => {
     const run = (fps: number) => {
       const state = { value: 0, velocity: 0 };

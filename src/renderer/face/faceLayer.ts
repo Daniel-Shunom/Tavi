@@ -48,6 +48,12 @@ export interface FaceInput {
   time: number;
   cues: readonly FaceCue[];
   reducedMotion?: boolean;
+  /**
+   * Personality and energy (the motion profile): `amplitude` scales how far each pose goes
+   * (as intensity, capped at strong), `tempo` speeds up or slows down onsets and micro-acting.
+   */
+  amplitude?: number;
+  tempo?: number;
 }
 export interface FaceOutput {
   /** Additive offsets in motion channel units, clamped to the rig's safe ranges. */
@@ -147,7 +153,8 @@ export class FaceLayer {
       if (!def || cue.weight <= 0) continue;
       if (!dominant || cue.weight * cue.intensity > dominant.weight * dominant.intensity)
         dominant = cue;
-      const sample = sampleFacePose(def, cue.intensity, cue.elapsed);
+      const intensity = Math.min(1, cue.intensity * (input.amplitude ?? 1));
+      const sample = sampleFacePose(def, intensity, cue.elapsed * (input.tempo ?? 1));
       const flip = def.towardTarget && cue.side === -1;
       for (const [authored, value] of Object.entries(sample) as [FaceChannel, number][]) {
         const name =
