@@ -19,6 +19,7 @@ import {
   type MotionOutput,
 } from './motionHook';
 import { Performer, smooth } from './timeline';
+import { drawStateEffects } from './motion/states/effects';
 
 /** Rough walking speed used to estimate arrival for timed visits (normalized units/second). */
 const NOMINAL_SPEED = 0.22;
@@ -43,6 +44,7 @@ export function Avatar({
   const shadow = useRef<HTMLDivElement>(null);
   const front = useRef<HTMLCanvasElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
+  const stateLayer = useRef<HTMLDivElement>(null);
   const latest = useRef({ state, serverNow, captions });
   latest.current = { state, serverNow, captions };
   const [error, setError] = useState('');
@@ -191,6 +193,12 @@ export function Avatar({
               elapsed: transition ? (serviceTime - transition.startAt) / 1000 : Infinity,
             },
             performances: pose.performances,
+            body: {
+              cue: current.performance.body,
+              elapsed: current.performance.body
+                ? (serviceTime - current.performance.body.startAt) / 1000
+                : 0,
+            },
             base: { offset: { ...pose.offset } },
             locomotion: {
               home,
@@ -346,6 +354,26 @@ export function Avatar({
           spot.dataset['opacity'] = shade.opacity.toFixed(3);
           spot.dataset['scale'] = shade.scale.toFixed(3);
         }
+        // Body-state effects (z z z, a lying body's floor shadow) sit outside the rotated body.
+        if (stateLayer.current) {
+          const states = output.states;
+          const visible = hidden < 0.5;
+          // The portrait draws the body larger than the overlay maths assumes; map around it.
+          const k = presentation === 'portrait' ? size / (220 * scale) : 1;
+          drawStateEffects(
+            stateLayer.current,
+            visible ? (states?.effects ?? []) : [],
+            visible ? (states?.floorShadow ?? null) : null,
+            (x, y) => ({
+              x: centerX + (x - position.x) * width * k,
+              y: bottomY + (y - position.y) * height * k,
+            }),
+            { x: width * k, y: height * k },
+            size * manifest.aspect,
+            presentation === 'portrait' && visible ? (states?.ledge ?? null) : null,
+          );
+          if (element) element.dataset['bodyState'] = states?.status ?? 'stand';
+        }
         view.draw(dt, { ...placement, rotation: 0 });
         frame = view.requestFrame(draw);
       } catch (reason) {
@@ -426,6 +454,7 @@ export function Avatar({
         <canvas ref={canvas} aria-label={`${state.config.name}, animated companion`} />
         <canvas ref={front} className="avatar-layer" aria-hidden="true" />
       </div>
+      <div className="avatar-states" ref={stateLayer} aria-hidden="true" />
       <div className="avatar-caption" ref={bubble} role="status" aria-live="polite" hidden />
       {error ? <p role="alert">{error}</p> : null}
     </div>

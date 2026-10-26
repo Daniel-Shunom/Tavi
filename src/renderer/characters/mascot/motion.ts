@@ -6,6 +6,7 @@ import { controlTime } from '../../motion/rive/patch';
 import type { CharacterMotionRig } from '../../motion/hook';
 import type { MotionFrame } from '../../motion/types';
 import { lylaPatch, lylaRig } from './motionRig';
+import { mascotStates } from './states';
 
 /** Artboard units per body height (the 600-unit artboard is drawn at the body height). */
 const UNITS = 600;
@@ -56,6 +57,7 @@ export const mascotClipTracks = [...new Set(Object.values(clipTracks).map((clip)
 
 export const mascotMotion: CharacterMotionRig = {
   patch: lylaPatch,
+  states: mascotStates,
   bind(frame: MotionFrame) {
     const p = frame.pose;
     const scaleY = frame.placement.scaleY,

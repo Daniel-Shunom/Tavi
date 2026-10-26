@@ -37,6 +37,10 @@ export interface DecisionContext {
   trigger: ContextEvent;
   /** Whether a movement cue is currently allowed by the initiative budget. */
   canMove: boolean;
+  /** Whether a body-state change is allowed (initiative and cooldown). Defaults to canMove. */
+  canChangeState?: boolean;
+  /** The current body state, e.g. "sit" or "nap". */
+  bodyState?: string;
 }
 export interface ProviderInfo {
   id: 'rules' | 'openai' | 'anthropic' | (string & {});
