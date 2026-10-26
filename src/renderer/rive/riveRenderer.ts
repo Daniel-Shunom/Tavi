@@ -13,6 +13,8 @@ import type {
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
 import type { CharacterRenderer, Placement, RenderFrame } from '../adapter';
 import { assetUrl } from '../characters/assets';
+import { motionRigs } from '../characters/motionRigs';
+import { patchRiv } from '../motion/rive/patch';
 import type { CharacterManifest } from '../characters/manifest';
 RuntimeLoader.setWasmUrl(wasmURL);
 RuntimeLoader.setWasmFallbackUrl(null);
@@ -102,7 +104,9 @@ export async function createRiveRenderer(
     renderer?.delete();
   }
   try {
-    file = await runtime.load(data, undefined, false);
+    // Motion rig extension (runtime names + control tracks), applied in memory; the .riv is unchanged.
+    const rig = motionRigs[manifest.id];
+    file = await runtime.load(rig ? patchRiv(data, rig.patch) : data, undefined, false);
     renderer = runtime.makeRenderer(canvas, true);
     board = file.artboardByName(manifest.artboard);
     const clipsByName = new Map<string, number>();
@@ -187,6 +191,15 @@ export async function createRiveRenderer(
       },
       applyFrame(frame: RenderFrame) {
         if (disposed) return;
+        // Nodes return to their setup pose before clips, so motion offsets add on top of the
+        // animated values instead of replacing them (and never accumulate).
+        for (const entry of nodes.values()) {
+          entry.node.x = entry.base.x;
+          entry.node.y = entry.base.y;
+          entry.node.rotation = entry.base.rotation;
+          entry.node.scaleX = entry.base.scaleX;
+          entry.node.scaleY = entry.base.scaleY;
+        }
         applyRest();
         for (const sample of frame.tracks)
           if (sample.mix > 0) apply(sample.track, sample.time, sample.mix);
@@ -204,11 +217,11 @@ export async function createRiveRenderer(
         }
         for (const [handle, entry] of nodes) {
           const offset = frame.nodes[handle] ?? {};
-          entry.node.x = entry.base.x + (offset.x ?? 0);
-          entry.node.y = entry.base.y + (offset.y ?? 0);
-          entry.node.rotation = entry.base.rotation + (offset.rotation ?? 0);
-          entry.node.scaleX = entry.base.scaleX * (offset.scaleX ?? 1);
-          entry.node.scaleY = entry.base.scaleY * (offset.scaleY ?? 1);
+          entry.node.x += offset.x ?? 0;
+          entry.node.y += offset.y ?? 0;
+          entry.node.rotation += offset.rotation ?? 0;
+          entry.node.scaleX *= offset.scaleX ?? 1;
+          entry.node.scaleY *= offset.scaleY ?? 1;
         }
       },
       resize(width, height) {

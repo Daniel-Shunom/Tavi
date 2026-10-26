@@ -1,5 +1,5 @@
-// Vendored copy of src/renderer/motion/rive/rivBinary.ts (motion agent), extended with value
-// offsets so fixed-width colour values can be rewritten in place. Dedupe when both land.
+// Minimal .riv reader/writer shared by the motion rig patch (motion/rive/patch.ts) and the
+// attachment/recolour patcher; scans objects with byte spans and value offsets.
 // Minimal reader/writer for the Rive runtime binary format (format 7).
 // Layout follows rive-runtime
 // include/rive/runtime_header.hpp. Only what the motion patcher needs: a lossless object scan

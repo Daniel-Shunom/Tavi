@@ -7,6 +7,7 @@
 // - Every expression below is composed from verified full-body clips plus small host offsets;
 //   this rig has no independently controllable brows, mouth or eyes.
 import type { ManifestInput } from '../manifest';
+import { mascotControlTracks, mascotMotionNodes } from './motion';
 
 export const mascot: ManifestInput = {
   id: 'mascot',
@@ -40,8 +41,18 @@ export const mascot: ManifestInput = {
     'glasses.blue': 'glasses blue',
     'glasses.white': 'glasses white',
     'glasses.grey': 'glasses grey',
+    // Control tracks added in memory by the motion rig patch (characters/mascot/motionRig.ts):
+    // the face, brows, lids, mouth, squash and hair are joystick channels in this rig.
+    ...mascotControlTracks,
   },
-  motionTracks: ['blink-idle', 'sway', 'subtle-shift', 'arm-swing'],
+  nodes: mascotMotionNodes,
+  motionTracks: [
+    'blink-idle',
+    'sway',
+    'subtle-shift',
+    'arm-swing',
+    ...Object.keys(mascotControlTracks),
+  ],
   rest: [{ track: 'wave-once', at: 0 }],
   idleLoop: { track: 'blink-idle', seconds: 2 },
   aspect: 0.8,
