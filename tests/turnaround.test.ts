@@ -171,4 +171,41 @@ describe('Lyla v2 turnaround', () => {
     expect(Math.abs(final.pose.turnHead)).toBeLessThan(0.05);
     expect(Math.abs(final.pose.turnBody)).toBeLessThan(0.05);
   });
+
+  it('turns into the return walk before stepping and resets to idle after arriving home', () => {
+    const layer = new MotionLayer(
+      11,
+      {
+        personality: 'cozy',
+        attitude: 'gentle',
+        energy: 55,
+        reducedMotion: false,
+        quiet: false,
+      },
+      { aspect: 16 / 9, bodyHeight: 0.3, margin: 0.02 },
+      { feet: true, turnStyle: 'authored' },
+    );
+    layer.place(0.3, 0.9);
+    layer.moveTo({ x: 0.75, at: 0.1, gait: 'walk' });
+    let frame = layer.update(0);
+    for (let i = 1; i <= 60 * 12; i++) frame = layer.update(i / 60);
+    expect(frame.status.locomotion).toBe('idle');
+    expect(Math.abs(frame.pose.turnBody)).toBeLessThan(0.05);
+
+    layer.moveTo({ x: 0.3, at: 12.1, gait: 'walk' });
+    let sawLeftwardTravel = false;
+    for (let i = 60 * 12 + 1; i <= 60 * 24; i++) {
+      frame = layer.update(i / 60);
+      if (!frame.status.locomotion.startsWith('moving:')) continue;
+      sawLeftwardTravel = true;
+      expect(frame.pose.turnHead).toBeLessThan(-0.3);
+      expect(frame.pose.turnBody).toBeLessThan(-0.3);
+      expect(frame.pose.gazeX).toBeLessThan(0);
+      expect(frame.placement.facing).toBe(1);
+    }
+    expect(sawLeftwardTravel).toBe(true);
+    expect(frame.placement.x).toBeCloseTo(0.3, 2);
+    expect(Math.abs(frame.pose.turnHead)).toBeLessThan(0.05);
+    expect(Math.abs(frame.pose.turnBody)).toBeLessThan(0.05);
+  });
 });

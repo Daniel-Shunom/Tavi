@@ -17,6 +17,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { addTurnaround } from './steps/turn.mjs';
+import { addEyeTargets } from './steps/eyes.mjs';
 
 /**
  * Where everything lives in the mascot source (RML component ids) and how the additions look.
@@ -946,6 +947,7 @@ export function authorTavi(source, spec = lylaSpec) {
     rml.slice(close);
 
   rml = addTurnaround(rml, spec.turn, spec.artboard);
+  rml = addEyeTargets(rml);
   return { rml, objects: next - 1 };
 }
 
