@@ -80,7 +80,12 @@ export async function createRiveRenderer(
     string,
     { instance: LinearAnimationInstance; duration: number; time: number }
   >();
-  const inputs = new Map<string, SMIInput>();
+  // Inputs must be accessed through their typed view (asBool/asNumber/asTrigger); setting
+  // `value` on the base input object is silently ignored by the pinned 2.45 runtime.
+  const inputs = new Map<
+    string,
+    { kind: 'bool' | 'number' | 'trigger'; input: SMIInput; last?: boolean | number }
+  >();
   const nodes = new Map<
     string,
     { node: Node; base: { x: number; y: number; rotation: number; scaleX: number; scaleY: number } }
@@ -133,7 +138,14 @@ export async function createRiveRenderer(
       for (const [handle, name] of Object.entries(manifest.inputs)) {
         const input = byName.get(name);
         if (!input) throw new Error(`${manifest.id}: missing state machine input ${handle}`);
-        inputs.set(handle, input);
+        const type = property(input, 'type');
+        if (type === runtime.SMIInput.bool)
+          inputs.set(handle, { kind: 'bool', input: input.asBool() });
+        else if (type === runtime.SMIInput.number)
+          inputs.set(handle, { kind: 'number', input: input.asNumber() });
+        else if (type === runtime.SMIInput.trigger)
+          inputs.set(handle, { kind: 'trigger', input: input.asTrigger() });
+        else throw new Error(`${manifest.id}: unsupported input type for ${handle}`);
       }
     }
     for (const [handle, name] of Object.entries(manifest.nodes)) {
@@ -194,8 +206,14 @@ export async function createRiveRenderer(
         // Palette tracks last so poses never overwrite the chosen colours.
         applyAppearance();
         for (const [handle, value] of Object.entries(frame.inputs)) {
-          const input = inputs.get(handle);
-          if (input) input.value = value;
+          const entry = inputs.get(handle);
+          if (!entry) continue;
+          if (entry.kind === 'trigger') {
+            // Fire on a rising edge (false -> true or a changed number).
+            if (value && value !== entry.last) entry.input.fire();
+          } else if (entry.kind === 'bool') entry.input.value = Boolean(value);
+          else entry.input.value = Number(value);
+          entry.last = value;
         }
         for (const [handle, entry] of nodes) {
           const offset = frame.nodes[handle] ?? {};

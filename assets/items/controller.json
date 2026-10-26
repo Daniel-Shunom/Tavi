@@ -1,0 +1,62 @@
+{
+  "id": "controller",
+  "name": "Game controller",
+  "category": "prop",
+  "slot": "hand.l",
+  "viewBox": [0, 0, 100, 60],
+  "anchor": [70, 40],
+  "size": 1.05,
+  "rotation": -8,
+  "tints": {
+    "primary": {
+      "label": "Shell",
+      "default": "#3d3a5c"
+    },
+    "accent": {
+      "label": "Buttons",
+      "default": "#5ee6d0"
+    }
+  },
+  "layers": [
+    {
+      "d": "M24 10 L76 10 C90 10 98 22 98 38 C98 52 90 58 82 54 L70 42 L30 42 L18 54 C10 58 2 52 2 38 C2 22 10 10 24 10 Z",
+      "fill": {
+        "tint": "primary"
+      }
+    },
+    {
+      "d": "M2 38 C2 52 10 58 18 54 L30 42 L70 42 L82 54 C90 58 98 52 98 38 C94 48 88 50 82 47 L72 37 L28 37 L18 47 C12 50 6 48 2 38 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.3
+      }
+    },
+    {
+      "d": "M18 20 L24 20 L24 25 L29 25 L29 31 L24 31 L24 36 L18 36 L18 31 L13 31 L13 25 L18 25 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.45
+      }
+    },
+    {
+      "d": "M72 21 A4 4 0 1 1 80 21 A4 4 0 1 1 72 21 Z M80 28 A4 4 0 1 1 88 28 A4 4 0 1 1 80 28 Z M64 28 A4 4 0 1 1 72 28 A4 4 0 1 1 64 28 Z M72 35 A4 4 0 1 1 80 35 A4 4 0 1 1 72 35 Z",
+      "fill": {
+        "tint": "accent"
+      }
+    },
+    {
+      "d": "M42 22 L48 22 L48 25 L42 25 Z M52 22 L58 22 L58 25 L52 25 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.3
+      }
+    },
+    {
+      "d": "M24 13 C40 12 60 12 76 13 C60 15 40 15 24 16 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.25
+      }
+    }
+  ]
+}
