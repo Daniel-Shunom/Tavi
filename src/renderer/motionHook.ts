@@ -9,6 +9,8 @@ import type { NodeTransform, TrackApplication } from './adapter';
 import type { CharacterManifest } from './characters/manifest';
 import type { Offset } from './compose';
 import type { ActiveLayer } from './timeline';
+import type { BodyCue } from '../../shared/states';
+import type { FloorShadow, StateEffect } from './motion/states/player';
 
 export interface MotionInput {
   /** Seconds since last frame (clamped to 0.1). */
@@ -32,6 +34,8 @@ export interface MotionInput {
   presence: { transition: PresenceTransition | null; hidden: number; elapsed: number };
   /** Expressions handed to motion performances by the manifest (`binding.motion`). */
   performances: readonly { id: string; layer: ActiveLayer }[];
+  /** Current body state cue (sit, nap, peek...) and seconds since it started (service clock). */
+  body?: { cue: BodyCue | null; elapsed: number };
   /** The base pose this frame, before motion contributions. */
   base: { offset: Offset };
   locomotion: {
@@ -79,6 +83,18 @@ export interface MotionOutput {
    * scale 1 = standing, opacity 0..1. Shrinks and fades in the air; 0 while below the edge.
    */
   shadow?: { x: number; y: number; scale: number; opacity: number };
+  /**
+   * Body-state extras drawn outside the rotating body: z z z glyphs while asleep and the floor
+   * shadow of a lying body (the regular shadow is hidden then).
+   */
+  states?: {
+    state: string;
+    status: string;
+    effects: readonly StateEffect[];
+    floorShadow: FloorShadow | null;
+    /** Edge under a seated or perched body, drawn by previews that do not show the scene. */
+    ledge: { x: number; y: number; width: number } | null;
+  };
   /**
    * Set when the motion layer performs the entrance/exit itself; the renderer then skips its
    * slide-and-fade fallback and uses `hidden` (0 visible .. 1 gone) only for opacity.

@@ -89,7 +89,7 @@ function travel(gait: string, distance = 0.25, seconds = 20) {
   loco.place(0.3, 0.92);
   loco.moveTo({ x: 0.3 + distance, at: 0, gait });
   const frames: LocomotionFrame[] = [];
-  for (let i = 0; i <= 60 * 20; i++)
+  for (let i = 0; i <= 60 * seconds; i++)
     frames.push(loco.update(i ? 1 / 60 : 0, i / 60, profile, stage, { feet: true }));
   return frames;
 }

@@ -34,6 +34,7 @@ import {
 import { TwitchPanel } from './TwitchPanel';
 import { AiPanel } from './AiPanel';
 import { WardrobePanel } from './WardrobePanel';
+import { BodyStateDock, SceneEditor } from './StatesPanel';
 import { Avatar } from './renderer/Avatar';
 import { catalog, characters } from './renderer/characters/registry';
 import type { useConnection } from './useConnection';
@@ -329,6 +330,7 @@ export function Studio({
               </select>
             </div>
           </div>
+          <BodyStateDock state={state} send={send} connected={connected} />
           <div className="gesture-dock" role="group" aria-label="Try an expression">
             {coreCues
               .filter((entry) => supports(character, entry.cue))
@@ -607,18 +609,12 @@ export function Studio({
                           />
                         </label>
                       </div>
-                      <div className="placement-mini" aria-label="Overlay placement preview">
-                        <span>OBS canvas</span>
-                        <div className="mini-webcam" />
-                        <div className="mini-chat" />
-                        <span
-                          className="mini-avatar"
-                          style={{ left: `${String(c.x * 100)}%`, top: `${String(c.y * 100)}%` }}
-                        >
-                          <Sparkles size={20} />
-                        </span>
-                        <p>Studio stays centered. Placement updates your stream.</p>
-                      </div>
+                      <SceneEditor
+                        config={c}
+                        send={send}
+                        connected={connected}
+                        body={state.performance.body}
+                      />
                     </>
                   )}
                 </fieldset>
