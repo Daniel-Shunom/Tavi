@@ -10,8 +10,9 @@ import { joints, restPlacement, type Vec } from '../src/renderer/motion/pose/pro
 import { sampleBeat } from '../src/renderer/motion/pose/sample';
 import { beatDuration, defineBeat } from '../src/renderer/motion/pose/schema';
 
-const near = (a: Vec, b: Vec, tolerance = 0.006) =>
+const near = (a: Vec, b: Vec, tolerance = 0.006) => {
   expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeLessThan(tolerance);
+};
 
 describe('proxy skeleton (calibrated against tools/pose-lab/measure.html on Lyla v2)', () => {
   it('rest joints match the measured bones', () => {
