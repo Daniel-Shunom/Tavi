@@ -65,6 +65,84 @@ no range patch: safe ranges live in the manifest (`face.ts` channels), and the f
 to them. Nothing in the patch can add missing shapes (inner brow tilt, open mouth, pupils): those
 need new art. Using the remixed editor file (`docs/character/RIVE-CLI.md`) is the way to add them.
 
+Reading the editor source (section 1b) corrected three of these limits. The arms already have
+elbow bones; the shipped binding only rotated the shoulders. The eyes have pupil shapes, though
+the "pupil" set under `eye CONTROL` is hidden. And the "lid" joysticks are the artist's lower-lid
+blinks. The other limits still apply to v1.
+
+## 1b. Lyla v2 (the remix) and the v2 rig contract
+
+Lyla v2 (`mascot-v2`) is the same art, rebuilt from the editor source that the user remixed and
+the Rive CLI pulled (`art/mascot-remix/`, CC BY 4.0, see its `ATTRIBUTION.md`). The pipeline:
+
+```text
+art/mascot-remix/scene.rml      (pulled source plus two build fixes; never pushed)
+  -> tools/mascot-remix/author.mjs   authorTavi(rml, spec): Tavi's additions, idempotent
+  -> tools/mascot-remix/slim.mjs     character-only copy in art/mascot-v2-export/ (git-ignored)
+  -> rive art/mascot-v2-export --once
+  -> src/renderer/characters/mascot-v2/mascot-v2.riv (82 KB)
+```
+
+`author.mjs` exports `lylaSpec`, which records every component id it touches, plus
+`authorTavi(source, spec)`, a pure function. A variant made from the same rig (another
+hairstyle, skin tone or face shape) calls `authorTavi` with its own spec, for example other skin
+colours or the ids from its own source. Its build then satisfies the same contract, so the
+manifest, motion, body states and acting are shared.
+
+### The contract (what every v2-compatible file must provide)
+
+The artboard is `lyla animation`. A CLI build keeps component names, so no in-memory patch is
+needed (`patch: { artboard }`).
+
+| Kind              | Name in the file                                                                                                                                                                                                                                           | Manifest handle                      | Meaning                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
+| Node              | `tavi/footL`, `tavi/footR`                                                                                                                                                                                                                                 | `foot-l`, `foot-r`                   | Foot IK targets (screen-left/right)                                                   |
+| Node              | `tavi/body`                                                                                                                                                                                                                                                | `body`                               | Hips: crouch, rise and shift over planted feet                                        |
+| Node              | `tavi/upper`                                                                                                                                                                                                                                               | `upper`                              | Torso lean                                                                            |
+| Node              | `tavi/head`                                                                                                                                                                                                                                                | `head`                               | Head roll around the neck, head Y                                                     |
+| Node              | `tavi/armL`, `tavi/armR`                                                                                                                                                                                                                                   | `arm-l`, `arm-r`                     | Shoulder rotation (positive raises outward on both sides after binding)               |
+| Bone              | `tavi/armL.fore`, `tavi/armR.fore`                                                                                                                                                                                                                         | `arm-l-fore`, `arm-r-fore`           | Elbow bend, additive rotation (bones take rotation only)                              |
+| Bone              | `tavi/armL.upper`, `tavi/armR.upper`                                                                                                                                                                                                                       | (reserved)                           | Upper-arm bones (IK roots, if added)                                                  |
+| Control animation | `tavi/faceX`, `tavi/faceY`, `tavi/browLeft`, `tavi/browRight`, `tavi/blinkLeft`, `tavi/blinkRight`, `tavi/lidLeft`, `tavi/lidRight`, `tavi/mouthX`, `tavi/mouthY`, `tavi/mouthCurve`, `tavi/squash`, `tavi/hairSwing`, `tavi/hairSwoop`, `tavi/hairSquash` | `ctl.face-x` … `ctl.hair-squash`     | 60 frames at 60 fps, keying a joystick axis linearly from -1.25 to 1.25               |
+| Control animation | `tavi/browTiltL`, `tavi/browTiltR`                                                                                                                                                                                                                         | `ctl.brow-tilt-l`, `ctl.brow-tilt-r` | Frame 0 inner end up (sad), 30 rest, 60 inner end down (angry)                        |
+| Control animation | `tavi/mouthOpen`                                                                                                                                                                                                                                           | `ctl.mouth-open`                     | Frame 0 closed .. 60 fully open                                                       |
+| Control animation | `tavi/viseme`                                                                                                                                                                                                                                              | `ctl.viseme`                         | Solo selection held from frame 10k: 0 A, 1 O, 2 E, 3 U                                |
+| Control animation | `tavi/handL`, `tavi/handR`                                                                                                                                                                                                                                 | `ctl.hand-l`, `ctl.hand-r`           | Solo selection held from frame 10k: 0 rest, 1 open palm, 2 fist, 3 point, 4 thumbs up |
+| Control animation | `tavi/armsFront`                                                                                                                                                                                                                                           | `ctl.arms-front`                     | Draw rules: frame 0 arms in natural order, from 30 in front of the hair               |
+| Clips (authored)  | `hands on hips`, `thoughtful`, `blink 2/3/4`, `wave`, `wave Non Looping`, `celebration`, `testing`, `back and forth`, `blink_IDLE`, `Timeline 2`                                                                                                           | `hands-on-hips`, …                   | Body-language clips the acting and motion layers request by role                      |
+| Appearance clips  | `hair Pink/Orange/Brown`, `clothing green/black/light green`, `glasses blue/white/grey`                                                                                                                                                                    | `hair.pink`, …                       | Colour options                                                                        |
+
+The binding (`characters/mascot-v2/motion.ts`) samples discrete selections at `(10k + 5) / 60`
+s, and samples `armsFront` at 0.01 or 0.99. Body-state geometry (`characters/mascot/states.ts`,
+seat height and sole contacts) is shared because the skeleton is identical. A variant that
+changes leg or hip proportions must provide its own.
+
+### Where the hair lives (for new hairstyles)
+
+All ids are in `art/mascot-remix/scene.rml`, inside `lyla animation > ALL > TOP > null > ALL_Lyla
+
+> ALL_Lyla > HIP > core > neck > head`:
+
+- **Bangs** (top of the head, front-most in draw order): `bangs move` (`0:1297`) >
+  `bangs` (`0:1296`) > shapes `bangs_2` (`0:438`) and `bangs` (`0:447`). The arms' "front" draw
+  target is `0:447`.
+- **Side pieces** (the tassels that swing): `hair side pieces` (`0:1307`) > `hair side pieces
+move` (`0:1306`). There is one bone chain per side: `hair side 2` (`0:2121`) > RootBone `hair
+bone right` (`0:2122`) > Bone `hair left swing` (`0:2123`), with the shapes under `hair side`
+  (`0:2124`); and `hair side` (`0:2119`) > RootBone (`0:2107`) > Bone `hair right swing`
+  (`0:2108`), with shapes under `0:465`. A hidden older chain (`hold` > `hair bone` `0:2105`) is
+  unused.
+- **Back hair** (behind the head, squashes): `hair squash` (`0:5961`) > `hair BACK` (`0:684`) >
+  shapes `Vector 61`–`Vector 73`.
+- **Hair dynamics** are the joysticks `hair tassel swing` (`0:2154`, timeline `hair swing`, the
+  side bones), `hair back swing` (`0:2292`, `hairswoop`) and `hair squash` (`0:6009`). The motion
+  layer drives them through `tavi/hairSwing`, `tavi/hairSwoop` and `tavi/hairSquash`, clamped to
+  ±0.25, ±0.18 and ±0.06 because larger values balloon. A new hairstyle keeps the physics if its
+  locks are skinned or parented to the two side bones and its back mass sits under `hair squash`.
+  Keep the bones and joysticks, and swap the shapes.
+- **Hair colour** is keyed by the `hair Pink/Orange/Brown` animations (solid colours and
+  gradient stops on the hair shapes). New shapes need keys there, or the runtime recolour.
+
 ## 2. Spec for a production rig (Duolingo-style)
 
 ### Principles
