@@ -6,7 +6,7 @@
 // "wave testing folio header" permanently rescales the artboard to ~65% and is excluded.
 import type { ManifestInput } from '../manifest';
 import { mascotFace } from './face';
-import { mascotControlTracks, mascotMotionNodes } from './motion';
+import { mascotClipTracks, mascotControlTracks, mascotMotionNodes } from './motion';
 
 export const mascot: ManifestInput = {
   id: 'mascot',
@@ -50,6 +50,7 @@ export const mascot: ManifestInput = {
     'sway',
     'subtle-shift',
     'arm-swing',
+    ...mascotClipTracks,
     ...Object.keys(mascotControlTracks),
   ],
   rest: [{ track: 'wave-once', at: 0 }],

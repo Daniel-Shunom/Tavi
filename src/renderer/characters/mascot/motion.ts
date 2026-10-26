@@ -36,14 +36,41 @@ function sample(channel: keyof typeof lylaRig.channels, value: number) {
   return { track: track(channel), time: controlTime(spec, value), mix: 1 };
 }
 
+/**
+ * Authored clips the motion and acting layers request by role (seconds), as manifest track
+ * handles with their clip lengths, so the renderer can scrub them (normalized time).
+ */
+const clipTracks: Readonly<Record<string, { track: string; seconds: number; loop?: true }>> = {
+  wave: { track: 'wave-once', seconds: 2 },
+  celebrate: { track: 'celebration', seconds: 2 },
+  think: { track: 'thoughtful', seconds: 2, loop: true },
+  hips: { track: 'hands-on-hips', seconds: 2.167 },
+  sway: { track: 'sway', seconds: 2, loop: true },
+  'happy-shrug': { track: 'happy-shrug', seconds: 2, loop: true },
+  sheepish: { track: 'sheepish-wave', seconds: 2, loop: true },
+  shrug: { track: 'flat-shrug', seconds: 2, loop: true },
+  'wink-wave': { track: 'wink-wave', seconds: 2, loop: true },
+  swing: { track: 'arm-swing', seconds: 2, loop: true },
+};
+export const mascotClipTracks = [...new Set(Object.values(clipTracks).map((clip) => clip.track))];
+
 export const mascotMotion: CharacterMotionRig = {
   patch: lylaPatch,
   bind(frame: MotionFrame) {
     const p = frame.pose;
     const scaleY = frame.placement.scaleY,
       scaleX = frame.placement.scaleX;
+    // Body clips first: the control tracks after them own the face and squash.
+    const clips = frame.clips.flatMap((clip) => {
+      const entry = clipTracks[clip.role];
+      if (!entry || clip.mix <= 0.001) return [];
+      const time = clip.time / entry.seconds;
+      const normalized = entry.loop ? time - Math.floor(time) : Math.min(1, time);
+      return [{ track: entry.track, time: normalized, mix: Math.min(1, clip.mix) }];
+    });
     return {
       tracks: [
+        ...clips,
         sample('faceX', p.gazeX * 0.85),
         sample('faceY', p.gazeY * 0.85),
         sample('blinkLeft', -1 + 2 * p.blinkL),
