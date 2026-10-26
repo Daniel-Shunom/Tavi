@@ -17,7 +17,7 @@ describe('character manifests', () => {
   it('registers a valid default character with generic appearance slots', () => {
     const mascot = getCharacter('mascot');
     expect(Object.keys(mascot.appearance)).toEqual(['hair', 'outfit', 'glasses']);
-    expect(getCharacter('unknown-character').id).toBe('mascot');
+    expect(getCharacter('unknown-character').id).toBe('mascot-v2');
     expect(catalog['mascot']?.expressions.length).toBeGreaterThan(20);
   });
   it('binds only animations that really exist in the shipped artwork', () => {
