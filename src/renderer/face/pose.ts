@@ -36,6 +36,25 @@ export const facePoseSchema = z
       })
       .strict()
       .optional(),
+    /**
+     * Turn toward the attention target: gaze, head tilt, lean and shift are authored for a
+     * target on screen right and mirrored (arms swapped) for one on the left.
+     */
+    towardTarget: z.boolean().optional(),
+    /**
+     * An authored clip played alongside (role from the character's motion binding, e.g. "hips"),
+     * from the cue start at `rate`; `pingPong` swings between two times (seconds) once reached.
+     */
+    clip: z
+      .object({
+        role: z.string().regex(/^[a-z0-9-]{1,32}$/),
+        mix: z.number().min(0).max(1),
+        rate: z.number().positive().max(4).optional(),
+        start: z.number().min(0).optional(),
+        pingPong: z.tuple([z.number().min(0), z.number().min(0)]).optional(),
+      })
+      .strict()
+      .optional(),
     /** Living hold: never a frozen frame. */
     living: z
       .object({
@@ -58,6 +77,8 @@ export const faceSchema = z
     channels: z.partialRecord(channel, z.object({ min: z.number(), max: z.number() }).strict()),
     /** Seconds the mouth trails the brows and eyes (overlapping action). */
     mouthLag: z.number().min(0).max(0.3).default(0.07),
+    /** Seconds the body trails the face and head. */
+    bodyLag: z.number().min(0).max(0.3).default(0.06),
     /** Blinks per minute and closed time when no pose says otherwise. */
     blink: z
       .object({ rate: z.number().min(0).max(60), hold: z.number().min(0).max(1) })
@@ -143,6 +164,15 @@ export function sampleFacePose(def: FacePose, intensity: number, elapsed: number
       values[name] = (values[name] ?? 0) + sampleKeys(keys, t) * gain;
   }
   return values;
+}
+
+/** Every channel a pose touches in any variant, onset or keys. */
+export function poseChannels(def: FacePose): ReadonlySet<FaceChannel> {
+  const names = new Set<FaceChannel>();
+  for (const values of [def.pose, def.strong ?? {}, def.subtle ?? {}, def.onset?.pose ?? {}])
+    for (const name of Object.keys(values) as FaceChannel[]) names.add(name);
+  for (const name of Object.keys(def.keys?.channels ?? {}) as FaceChannel[]) names.add(name);
+  return names;
 }
 
 /** Clamps values into a rig's safe ranges and drops channels it does not support. */

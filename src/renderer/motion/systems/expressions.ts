@@ -416,14 +416,15 @@ export class ExpressionSystem {
   }
 
   /**
-   * `faceOwned`: expressions whose facial features (brows, lids, mouth, gaze) come from the
-   * character's face poses (src/renderer/face/). Their performance then supplies only the head
-   * and body, so the face is not driven twice.
+   * `faceOwned`: per expression, the facial feature channels (brows, lids, mouth, gaze) that the
+   * character's face pose supplies (src/renderer/face/). The performance skips those, so the face
+   * is not driven twice; its head, body and any feature the pose leaves alone (e.g. a nod's
+   * pitch through gazeY) still play.
    */
   evaluate(
     now: number,
     profile: MotionProfile,
-    faceOwned: ReadonlySet<string> = new Set(),
+    faceOwned: ReadonlyMap<string, ReadonlySet<string>> = new Map(),
   ): ExpressionOutput {
     this.lastProfile = profile;
     const pose: Partial<Pose> = {};
@@ -431,9 +432,9 @@ export class ExpressionSystem {
     let gaze: ExpressionOutput['gaze'] = null;
     let attentive = false;
     const active: string[] = [];
-    let owned = false;
+    let owned: ReadonlySet<string> | undefined;
     const add = (channel: Channel, value: number) => {
-      if (owned && faceFeatures.has(channel)) return;
+      if (owned?.has(channel) && faceFeatures.has(channel)) return;
       pose[channel] = (pose[channel] ?? 0) + value;
     };
     this.instances = this.instances.filter((instance) => {
@@ -449,7 +450,7 @@ export class ExpressionSystem {
     for (const instance of this.instances) {
       const def = expressionLibrary[instance.id];
       if (!def) continue;
-      owned = faceOwned.has(instance.id);
+      owned = faceOwned.get(instance.id);
       const env = this.envelope(instance, def, profile, now);
       const t = Math.max(0, now - instance.start - profile.reactionLatency);
       const gain = instance.intensity * profile.amplitude;
@@ -487,13 +488,13 @@ export class ExpressionSystem {
           owns: def.clip.owns,
         });
       }
-      if (def.gaze && weight > 0.01 && !owned) {
+      if (def.gaze && weight > 0.01 && !owned?.has('gazeX') && !owned?.has('gazeY')) {
         const w = def.gaze.weight * clamp01(env);
         if (!gaze || w > gaze.weight) gaze = { x: def.gaze.x, y: def.gaze.y, weight: w };
       }
       if (def.attentive && weight > 0.3) attentive = true;
     }
-    owned = false;
+    owned = undefined;
     return { pose, clips, gaze, attentive, active };
   }
 }

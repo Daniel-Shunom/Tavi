@@ -67,11 +67,13 @@ export const mascot: ManifestInput = {
       variants: { strong: { tracks: [{ track: 'arm-swing', loop: 2.4, mix: 0.6 }] } },
     },
     amused: {
+      motion: 'amused',
       composed: true,
       tracks: [{ track: 'happy-shrug', at: 0.1, mix: 0.9 }],
       oscillate: { property: 'y', amplitude: 2.5, hz: 4.5 },
     },
     excited: {
+      motion: 'excited',
       composed: true,
       tracks: [{ track: 'arm-swing', loop: 1.6, mix: 0.9 }],
       oscillate: { property: 'y', amplitude: 4, hz: 2.4 },
@@ -80,6 +82,7 @@ export const mascot: ManifestInput = {
       },
     },
     proud: {
+      motion: 'proud',
       composed: true,
       tracks: [{ track: 'celebration', at: 0.12, mix: 0.7 }],
       transform: { y: -4, scale: 1.03 },
@@ -90,11 +93,13 @@ export const mascot: ManifestInput = {
       transform: { rotation: -1.5, scale: 1.02 },
     },
     smug: {
+      motion: 'smug',
       composed: true,
       tracks: [{ track: 'hands-on-hips', at: 0.3, mix: 0.75 }],
       transform: { rotation: 2, y: -2 },
     },
     teasing: {
+      motion: 'teasing',
       composed: true,
       tracks: [{ track: 'wink-wave', at: 0.08, mix: 0.9 }],
       transform: { rotation: -2 },
@@ -115,22 +120,26 @@ export const mascot: ManifestInput = {
       },
     },
     confused: {
+      motion: 'confused',
       composed: true,
       tracks: [{ track: 'thoughtful', play: { from: 0.2, to: 0.4 }, pingpong: 2.2, mix: 0.8 }],
       transform: { rotation: -5 },
       oscillate: { property: 'rotation', amplitude: 1.2, hz: 0.6 },
     },
     thinking: {
+      motion: 'thinking',
       composed: true,
       tracks: [{ track: 'thoughtful', play: { from: 0.25, to: 0.55 }, mix: 0.9 }],
       anticipation: 0.45,
     },
     sympathetic: {
+      motion: 'sympathetic',
       composed: true,
       tracks: [{ track: 'flat-shrug', play: { from: 0.4, to: 0.6 }, pingpong: 2.8, mix: 0.5 }],
       transform: { y: 3, rotation: -2 },
     },
     embarrassed: {
+      motion: 'embarrassed',
       composed: true,
       tracks: [{ track: 'sheepish-wave', play: { from: 0.2, to: 0.4 }, pingpong: 1.8, mix: 0.8 }],
       transform: { x: -6 },
@@ -147,6 +156,7 @@ export const mascot: ManifestInput = {
       transform: { y: 2 },
     },
     startled: {
+      motion: 'startled',
       composed: true,
       tracks: [{ track: 'celebration', play: { from: 0, to: 0.12 }, mix: 0.45 }],
       transform: { y: -14, scale: 1.04 },
@@ -272,6 +282,7 @@ export const mascot: ManifestInput = {
       },
     },
     celebrate: {
+      motion: 'celebrate',
       tracks: [{ track: 'celebration', play: { from: 0, to: 1 }, mix: 0.95 }],
       anticipation: 0.2,
     },
@@ -283,18 +294,22 @@ export const mascot: ManifestInput = {
       transform: { rotation: 1 },
     },
     disagreeing: {
+      motion: 'disagreeing',
       composed: true,
       tracks: [{ track: 'sway', play: { from: 0.15, to: 0.85 }, mix: 0.8 }],
       oscillate: { property: 'rotation', amplitude: 2, hz: 1.4 },
     },
     shrug: {
+      motion: 'shrug',
       composed: true,
       tracks: [{ track: 'flat-shrug', play: { from: 0.35, to: 0.6 }, pingpong: 2.2, mix: 0.9 }],
     },
     sassy: {
+      motion: 'sassy',
       tracks: [{ track: 'hands-on-hips', play: { from: 0.35, to: 0.65 }, pingpong: 2.6, mix: 0.9 }],
     },
     listening: {
+      motion: 'listening',
       composed: true,
       tracks: [{ track: 'sheepish-wave', at: 0.15, mix: 0.4 }],
       transform: { scale: 1.025, rotation: 1.5 },
