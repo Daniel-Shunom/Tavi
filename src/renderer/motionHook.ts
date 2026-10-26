@@ -30,6 +30,8 @@ export interface MotionInput {
   retracted: boolean;
   /** Current entrance/exit cue (choreography + seed) and its fallback hidden amount 0..1. */
   presence: { transition: PresenceTransition | null; hidden: number; elapsed: number };
+  /** Expressions handed to motion performances by the manifest (`binding.motion`). */
+  performances: readonly { id: string; layer: ActiveLayer }[];
   /** The base pose this frame, before motion contributions. */
   base: { offset: Offset };
   locomotion: {
@@ -71,6 +73,8 @@ export interface MotionOutput {
   presence?: { hidden: number };
 }
 export interface MotionLayer {
+  /** Motion performance ids this layer performs (e.g. "nod"); their bindings defer to it. */
+  readonly performances?: readonly string[];
   update(input: MotionInput): MotionOutput;
   dispose?(): void;
 }

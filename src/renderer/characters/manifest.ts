@@ -17,6 +17,11 @@ export const trackSampleSchema = z
     play: z.object({ from: unit, to: unit }).strict().optional(),
     /** Loop the clip every N seconds while active. */
     loop: z.number().positive().optional(),
+    /**
+     * With `play`: after reaching `to`, swing back and forth between from..to every N seconds
+     * during the hold instead of stopping, so held poses stay alive.
+     */
+    pingpong: z.number().positive().optional(),
     mix: unit.default(1),
   })
   .strict();
@@ -46,6 +51,15 @@ const bindingCore = z
     recovery: z.number().min(0).max(3).optional(),
     /** Built from other clips and transforms rather than an authored native expression. */
     composed: z.boolean().default(false),
+    /**
+     * Hands the accent and hold to a motion-layer performance (e.g. "nod"). When a registered
+     * motion layer lists this id in `performances`, the binding's own tracks and transforms are
+     * skipped and the layer drives the expression; cue timing, priority and captions are kept.
+     */
+    motion: z
+      .string()
+      .regex(/^[a-z0-9-]{1,32}$/)
+      .optional(),
   })
   .strict();
 export const bindingSchema = bindingCore.extend({

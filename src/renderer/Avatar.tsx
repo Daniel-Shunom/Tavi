@@ -124,6 +124,7 @@ export function Avatar({
           energy: config.energy,
           attitude: config.attitude,
           side,
+          delegated: new Set(motion?.performances ?? []),
         });
         // Presence: entrances/exits on the service clock (never replayed after reconnect).
         const transition = current.performance.presence;
@@ -161,6 +162,7 @@ export function Avatar({
               hidden,
               elapsed: transition ? (serviceTime - transition.startAt) / 1000 : Infinity,
             },
+            performances: pose.performances,
             base: { offset: { ...pose.offset } },
             locomotion: {
               home,

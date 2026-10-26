@@ -22,6 +22,8 @@ export interface Pose {
   caption: string;
   /** Strongest attention layer, if any. */
   attention: { target: Target; weight: number } | null;
+  /** Bindings that hand off to motion-layer performances, with their cue layer. */
+  performances: { id: string; layer: ActiveLayer }[];
 }
 export interface ComposeOptions {
   reducedMotion?: boolean;
@@ -30,6 +32,8 @@ export interface ComposeOptions {
   attitude?: 'gentle' | 'cheeky' | 'spicy';
   /** -1 when the target is to the character's left, 1 to the right. */
   side?: (target: Target) => -1 | 1;
+  /** Motion performances a registered motion layer will perform itself. */
+  delegated?: ReadonlySet<string>;
 }
 export function phaseLookup(manifest: CharacterManifest): PhaseLookup {
   return (id) => {
@@ -70,16 +74,32 @@ export function composePose(
     tuck: 0,
     caption: '',
     attention: null,
+    performances: [],
   };
   let captionWeight = 0;
   for (const layer of layers) {
     const binding = variantFor(manifest.expressions[layer.expression], layer.intensity);
     if (!binding) continue;
+    if (binding.motion) pose.performances.push({ id: binding.motion, layer });
+    const delegated = !!binding.motion && !!options.delegated?.has(binding.motion);
     // Intensity shapes how far the pose goes; weight is the phase envelope.
     const amount = layer.weight * (0.45 + 0.55 * layer.intensity);
-    for (const sample of binding.tracks) {
-      let time = sample.at ?? 0;
-      if (sample.play) {
+    // Held poses are never perfectly still: fixed frames drift slightly around their sample.
+    const drift = reduced ? 0 : Math.sin((layer.elapsed * Math.PI * 2) / 2.6);
+    for (const sample of delegated ? [] : binding.tracks) {
+      let time = Math.min(0.999, Math.max(0, (sample.at ?? 0) + 0.035 * drift));
+      if (sample.play && sample.pingpong && !reduced) {
+        const span = Number.isFinite(layer.span)
+          ? layer.span
+          : (binding.anticipation ?? defaultPhases.anticipation) +
+            expressions[layer.expression].duration;
+        const rise = Math.min(1, layer.elapsed / Math.max(0.2, Math.min(span, 1.2)));
+        const swing =
+          layer.elapsed < 1.2
+            ? rise
+            : 0.5 + 0.5 * Math.cos(((layer.elapsed - 1.2) * Math.PI * 2) / sample.pingpong);
+        time = sample.play.from + (sample.play.to - sample.play.from) * swing;
+      } else if (sample.play) {
         // Play across anticipation + hold; open-ended beats use the expression's typical span.
         const span = Number.isFinite(layer.span)
           ? layer.span
@@ -108,8 +128,11 @@ export function composePose(
       if (!pose.attention || layer.weight > pose.attention.weight)
         pose.attention = { target: layer.target, weight: layer.weight };
     }
-    if (reduced) continue;
+    if (reduced || delegated) continue;
     const motion = amount * level;
+    // Subtle life on every held pose (on top of idle breathing and blinks).
+    pose.offset.rotation += 0.35 * drift * motion;
+    pose.offset.y += 0.6 * Math.sin((layer.elapsed * Math.PI * 2) / 1.9) * motion;
     const side = layer.target !== 'neutral' && options.side ? options.side(layer.target) : 1;
     if (binding.transform) {
       pose.offset.x += (binding.transform.x ?? 0) * motion * side;

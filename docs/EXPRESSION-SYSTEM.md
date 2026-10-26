@@ -94,3 +94,5 @@ motion handles (`motionTracks`, `nodes`, `inputs`, `locomotion`). It returns opt
 samples, input values, node transforms, an additive offset, a position (locomotion), facing,
 and `presence.hidden` when it performs the entrance/exit itself. Without a layer the renderer
 eases position toward the target and slides/fades for entrances and exits.
+
+A binding may set `motion: "<performance>"` (mascot: agreeing -> `nod`, skeptical -> `skeptical`, innocent -> `caught`). If the registered motion layer lists that id in `performances`, the binding's own tracks and transforms are skipped and the layer receives the cue layer in `input.performances` to drive the accent and hold; cue timing, priority and captions are unchanged. Held poses are never frozen: `play` + `pingpong` swings during the hold, fixed frames drift slightly, and `tests/living-holds.test.ts` fails if any hold renders identically over time.
