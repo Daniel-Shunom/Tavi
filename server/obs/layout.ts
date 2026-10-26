@@ -23,7 +23,11 @@ export const sceneItemSchema = z.object({
   sourceName: z.string(),
   inputKind: z.string().nullable().optional(),
   sourceType: z.string().optional(),
-  isGroup: z.boolean().default(false),
+  // OBS WebSocket returns null for ordinary scene items on some versions.
+  isGroup: z
+    .boolean()
+    .nullish()
+    .transform((value) => value ?? false),
   sceneItemEnabled: z.boolean(),
   sceneItemTransform: transformSchema,
 });
