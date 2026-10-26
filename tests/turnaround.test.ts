@@ -1,4 +1,4 @@
-// Lyla v2's three-quarter turnaround (tools/mascot-remix/steps/turn.mjs): authored tracks in the
+﻿// Lyla v2's three-quarter turnaround (tools/mascot-remix/steps/turn.mjs): authored tracks in the
 // built file, continuous values, no clash with other timelines, and the manifest hook-up.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -6,6 +6,7 @@ import { manifestSchema } from '../src/renderer/characters/manifest';
 import { mascotV2 } from '../src/renderer/characters/mascot-v2/manifest';
 import { mascotV2Motion, turnTime } from '../src/renderer/characters/mascot-v2/motion';
 import { neutralPose } from '../src/renderer/motion/types';
+import { MotionLayer } from '../src/renderer/motion/motion';
 // @ts-expect-error -- plain .mjs pipeline module without type declarations
 import * as turnStep from '../tools/mascot-remix/steps/turn.mjs';
 
@@ -83,6 +84,17 @@ describe('Lyla v2 turnaround', () => {
     }
   });
 
+  it('projects the head silhouette as well as moving the face plane', () => {
+    const props = keyedProperties(animation('tavi/turnHead'));
+    const width = props.get('0:568.scaleX');
+    expect(width, 'face silhouette must narrow into the turn').toBeDefined();
+    expect(width?.[0]?.[1]).toBeLessThan(0.9);
+    expect(width?.[5]?.[1]).toBe(1);
+    expect(width?.[10]?.[1]).toBeLessThan(0.9);
+    const plane = props.get('0:1284.x') ?? [];
+    expect((plane[10]?.[1] ?? 0) - (plane[0]?.[1] ?? 0)).toBeGreaterThan(45);
+  });
+
   it('is exposed through the manifest with turnStyle "authored"', () => {
     const manifest = manifestSchema.parse(mascotV2);
     expect(manifest.turnStyle).toBe('authored');
@@ -125,5 +137,38 @@ describe('Lyla v2 turnaround', () => {
     const sample = (track: string) => bound.tracks.find((t) => t.track === track)?.time;
     expect(sample('ctl.turn-head')).toBeCloseTo(0.8);
     expect(sample('ctl.turn-body')).toBeCloseTo(0.35);
+  });
+
+  it.each([-1, 1])('looks and turns toward a travel target on side %s', (direction) => {
+    const layer = new MotionLayer(
+      7,
+      {
+        personality: 'playful',
+        attitude: 'cheeky',
+        energy: 60,
+        reducedMotion: false,
+        quiet: false,
+      },
+      { aspect: 16 / 9, bodyHeight: 0.3, margin: 0.02 },
+      { feet: true, turnStyle: 'authored' },
+    );
+    layer.place(direction > 0 ? 0.3 : 0.7, 0.9);
+    layer.attend({ x: direction * 0.9, y: -0.1 });
+    layer.moveTo({ x: direction > 0 ? 0.8 : 0.2, at: 0.2, gait: 'step' });
+    let moving = 0;
+    let final = layer.update(0);
+    for (let i = 1; i <= 60 * 12; i++) {
+      const frame = layer.update(i / 60);
+      if (frame.status.locomotion.startsWith('moving:')) {
+        moving++;
+        expect(frame.pose.turnHead * direction).toBeGreaterThan(0.3);
+        expect(frame.pose.gazeX * direction).toBeGreaterThan(0);
+        expect(frame.placement.facing).toBe(1);
+      }
+      final = frame;
+    }
+    expect(moving).toBeGreaterThan(5);
+    expect(Math.abs(final.pose.turnHead)).toBeLessThan(0.05);
+    expect(Math.abs(final.pose.turnBody)).toBeLessThan(0.05);
   });
 });

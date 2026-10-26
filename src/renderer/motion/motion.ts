@@ -185,6 +185,20 @@ export class MotionLayer {
   private lastLoco: LocomotionFrame | null = null;
   private fallbackMood: string | null = null;
 
+  /** A modest body-local look toward the current travel destination. */
+  private travelGaze(frame: LocomotionFrame): GazeTarget | null {
+    if (!frame.moving) return null;
+    const destination = this.locomotion.destination;
+    const dx = (destination.x - frame.x) * this.stage.aspect;
+    const dy = destination.y - frame.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < 1e-4) return null;
+    return {
+      x: (dx / distance) * frame.facing * 0.65,
+      y: (dy / distance) * 0.35,
+    };
+  }
+
   /**
    * The travel mood as face cues (expression id from shared/expressions.ts) for the character's
    * face layer; additive with any other expression. Empty while standing still.
@@ -303,8 +317,12 @@ export class MotionLayer {
     const fidget = this.fidget.update(now, profile, busy);
     const idle = idleLayer(now, this.seed, profile);
 
-    // Gaze: system fixations, overridden by an expression's look, plus additive glances.
-    const look = this.gaze.update(dt, now, profile, this.attention);
+    // Gaze: explicit scene attention wins; otherwise keep the eyes on the destination while
+    // travelling. This makes movement read as intentional even when no attention cue is active.
+    const travelGaze = this.attention ? null : this.travelGaze(loco);
+    const gazeTarget = this.attention ?? travelGaze;
+    const gazeProfile = travelGaze ? { ...profile, gazeAwayBias: 0 } : profile;
+    const look = this.gaze.update(dt, now, gazeProfile, gazeTarget);
     const override = expr.gaze;
     const w = override ? override.weight : 0;
     pose.gazeX = look.x * (1 - w) + (override ? override.x * w : 0) + idle.gazeDriftX;

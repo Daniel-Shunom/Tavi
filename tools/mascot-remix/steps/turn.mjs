@@ -19,6 +19,7 @@ export const lylaTurnSpec = {
   head: {
     /** Face group (rotated slightly) and the two hidden constraint targets inside it. */
     faceGroup: '0:1283',
+    faceShape: '0:568',
     facePlane: '0:1284',
     glassesPlane: '0:2835',
     /** Distance constraints that tie followers to the face plane (default distances). */
@@ -52,7 +53,7 @@ export const lylaTurnSpec = {
     legs: { L: '0:2518', R: '0:2507' },
   },
   /** Face-plane travel at a full turn (artboard units). */
-  travel: 14,
+  travel: 26,
 };
 
 const SIDES = /** @type {const} */ ([
@@ -69,6 +70,10 @@ const smooth = (x) => {
 
 /** Returns `rml` with the turnaround tracks (previous ones replaced). Pure. */
 export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla animation') {
+  const previous =
+    /\n?[ \t]*<!-- tavi:begin turnaround -->[\s\S]*?<!-- tavi:end turnaround -->/.exec(source);
+  // Keep the existing step in place when later authoring steps add timelines after it.
+  // Removing it and appending at the artboard end changes pipeline ordering on every run.
   let rml = source.replace(
     /\n?[ \t]*<!-- tavi:begin turnaround -->[\s\S]*?<!-- tavi:end turnaround -->/g,
     '',
@@ -139,10 +144,28 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
     distance(h.distances.skin, (d0, a) => d0 + D * a) +
     distance(h.distances.sides, (d0, a) => d0 + D * a) +
     distance(h.distances.bangs, (d0, a) => d0 + 0.45 * D * a);
+  // Project the skull and jaw, not just its features. Shape transforms remain independent
+  // of the setup-pose vertex edits that provide the variant face shapes.
+  const faceX = attr(h.faceShape, 'x', 0),
+    faceScale = attr(h.faceShape, 'scaleX', 1);
+  head += keyed(h.faceShape, {
+    x: (t) => faceX + 4 * t,
+    scaleX: (t) => faceScale * (1 - 0.14 * Math.abs(t)),
+  });
+  const outline = vertices(h.faceShape);
+  for (const [corner, travel] of [
+    [1, 9],
+    [3, 3],
+  ]) {
+    const vertex = outline[corner];
+    if (!vertex) throw new Error('turnaround: face outline missing corner ' + corner);
+    const x0 = attr(vertex, 'x', 0);
+    head += keyed(vertex, { x: (t) => x0 + travel * t });
+  }
   // Nose leads, cheeks follow a little.
   const noseX = attr(h.nose, 'x', 0),
     blushX = attr(h.blush, 'x', 0);
-  head += keyed(h.nose, { x: (t) => noseX + 7 * t });
+  head += keyed(h.nose, { x: (t) => noseX + 10 * t });
   head += keyed(h.blush, { x: (t) => blushX + 3 * t });
   // The back hair shows more on the near side (the back of the head).
   const backX = attr(h.backHair, 'x', 0);
@@ -156,7 +179,7 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
       eyeSX = attr(eye, 'scaleX', 1);
     head += keyed(eye, {
       x: (t) => eyeX - sign * (4 * near(sign, t) + 5 * far(sign, t)),
-      scaleX: (t) => eyeSX * (1 - 0.3 * far(sign, t) + 0.04 * near(sign, t)),
+      scaleX: (t) => eyeSX * (1 - 0.44 * far(sign, t) + 0.02 * near(sign, t)),
     });
     // Brows: the transform is joystick-owned, so squash and shift the path's vertices.
     for (const vertex of vertices(h.brows[side])) {
@@ -171,7 +194,7 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
       lensSX = attr(lens, 'scaleX', 1);
     head += keyed(lens, {
       x: (t) => lensX - sign * (4 * near(sign, t) + 11 * far(sign, t)),
-      scaleX: (t) => lensSX * (1 - 0.34 * far(sign, t) + 0.04 * near(sign, t)),
+      scaleX: (t) => lensSX * (1 - 0.44 * far(sign, t) + 0.02 * near(sign, t)),
     });
     const temple = h.temples[side];
     const templeX = attr(temple, 'x', 0);
@@ -221,8 +244,8 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
     const halfX = attr(half, 'x', 0),
       halfSX = attr(half, 'scaleX', 1);
     body += keyed(half, {
-      x: (t) => halfX * (1 - 0.1 * Math.abs(t)),
-      scaleX: (t) => halfSX * (1 - 0.1 * Math.abs(t)),
+      x: (t) => halfX * (1 - 0.16 * Math.abs(t)),
+      scaleX: (t) => halfSX * (1 - 0.16 * Math.abs(t)),
     });
   }
   for (const [side, sign] of SIDES) {
@@ -231,7 +254,7 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
       armSX = attr(arm, 'scaleX', 1),
       armSY = attr(arm, 'scaleY', 1);
     body += keyed(arm, {
-      x: (t) => armX - sign * (2 * near(sign, t) + 6 * far(sign, t)),
+      x: (t) => armX - sign * (2 * near(sign, t) + 9 * far(sign, t)),
       scaleX: (t) => armSX * (1 + 0.06 * near(sign, t) - 0.04 * far(sign, t)),
       scaleY: (t) => armSY * (1 + 0.06 * near(sign, t) - 0.04 * far(sign, t)),
     });
@@ -250,6 +273,6 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
     '<!-- tavi:end turnaround -->';
   const board = rml.indexOf(`name="${artboard}"`);
   if (board < 0) throw new Error('turnaround: artboard not found: ' + artboard);
-  const close = rml.indexOf('\n    </Artboard>', board);
+  const close = previous?.index ?? rml.indexOf('\n    </Artboard>', board);
   return rml.slice(0, close) + '\n        ' + block + rml.slice(close);
 }

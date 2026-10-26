@@ -16,8 +16,10 @@ import {
   bodyStates,
   clampRect,
   resolveSpot,
+  sameSpot,
   sceneRectIds,
   sceneRects,
+  type BodyStateId,
   type Scene,
   type SceneRect,
   type SceneRectId,
@@ -53,7 +55,7 @@ export function BodyStateDock({
           <button
             key={entry.state}
             aria-pressed={pressed}
-            disabled={!connected || state.retracted || !possible}
+            disabled={!connected || state.retracted || !possible || pressed}
             title={
               possible
                 ? `${definition.label}: ${definition.meaning}`
@@ -72,7 +74,20 @@ export function BodyStateDock({
   );
 }
 
-type Drag = { id: SceneRectId; mode: 'move' | 'resize'; x: number; y: number; start: SceneRect };
+type Drag = {
+  id: SceneRectId;
+  mode: 'move' | 'resize';
+  x: number;
+  y: number;
+  start: SceneRect;
+  moved: boolean;
+};
+
+const frameDestination = {
+  webcam: 'perch',
+  game: 'sit',
+  chat: 'peek',
+} as const satisfies Record<SceneRectId, BodyStateId>;
 
 export function SceneEditor({
   config,
@@ -87,12 +102,27 @@ export function SceneEditor({
 }) {
   const [draft, setDraft] = useState<Scene>(config.scene);
   const drag = useRef<Drag | null>(null);
+  const suppressFrameClick = useRef(false);
   const box = useRef<HTMLDivElement>(null);
   // Follow saved changes (other studio tabs, migrations) unless the streamer is dragging.
   useEffect(() => {
     if (!drag.current) setDraft(config.scene);
   }, [config.scene]);
   const commit = (scene: Scene) => {
+    const unchanged =
+      scene.floor === config.scene.floor &&
+      sceneRectIds.every((id) => {
+        const before = config.scene[id];
+        const after = scene[id];
+        return (
+          before.x === after.x &&
+          before.y === after.y &&
+          before.w === after.w &&
+          before.h === after.h &&
+          before.enabled === after.enabled
+        );
+      });
+    if (unchanged) return;
     setDraft(scene);
     send({ type: 'configure', patch: { scene } });
   };
@@ -105,12 +135,14 @@ export function SceneEditor({
     if (!connected) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    drag.current = { id, mode, x: event.clientX, y: event.clientY, start: draft[id] };
+    drag.current = { id, mode, x: event.clientX, y: event.clientY, start: draft[id], moved: false };
   }
   function move(event: PointerEvent<HTMLElement>) {
     const active = drag.current;
     const area = box.current?.getBoundingClientRect();
     if (!active || !area) return;
+    if (Math.hypot(event.clientX - active.x, event.clientY - active.y) <= 4) return;
+    active.moved = true;
     const dx = (event.clientX - active.x) / area.width,
       dy = (event.clientY - active.y) / area.height;
     const start = active.start;
@@ -124,8 +156,20 @@ export function SceneEditor({
   }
   function up() {
     if (!drag.current) return;
+    suppressFrameClick.current = drag.current.moved;
+    const moved = drag.current.moved;
     drag.current = null;
-    commit(draft);
+    if (moved) commit(draft);
+  }
+  function visitFrame(id: SceneRectId) {
+    if (suppressFrameClick.current) {
+      suppressFrameClick.current = false;
+      return;
+    }
+    const target = frameDestination[id];
+    const spot = resolveSpot(target, { scene: draft, home: { x: config.x, y: config.y } });
+    if (!spot || (body !== null && sameSpot(body.spot, spot))) return;
+    send({ type: 'state', state: target });
   }
   function key(event: KeyboardEvent<HTMLElement>, id: SceneRectId) {
     const step = 0.01;
@@ -170,8 +214,8 @@ export function SceneEditor({
               className={`scene-rect scene-${id}`}
               role="button"
               tabIndex={connected ? 0 : -1}
-              aria-label={`${sceneRects[id].label} frame. Arrow keys move it, Shift with arrows resizes it.`}
-              title={sceneRects[id].meaning}
+              aria-label={`${sceneRects[id].label} frame. Click to visit; drag to move it, or use arrow keys to reposition. Shift with arrows resizes it.`}
+              title={`Click to visit. ${sceneRects[id].meaning}`}
               style={{
                 left: `${String(rect.x * 100)}%`,
                 top: `${String(rect.y * 100)}%`,
@@ -183,7 +227,12 @@ export function SceneEditor({
               }}
               onKeyDown={(event) => {
                 key(event, id);
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  visitFrame(id);
+                }
               }}
+              onClick={() => visitFrame(id)}
             >
               <span>{sceneRects[id].label}</span>
               <i

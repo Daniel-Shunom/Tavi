@@ -237,6 +237,11 @@ export class Locomotion {
     return { x: this.x, y: this.y };
   }
 
+  /** Current destination (including a command that is waiting for its start time). */
+  get destination() {
+    return { ...this.target };
+  }
+
   get busy() {
     return (this.state !== 'idle' && this.state !== 'arriving') || this.command !== null;
   }
@@ -455,7 +460,9 @@ export class Locomotion {
     if (travelling && dt > 0) {
       const distance = Math.abs(v) * dt;
       this.sincePause += distance;
-      if (authored) this.authoredPhase += distance / (authored.stride * bh);
+      if (authored)
+        this.authoredPhase +=
+          (distance / (authored.stride * bh)) * (style === 'authored' ? Math.sign(v) : 1);
       if (flying && !authored) {
         // Spend the distance in the air: weight w(s) is 0 on the ground, normalised to mean 1.
         const s = this.phase % 1;
@@ -603,7 +610,11 @@ export class Locomotion {
     this.lastFeet = [pose.footLX ?? 0, pose.footRX ?? 0];
     const clip =
       authored && this.gait && this.travelWeight > 0.01
-        ? { gait: this.gait, phase: this.authoredPhase % 1, mix: this.travelWeight }
+        ? {
+            gait: this.gait,
+            phase: ((this.authoredPhase % 1) + 1) % 1,
+            mix: this.travelWeight,
+          }
         : null;
     if (this.state === 'idle') this.authoredPhase = 0;
     // Pose is in forward coordinates. Mirror styles let the renderer flip it; the cheat keeps the
