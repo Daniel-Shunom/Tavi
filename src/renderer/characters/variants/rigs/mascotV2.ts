@@ -32,7 +32,8 @@ export const mascotV2VariantRig: VariantRig = {
     skinHighlight: [{ name: 'face', stop: 1 }],
     blush: [{ name: 'blush' }],
     nose: [{ name: 'nose' }],
-    mouth: [{ name: 'mouth' }],
+    // The mouth is being rebuilt as a shape library; recolour it only while it exists.
+    mouth: [{ name: 'mouth', optional: true }],
     irisDark: [
       { name: 'pupil', stop: 0 },
       { name: 'pupil_2', stop: 0 },

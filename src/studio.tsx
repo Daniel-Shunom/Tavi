@@ -30,10 +30,12 @@ import {
   WifiOff,
   Zap,
   CircleAlert,
+  UserRound,
 } from 'lucide-react';
 import { TwitchPanel } from './TwitchPanel';
 import { AiPanel } from './AiPanel';
 import { WardrobePanel } from './WardrobePanel';
+import { CharacterCreator } from './CharacterCreator';
 import { BodyStateDock, SceneEditor } from './StatesPanel';
 import { Avatar } from './renderer/Avatar';
 import { catalog, characters } from './renderer/characters/registry';
@@ -76,6 +78,7 @@ const personalities = {
 };
 const sections = [
   { id: 'appearance', name: 'Make it yours', icon: <Palette /> },
+  { id: 'creator', name: 'Character', icon: <UserRound /> },
   { id: 'wardrobe', name: 'Wardrobe', icon: <Shirt /> },
   { id: 'personality', name: 'Personality', icon: <Heart /> },
   { id: 'expressions', name: 'Expressions', icon: <Smile /> },
@@ -639,6 +642,28 @@ export function Studio({
                     </>
                   )}
                 </fieldset>
+              </section>
+              <section className="tool-section" id="creator">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">
+                      <UserRound size={14} /> Character
+                    </span>
+                    <h2>Make them look like you, or not.</h2>
+                    <p>Skin, face, build, hair and features are separate choices. Mix freely.</p>
+                  </div>
+                </div>
+                <CharacterCreator
+                  characterId={c.character}
+                  variant={c.variant}
+                  disabled={!connected}
+                  onChange={(variant) => {
+                    patch({ variant });
+                  }}
+                  onUseCharacter={(character) => {
+                    patch({ character });
+                  }}
+                />
               </section>
               <section className="tool-section" id="wardrobe">
                 <div className="section-heading">

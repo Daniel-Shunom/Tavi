@@ -1862,3 +1862,100 @@ input[type='range'] {
   border-top: 2px solid #b99cdb99;
   background: linear-gradient(#b99cdb30, transparent);
 }
+
+/* Character creator (src/CharacterCreator.tsx) */
+.creator {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.creator-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.creator-group {
+  display: grid;
+  gap: 6px;
+}
+.creator-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.creator-swatches,
+.creator-chips,
+.creator-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.creator-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: pointer;
+}
+.creator-swatch[aria-checked='true'] {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.creator-chip,
+.creator-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.creator-chip[aria-checked='true'],
+.creator-preset[aria-checked='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.creator-preset-dots {
+  display: inline-flex;
+}
+.creator-preset-dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--surface);
+}
+.creator-preset-dots i + i {
+  margin-left: -4px;
+}
+.creator-swatch:focus-visible,
+.creator-chip:focus-visible,
+.creator-preset:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.creator-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.creator-notice {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.creator .checkbox-field {
+  justify-content: flex-start;
+}
+.creator .checkbox-field input {
+  width: auto;
+  flex: none;
+}
