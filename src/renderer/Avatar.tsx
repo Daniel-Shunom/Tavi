@@ -7,6 +7,9 @@ import { wardrobePolicy } from '../../shared/wardrobe';
 import { loadAttachments } from './attachments/bundle';
 import { createAttachmentLayer, type AttachmentLayer } from './attachments/layer';
 import { attachmentRigs } from './characters/attachmentRigs';
+import { variantRigs } from './characters/variantRigs';
+import { createVariantLayer, type VariantLayer } from './characters/variants/overlay/layer';
+import { canonical, isOriginal, variantSchema } from '../../shared/variants';
 import { createCharacterRenderer, type CharacterRenderer, type RenderFrame } from './adapter';
 import { getCharacter } from './characters/registry';
 import { composePose, phaseLookup, variantFor } from './compose';
@@ -53,9 +56,17 @@ export function Avatar({
   const wardrobe = state.config.wardrobe;
   const hideGlasses =
     wardrobePolicy.eyewearHidesBuiltInGlasses && !!wardrobe.attachments['head.face'];
-  const lookKey = JSON.stringify([wardrobe.hairColor, wardrobe.outfitColor, hideGlasses]);
+  // Variants (skin, build, hair...) are baked in at load too; canonical JSON ignores key order.
+  const variantKey = canonical(state.config.variant);
+  const lookKey = JSON.stringify([
+    wardrobe.hairColor,
+    wardrobe.outfitColor,
+    hideGlasses,
+    variantKey,
+  ]);
   useEffect(() => {
-    const look = JSON.parse(lookKey) as [string | null, string | null, boolean];
+    const look = JSON.parse(lookKey) as [string | null, string | null, boolean, string];
+    const variant = variantSchema.parse(JSON.parse(look[3]));
     const manifest = getCharacter(characterId);
     let cancelled = false,
       view: CharacterRenderer | undefined,
@@ -394,12 +405,18 @@ export function Avatar({
             hairColor: look[0] ?? undefined,
             outfitColor: look[1] ?? undefined,
             hideGlasses: look[2],
+            variant,
           },
           attachments: rig,
         });
+        const variantRig = variantRigs[manifest.id];
+        const variantLayer: VariantLayer | null =
+          variantRig && !isOriginal(variant)
+            ? createVariantLayer({ rig: variantRig, variant, path: (d) => new Path2D(d) })
+            : null;
         const backContext = back.current?.getContext('2d') ?? null;
         const frontContext = front.current?.getContext('2d') ?? null;
-        if (layer && frontContext)
+        if ((layer || variantLayer) && frontContext)
           loaded.setDecorator?.((matrix, world, dt) => {
             const { state: current } = latest.current;
             const wardrobe = current.config.wardrobe;
@@ -408,7 +425,14 @@ export function Avatar({
               context.setTransform(1, 0, 0, 1, 0, 0);
               context.clearRect(0, 0, context.canvas.width, context.canvas.height);
             }
-            layer.draw(backContext, frontContext, {
+            // Variant hair and features first, so worn attachments (hats) sit on top.
+            variantLayer?.draw(backContext, frontContext, {
+              view: matrix,
+              world,
+              dt,
+              still: reduced.matches,
+            });
+            layer?.draw(backContext, frontContext, {
               view: matrix,
               world,
               dt,
