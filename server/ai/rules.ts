@@ -19,6 +19,19 @@ const patterns: [Intent, RegExp][] = [
   ['thanks', /\b(thanks|thank you|ty|appreciate)\b/i],
   ['laugh', /\b(lol|lmao|haha+|rofl|funny|xd)\b/i],
 ];
+/** Plain requests from the streamer for a body state. Chat cannot command states. */
+const stateRequests: [NonNullable<Decision['state']>, RegExp][] = [
+  ['nap', /\b(take a nap|nap time|go (to )?sleep|have a nap|get some sleep)\b/i],
+  ['peek', /\b(check (the )?chat|look at (the )?chat|read (the )?chat|peek at (the )?chat)\b/i],
+  ['perch', /\b(perch|hop up|on top of (the )?(cam|webcam|camera))\b/i],
+  ['lean', /\b(lean (on|against)|lean back)\b/i],
+  ['sit', /\b(sit down|have a seat|take a seat|sit on)\b/i],
+  ['stand', /\b(stand up|get up|wake up|rise and shine)\b/i],
+];
+export function stateRequest(text: string): NonNullable<Decision['state']> | null {
+  for (const [state, pattern] of stateRequests) if (pattern.test(text)) return state;
+  return null;
+}
 export function classify(text: string): Intent {
   for (const [intent, pattern] of patterns) if (pattern.test(text)) return intent;
   return text.trim().endsWith('?') ? 'question' : 'other';
@@ -61,6 +74,20 @@ export class RulesProvider implements DecisionProvider {
   private last: SequenceId | null = null;
   decide(context: DecisionContext): Promise<Decision> {
     const { persona, trigger, character } = context;
+    if (trigger.source === 'streamer') {
+      const state = stateRequest(trigger.text);
+      if (state)
+        return Promise.resolve({
+          react: true,
+          reason: `Rule: streamer asked for ${state}`,
+          sequence: null,
+          caption: '',
+          target: 'streamer',
+          beats: [],
+          move: null,
+          state,
+        });
+    }
     const available = new Set(supportedSequences(character));
     const intent = classify(trigger.text);
     let options = byAttitude[intent][persona.attitude].filter((id) => available.has(id));

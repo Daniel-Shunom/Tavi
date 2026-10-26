@@ -42,6 +42,16 @@ import { ConversationContext } from './ai/context.js';
 import type { AiManager, DecisionResult } from './ai/manager.js';
 import type { ContextEvent, ProviderInfo, StreamerUtterance } from './ai/types.js';
 import { chatGate } from './twitch/reactions.js';
+import { StateDirector, type Engagement, type StateAction } from './behavior/states.js';
+import {
+  bodyStates,
+  hash01,
+  resolveSpot,
+  sameSpot,
+  sleepingStates,
+  type BodyCue,
+  type BodyStateId,
+} from '../shared/states.js';
 
 export interface CompanionOptions {
   config: Config;
@@ -51,6 +61,8 @@ export interface CompanionOptions {
   ai: AiManager;
   save?: ((config: Config) => Promise<void>) | undefined;
   now?: () => number;
+  /** Evaluate body-state triggers on this interval (ms). Off when absent (tests call tick()). */
+  tickMs?: number | undefined;
 }
 interface Pending {
   controller: AbortController;
@@ -59,6 +71,8 @@ interface Pending {
   deadline: number;
 }
 const MOVE_COOLDOWN_MS = 45_000;
+/** A provider may change the body state at most this often. */
+const AI_STATE_COOLDOWN_MS = 90_000;
 /** Decisions arriving later than this after their input are stale and dropped. */
 const MAX_DECISION_AGE_MS = 12_000;
 
@@ -71,8 +85,18 @@ export class Companion {
   private lastAiMove = -Infinity;
   private sequence = 0;
   private readonly now: () => number;
+  private readonly director: StateDirector;
+  private lastAiState = -Infinity;
+  private timer: ReturnType<typeof setInterval> | null = null;
   constructor(private readonly options: CompanionOptions) {
     this.now = options.now ?? Date.now;
+    this.director = new StateDirector(this.now());
+    if (options.tickMs) {
+      this.timer = setInterval(() => {
+        this.tick();
+      }, options.tickMs);
+      this.timer.unref();
+    }
     const config = normalizeConfig(options.config, options.catalog, options.items);
     this.current = {
       config,
@@ -84,6 +108,7 @@ export class Companion {
         script: null,
         movement: null,
         presence: null,
+        body: null,
         note: 'Ready to hang out.',
       },
     };
@@ -99,6 +124,8 @@ export class Companion {
     return () => this.listeners.delete(listener);
   }
   close() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
     this.abortPending('Service closing.');
   }
   private id(prefix: string) {
@@ -221,13 +248,26 @@ export class Companion {
   // Commands -------------------------------------------------------------------------
   async handle(command: Command): Promise<void> {
     const manual: DecidedBy = { kind: 'manual', label: 'Studio' };
+    if (command.type !== 'quiet' && command.type !== 'say' && command.type !== 'simulate')
+      this.engage('studio', command.type === 'perform');
     switch (command.type) {
       case 'configure': {
         const next = reduce(this.current, command, this.options.catalog, this.options.items);
         if (this.options.save) await this.options.save(next.config);
         const moved =
           next.config.x !== this.current.config.x || next.config.y !== this.current.config.y;
+        const rescened =
+          JSON.stringify(next.config.scene) !== JSON.stringify(this.current.config.scene);
         this.set(next);
+        // Home or scene changed under a state: stand up first (the move below walks home).
+        if ((moved || rescened) && this.current.performance.body?.state !== undefined)
+          this.setBody('stand', {
+            source: 'manual',
+            decidedBy: { kind: 'manual', label: 'Studio placement' },
+            priority: priorities.manual,
+            sourceEventId: this.id('config'),
+            keepMovement: true,
+          });
         if (moved && !this.current.retracted)
           this.movement({
             kind: 'move-to',
@@ -257,6 +297,14 @@ export class Companion {
             ...(movement && movement.priority < priorities.manual ? { movement: null } : {}),
             note: 'Quiet mode: no automatic reactions.',
           });
+          const body = this.current.performance.body;
+          if (body && body.source !== 'manual' && body.state === 'peek')
+            this.setBody('stand', {
+              source: 'idle',
+              decidedBy: rulesDecider,
+              priority: priorities.control,
+              sourceEventId: this.id('quiet'),
+            });
         }
         return;
       }
@@ -304,8 +352,31 @@ export class Companion {
         );
         return;
       }
+      case 'state': {
+        if (this.current.retracted) {
+          this.perform({ note: 'Tucked away. Bring the companion back first.' });
+          return;
+        }
+        this.setBody(command.state, {
+          source: 'manual',
+          decidedBy: manual,
+          priority: priorities.manual,
+          sourceEventId: this.id('studio'),
+          prefer: 'ledge',
+          ...(command.state === 'peek' ? { until: this.now() + 60_000 } : {}),
+        });
+        return;
+      }
       case 'move': {
         if (this.current.retracted) return;
+        if (this.current.performance.body)
+          this.setBody('stand', {
+            source: 'manual',
+            decidedBy: manual,
+            priority: priorities.manual,
+            sourceEventId: this.id('studio'),
+            keepMovement: true,
+          });
         const to =
           command.kind === 'return'
             ? this.home()
@@ -378,6 +449,8 @@ export class Companion {
         script: null,
         movement: null,
         presence,
+        // Tucking away overrides every body state; Tavi comes back standing.
+        body: null,
         phase: 'idle',
         note: value ? 'Taking a little break.' : 'Back again.',
       },
@@ -415,6 +488,7 @@ export class Companion {
       simulated: false,
     };
     this.context.add(event);
+    if (!this.current.retracted) this.engage('streamer', true);
     if (this.current.retracted) {
       this.perform({ note: 'Heard you, but tucked away.' });
       return;
@@ -426,7 +500,15 @@ export class Companion {
     await this.converse(event, priorities.streamer);
   }
   async chat(message: ChatMessage, simulated = false) {
+    // Every message feeds the chat-burst detector, addressed or not.
+    this.director.chat(this.now(), message.userId + (simulated ? ':' + message.id : ''));
     const gate = chatGate(this.current, message, this.now(), this.lastChatReaction);
+    if (gate.allowed) this.engage('addressed', false);
+    else if (this.director.stir(this.now(), this.current.performance.body)) {
+      const body = this.current.performance.body;
+      if (body) this.perform({ body: { ...body, stirAt: this.now() } });
+    }
+    this.tick();
     const event: ContextEvent = {
       id: message.id,
       source: 'chat',
@@ -505,6 +587,10 @@ export class Companion {
           canMove:
             this.current.config.initiative !== 'reserved' &&
             now - this.lastAiMove > MOVE_COOLDOWN_MS,
+          canChangeState:
+            (event.source === 'streamer' || this.current.config.initiative !== 'reserved') &&
+            now - this.lastAiState > AI_STATE_COOLDOWN_MS,
+          bodyState: this.current.performance.body?.state ?? 'stand',
         },
         controller.signal,
       );
@@ -539,6 +625,17 @@ export class Companion {
     }
     const target = event.source === 'streamer' ? 'streamer' : 'chat';
     const beats = this.beatsFrom(decision, target);
+    if (!beats.length && decision.state) {
+      // A body-state request on its own ("take a nap").
+      const changed = this.applyState(decision.state, event, priority, decidedBy);
+      this.clearLocal(
+        event.id,
+        changed
+          ? `${decidedBy.label}: ${bodyStates[decision.state].label.toLowerCase()}. Reacting to ${label}.${fallback}`
+          : `${decidedBy.label} asked to ${decision.state}, but that is not allowed right now.${fallback}`,
+      );
+      return;
+    }
     const { script, resolution } = this.script({
       source: event.source === 'streamer' ? 'streamer' : 'chat',
       sourceEventId: event.id,
@@ -563,6 +660,185 @@ export class Companion {
       );
     if (accepted && decision.move)
       this.applyMove(decision.move, event, priority, decidedBy, scriptDuration(script));
+    if (accepted && decision.state) this.applyState(decision.state, event, priority, decidedBy);
+  }
+  /** Provider-requested body state: limited by initiative and a cooldown; the streamer may ask directly. */
+  private applyState(
+    state: BodyStateId,
+    event: ContextEvent,
+    priority: number,
+    decidedBy: DecidedBy,
+  ): boolean {
+    const now = this.now();
+    const direct = event.source === 'streamer';
+    if (!direct && this.current.config.initiative === 'reserved') return false;
+    if (now - this.lastAiState < AI_STATE_COOLDOWN_MS) return false;
+    const changed = this.setBody(state, {
+      source: direct ? 'streamer' : 'chat',
+      decidedBy,
+      priority,
+      sourceEventId: event.id,
+      prefer: 'ledge',
+      ...(state === 'peek' ? { until: now + 30_000 } : {}),
+    });
+    if (changed) this.lastAiState = now;
+    return changed;
+  }
+
+  // Body states -------------------------------------------------------------------------
+  /** Something worth staying awake for: resets the quiet clock and wakes a sleeping Tavi. */
+  private engage(kind: Engagement, wake: boolean) {
+    this.director.engage(this.now(), kind);
+    if (!wake || this.current.retracted) return;
+    const action = this.director.wakeFor(kind, this.current.performance.body);
+    if (!action) return;
+    this.setBody(action.state, {
+      source: action.source,
+      decidedBy: kind === 'addressed' ? rulesDecider : { kind: 'manual', label: 'Studio' },
+      priority: kind === 'addressed' ? priorities.chat : priorities.manual,
+      sourceEventId: this.id('wake'),
+      wake: kind === 'studio' ? 'urgent' : 'normal',
+    });
+  }
+  /** Evaluates quiet-time and chat-burst triggers. Called on an interval and on chat. */
+  tick() {
+    const now = this.now();
+    const state = this.current;
+    const active = this.activeScript();
+    const scene = { scene: state.config.scene, home: this.home() };
+    const action = this.director.tick({
+      now,
+      persona: {
+        personality: state.config.personality,
+        initiative: state.config.initiative,
+        energy: state.config.energy,
+        chatEngagement: state.config.chatEngagement,
+      },
+      quiet: state.quiet,
+      retracted: state.retracted,
+      body: state.performance.body,
+      streamerBusy:
+        (this.pending !== null && this.pending.priority >= priorities.streamer) ||
+        (active !== null && active.priority >= priorities.streamer),
+      available: {
+        sit: true,
+        perch: resolveSpot('perch', scene) !== null,
+        lean: resolveSpot('lean', scene) !== null,
+      },
+    });
+    if (action) this.applyAction(action);
+  }
+  private applyAction(action: StateAction) {
+    this.setBody(action.state, {
+      source: action.source,
+      decidedBy: rulesDecider,
+      priority: action.source === 'chat' ? priorities.chat : priorities.idle,
+      sourceEventId: this.id('state'),
+      pick: action.pick,
+      reason: action.reason,
+      ...(action.wake ? { wake: action.wake } : {}),
+      ...(action.until !== undefined ? { until: action.until } : {}),
+    });
+  }
+  /**
+   * Installs a body-state cue (and the walk to its spot). Returns whether it changed anything.
+   * Automatic requests never override a fresh manual choice, except to go deeper into rest
+   * (sit -> doze -> nap) or to wake.
+   */
+  private setBody(
+    state: BodyStateId,
+    options: {
+      source: BodyCue['source'];
+      decidedBy: DecidedBy;
+      priority: number;
+      sourceEventId: string;
+      wake?: 'urgent' | 'normal';
+      pick?: number;
+      prefer?: 'ledge' | 'floor';
+      until?: number;
+      reason?: string;
+      /** The caller sets the movement itself (placement changes). */
+      keepMovement?: boolean;
+    },
+  ): boolean {
+    const now = this.now();
+    const current = this.current.performance.body;
+    const from = current?.state ?? 'stand';
+    const deeper =
+      (state === 'doze' && ['sit', 'perch', 'lean'].includes(from)) ||
+      (state === 'nap' && from === 'doze');
+    if (
+      current &&
+      current.source === 'manual' &&
+      options.source !== 'manual' &&
+      now - current.startAt < 120_000 &&
+      !deeper &&
+      !options.wake
+    )
+      return false;
+    if (state === 'stand' && from === 'stand') return false;
+    const spot = resolveSpot(state, {
+      scene: this.current.config.scene,
+      home: this.home(),
+      current: current ? { state: current.state, spot: current.spot } : undefined,
+      pick: options.pick ?? hash01(options.sourceEventId),
+      prefer: options.prefer,
+    });
+    if (state !== 'stand' && !spot) {
+      this.perform({
+        note: `${bodyStates[state].label}: no place for that in this scene. Check the scene layout.`,
+      });
+      return false;
+    }
+    if (state === from && sameSpot(spot, current?.spot)) return false;
+    const asleep = sleepingStates.includes(from) && !sleepingStates.includes(state);
+    const body: BodyCue = {
+      id: this.id('body'),
+      sourceEventId: options.sourceEventId,
+      source: options.source,
+      decidedBy: options.decidedBy,
+      priority: options.priority,
+      state,
+      spot,
+      from: { state: from, spot: current?.spot ?? null },
+      startAt: now,
+      seed: Math.floor(hash01(options.sourceEventId) * 100000),
+      ...(asleep ? { wake: options.wake ?? 'normal' } : {}),
+      ...(options.until !== undefined ? { until: options.until } : {}),
+    };
+    const home = this.home();
+    const away =
+      spot && Math.hypot(spot.approach.x - home.x, spot.approach.y - home.y) > 0.004
+        ? spot.approach
+        : null;
+    const movement: Movement | null = away
+      ? {
+          id: this.id('move'),
+          sourceEventId: options.sourceEventId,
+          source: options.source,
+          decidedBy: options.decidedBy,
+          priority: options.priority,
+          kind: 'move-to',
+          to: clampPoint(away),
+          startAt: now,
+          expiresAt: now + 3000,
+          gait: 'walk',
+        }
+      : null;
+    const where =
+      spot?.surface === 'ledge'
+        ? ` on the ${spot.rect ?? 'frame'} edge`
+        : spot?.surface === 'top'
+          ? ` on top of the ${spot.rect ?? 'frame'}`
+          : '';
+    this.perform({
+      body,
+      ...(options.keepMovement ? {} : { movement }),
+      note: `${options.decidedBy.label}: ${bodyStates[state].label.toLowerCase()}${where}.${
+        options.reason ? ' ' + options.reason : ''
+      }`,
+    });
+    return true;
   }
   private beatsFrom(decision: Decision, fallbackTarget: 'streamer' | 'chat'): Beat[] {
     const beats: Beat[] = [];
@@ -615,6 +891,8 @@ export class Companion {
     if (accepted) this.lastAiMove = now;
   }
 }
+
+const rulesDecider: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
 
 function describe(
   by: DecidedBy | ProviderInfo,

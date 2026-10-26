@@ -10,6 +10,8 @@ import {
   wardrobeSchema,
   type ItemCatalog,
 } from './wardrobe.js';
+// Body states (sit, nap, peek...) and scene geometry: shared/states.ts.
+import { bodyCueSchema, defaultScene, requestableStates, sceneSchema } from './states.js';
 
 export const CONFIG_VERSION = 2;
 /** Used when a saved character id is unknown. Characters themselves live in manifests. */
@@ -35,6 +37,8 @@ export const configObjectSchema = z
     presenceStyle: choreographyPreferenceSchema,
     /** Equipped attachments, tints and custom colours. Added after v2; defaulted on load. */
     wardrobe: wardrobeSchema,
+    /** Webcam, game/VOD and chat rectangles and the floor line. Added after v2; defaulted on load. */
+    scene: sceneSchema,
   })
   .strict();
 export type Config = z.infer<typeof configObjectSchema>;
@@ -54,6 +58,7 @@ export const defaults: Config = {
   captions: { studio: true, overlay: false },
   presenceStyle: 'random',
   wardrobe: defaultWardrobe,
+  scene: defaultScene,
 };
 const legacyAppearance = {
   riveHair: 'hair',
@@ -119,6 +124,8 @@ export const performanceSchema = z
     movement: movementSchema.nullable(),
     /** Latest entrance/exit. Hidden state is derived from it and `retracted`. */
     presence: presenceTransitionSchema.nullable(),
+    /** Current body state (sit, nap, peek...); null = standing at home. */
+    body: bodyCueSchema.nullable().default(null),
     note: z.string().max(400),
   })
   .strict();
@@ -167,6 +174,8 @@ export const commandSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ type: z.literal('quiet'), value: z.boolean() }).strict(),
+  /** Streamer-chosen body state from the studio (Sit, Nap, Peek at chat, Perch, Lean, Stand). */
+  z.object({ type: z.literal('state'), state: z.enum(requestableStates) }).strict(),
   /** Typed streamer speech from the studio. Microphone transcription will use the same path. */
   z.object({ type: z.literal('say'), text }).strict(),
   /** Clearly-labelled simulated chat for testing without Twitch. */
@@ -189,6 +198,7 @@ export function initialState(config: Config = defaults): State {
       script: null,
       movement: null,
       presence: null,
+      body: null,
       note: 'Ready to hang out.',
     },
   };

@@ -45,6 +45,8 @@ export async function createApp(
     items: itemCatalogFrom(attachmentCatalog),
     ai,
     save,
+    // Body-state triggers (quiet time, chat-burst endings) are evaluated every second.
+    tickMs: options.now ? undefined : 1000,
     ...(options.now ? { now: options.now } : {}),
   });
   const clients = new Set<WebSocket>();

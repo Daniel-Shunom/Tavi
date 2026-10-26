@@ -14,6 +14,7 @@ import {
   type SequenceId,
 } from './expressions.js';
 import { anchorIds, gaits } from './locomotion.js';
+import { requestableStates } from './states.js';
 
 export interface DecisionBeat {
   expression: ExpressionId;
@@ -36,6 +37,8 @@ export interface Decision {
     anchor: (typeof anchorIds)[number] | null;
     gait: (typeof gaits)[number] | null;
   } | null;
+  /** Optional body state (sit, nap, peek...); gated by initiative and a cooldown. */
+  state?: (typeof requestableStates)[number] | null;
 }
 const clamp = (min: number, max: number, fallback: number) =>
   z
@@ -93,10 +96,20 @@ export function decisionSchema(character?: CharacterCapabilities) {
         .nullable()
         .optional()
         .transform((value) => value ?? null),
+      state: z
+        .enum(requestableStates)
+        .nullable()
+        .optional()
+        .catch(null)
+        .transform((value) => value ?? null),
     })
     .refine(
       (value) =>
-        !value.react || value.beats.length > 0 || value.sequence !== null || value.move !== null,
+        !value.react ||
+        value.beats.length > 0 ||
+        value.sequence !== null ||
+        value.move !== null ||
+        value.state !== null,
       {
         message: 'A reaction needs at least one beat, a sequence or a move.',
       },
@@ -114,7 +127,7 @@ export function decisionJsonSchema(character: CharacterCapabilities) {
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['react', 'reason', 'sequence', 'caption', 'target', 'beats', 'move'],
+    required: ['react', 'reason', 'sequence', 'caption', 'target', 'beats', 'move', 'state'],
     properties: {
       react: { type: 'boolean', description: 'false means deliberately no reaction.' },
       reason: { type: 'string', description: 'One short internal sentence explaining the choice.' },
@@ -162,6 +175,11 @@ export function decisionJsonSchema(character: CharacterCapabilities) {
           anchor: { type: ['string', 'null'], enum: [...anchorIds, null] },
           gait: { type: ['string', 'null'], enum: [...gaits, null] },
         },
+      },
+      state: {
+        type: ['string', 'null'],
+        enum: [...requestableStates, null],
+        description: 'Optional body state change (sit, nap, peek at chat...). Usually null.',
       },
     },
   } as const;
