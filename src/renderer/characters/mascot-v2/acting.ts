@@ -48,6 +48,32 @@ const extras: Partial<Record<ExpressionId, Extra>> = {
   laugh: { pose: { mouthOpen: 0.85, viseme: 0 }, strong: { mouthOpen: 1, viseme: 0 } },
   amused: { pose: { mouthOpen: 0.3, viseme: 2 }, strong: { mouthOpen: 0.6, viseme: 0 } },
   grin: { pose: { mouthOpen: 0.35, viseme: 2 }, strong: { mouthOpen: 0.5, viseme: 2 } },
+  // Pupils.
+  'eye-roll': {
+    keys: {
+      pupilY: [
+        [0, 0],
+        [0.15, -1],
+        [0.62, -1],
+        [0.95, -0.3],
+        [1.2, 0],
+      ],
+      pupilX: [
+        [0, 0],
+        [0.15, -0.8],
+        [0.62, 0.8],
+        [0.95, 0.3],
+        [1.2, 0],
+      ],
+    },
+  },
+  suspicious: { pose: { browTiltL: 0.5, browTiltR: 0.5, pupilX: 0.8 } },
+  thinking: { pose: { pupilX: 0.6, pupilY: -0.8 }, strong: { pupilX: 0.7, pupilY: -1 } },
+  innocent: { pose: { pupilX: -0.8, pupilY: -0.6 } },
+  embarrassed: { pose: { pupilX: -0.7, pupilY: 0.7 } },
+  'look-away': { pose: { pupilX: -1, pupilY: -0.4 } },
+  glance: { pose: { pupilX: 1 } },
+  bored: { pose: { pupilY: 0.5 } },
   sleepy: {
     keys: {
       mouthOpen: [
@@ -75,7 +101,6 @@ const extras: Partial<Record<ExpressionId, Extra>> = {
   },
   focused: { pose: { browTiltL: 0.4, browTiltR: 0.4 }, strong: { browTiltL: 0.6, browTiltR: 0.6 } },
   skeptical: { pose: { browTiltR: 0.6 }, strong: { browTiltR: 0.9 } },
-  suspicious: { pose: { browTiltL: 0.5, browTiltR: 0.5 } },
 };
 
 type Face = z.input<typeof faceSchema>;
@@ -93,6 +118,8 @@ export const mascotV2Face: Face = {
     viseme: { min: 0, max: 3 },
     browTiltL: { min: -1, max: 1 },
     browTiltR: { min: -1, max: 1 },
+    pupilX: { min: -1, max: 1 },
+    pupilY: { min: -1, max: 1 },
     // Arms may reach the face when they are drawn in front of the hair.
     armL: { min: -0.4, max: 2.45 },
     armR: { min: -0.4, max: 2.45 },

@@ -28,7 +28,7 @@
                                 <Node x="1" y="23.5" name="tavi/upper" id="0:2206">
                                     <Node x="-0.5" y="-101.578" styleValue="square" name="tavi/head" id="0:5358">
                                         <Node x="-0.49996948" y="-1" name="head" id="0:437">
-                                            <Node x="-0.50003052" y="-85.421997" styleValue="target" name="eye CONTROL" tagIds="0:1279" id="0:1265">
+                                            <Node x="-0.50003052" y="-85.421997" styleValue="target" name="tavi/eyes" tagIds="0:1279" id="0:1265">
                                                 <Node x="0.5" y="-0.75" name="eye control" hidden="true" id="0:849">
                                                     <Shape x="42" y="-0.25" name="pupil right" hidden="true" id="0:836">
                                                         <Ellipse width="52" height="51" pathFlags="1" name="Path" hidden="true" id="0:837"/>

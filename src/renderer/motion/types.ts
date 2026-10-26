@@ -32,6 +32,7 @@ export interface MotionSettings {
  *  armsFront  discrete: 1 draws the arms in front of the hair
  *  mouthOpen  0 closed .. 1 open; viseme discrete: 0 A, 1 O, 2 E, 3 U
  *  browTilt*  -1 inner end up (sad) .. 1 inner end down (angry)
+ *  pupilX/Y   -1..1 pupils within the eyes (x: screen right, y: down), on top of the gaze
  *  "L"/"R" are screen-left / screen-right in the unmirrored artboard.
  */
 export const channelNames = [
@@ -71,6 +72,8 @@ export const channelNames = [
   'viseme',
   'browTiltL',
   'browTiltR',
+  'pupilX',
+  'pupilY',
 ] as const;
 
 export type Channel = (typeof channelNames)[number];

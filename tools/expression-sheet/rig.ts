@@ -32,6 +32,7 @@ export async function createSheetRig(
           ...lylaRig.nodes,
           elbowL: { name: 'tavi/armL.fore', kind: 'bone' as const },
           elbowR: { name: 'tavi/armR.fore', kind: 'bone' as const },
+          eyes: { name: 'tavi/eyes', kind: 'node' as const },
         },
       }
     : lylaRig;
@@ -93,6 +94,7 @@ export async function createSheetRig(
           ...input.offsets,
           elbowL: { rotation: p.elbowL },
           elbowR: { rotation: -p.elbowR },
+          eyes: { x: (0.5 * p.gazeX + p.pupilX) * 14, y: (0.5 * p.gazeY + p.pupilY) * 10 },
         };
       }
       rig.frame(dt, input, {
