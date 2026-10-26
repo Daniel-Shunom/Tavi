@@ -3615,6 +3615,7 @@ dependencies = [
 name = "tavi-studio"
 version = "0.1.0"
 dependencies = [
+ "dunce",
  "serde_json",
  "tauri",
  "tauri-build",

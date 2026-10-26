@@ -87,12 +87,12 @@ fn start_service(app: &tauri::App) -> Result<(), String> {
             address.port()
         ));
     }
-    let resources = app
-        .path()
-        .resource_dir()
-        .map_err(|e| e.to_string())?
-        .join("resources");
-    let data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    // Tauri returns verbatim `\\?\C:\...` paths on Windows. Node cannot resolve its entry
+    // script from such a path (EISDIR on `C:`), so pass ordinary paths to the service.
+    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    let resources = dunce::simplified(&resource_dir).join("resources");
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let data = dunce::simplified(&data_dir).to_path_buf();
     std::fs::create_dir_all(&data)
         .map_err(|e| format!("Could not create the data folder {}: {e}", data.display()))?;
     let log_path = data.join("service.log");
