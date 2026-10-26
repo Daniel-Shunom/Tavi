@@ -22,6 +22,10 @@ export const mascotV2ControlTracks = {
   'ctl.hand-l': 'tavi/handL',
   'ctl.hand-r': 'tavi/handR',
   'ctl.arms-front': 'tavi/armsFront',
+  // Three-quarter turnaround (tools/mascot-remix/steps/turn.mjs): frame 0 = -1 (screen left),
+  // 30 = facing the camera, 60 = +1 (screen right).
+  'ctl.turn-head': 'tavi/turnHead',
+  'ctl.turn-body': 'tavi/turnBody',
 };
 
 /**
@@ -70,4 +74,6 @@ export const mascotV2: ManifestInput = {
     ...Object.keys(mascotV2PoseTracks),
   ],
   face: mascotV2Face,
+  // Turns use the authored turnaround tracks (head leads body), never a mirror.
+  turnStyle: 'authored',
 };

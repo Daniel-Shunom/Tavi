@@ -16,6 +16,7 @@
 // alisketch (CC BY 4.0), remixed.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { addTurnaround } from './steps/turn.mjs';
 
 /**
  * Where everything lives in the mascot source (RML component ids) and how the additions look.
@@ -944,6 +945,7 @@ export function authorTavi(source, spec = lylaSpec) {
     block('tracks', tracks.join('\n        ')) +
     rml.slice(close);
 
+  rml = addTurnaround(rml, spec.turn, spec.artboard);
   return { rml, objects: next - 1 };
 }
 
