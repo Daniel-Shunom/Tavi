@@ -53,6 +53,11 @@ async function main() {
   ]);
   const before = stageCanvas('before');
   const after = stageCanvas('after');
+  // Contact shadow under the feet (drawn by the host; shrinks and fades when airborne).
+  const shadow = document.createElement('div');
+  shadow.style.cssText =
+    'position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(20,24,40,.55),rgba(20,24,40,0))';
+  after.host.insertBefore(shadow, after.canvas);
   const rigs: [MotionRig, MotionRig] = [
     await createMotionRig(runtime, before.canvas, bytes, lylaPatch, lylaRig),
     await createMotionRig(runtime, after.canvas, bytes, lylaPatch, lylaRig),
@@ -195,9 +200,15 @@ async function main() {
   resize();
 
   const frameTimes: number[] = [];
+  // Deterministic capture: lab.pause() stops the real-time loop; lab.advance(s) steps at 60 fps.
+  let paused = false;
   function tick(now: number) {
     const dt = last === null ? 0 : Math.min(0.1, (now - last) / 1000);
     last = now;
+    if (!paused) render(dt);
+    requestAnimationFrame(tick);
+  }
+  function render(dt: number) {
     clock += dt;
     const w = after.host.clientWidth,
       h = after.host.clientHeight;
@@ -219,6 +230,12 @@ async function main() {
       scaleY: p.scaleY,
     });
     after.canvas.style.opacity = String(p.opacity);
+    const sh = frame.shadow;
+    shadow.style.left = String(sh.x * w - height * 0.22 * sh.scale) + 'px';
+    shadow.style.top = String(sh.y * h - height * 0.035 * sh.scale) + 'px';
+    shadow.style.width = String(height * 0.44 * sh.scale) + 'px';
+    shadow.style.height = String(height * 0.07 * sh.scale) + 'px';
+    shadow.style.opacity = String(sh.opacity);
     after.canvas.style.clipPath =
       p.clipBelow === null ? '' : `inset(0 0 ${String((1 - p.clipBelow) * 100)}% 0)`;
     frameTimes.push(performance.now() - start);
@@ -257,7 +274,6 @@ async function main() {
       const sorted = [...frameTimes].sort((a, b) => a - b);
       status.textContent = `expressions: ${frame.status.expressions.join(', ') || '-'} | locomotion: ${frame.status.locomotion} | choreography: ${frame.status.choreography ?? '-'} | fidget: ${frame.status.fidget ?? '-'} | motion+draw ms median ${(sorted[Math.floor(sorted.length / 2)] ?? 0).toFixed(2)}`;
     }
-    requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
   Object.assign(window, {
@@ -271,6 +287,15 @@ async function main() {
         apply();
       },
       frameTimes: () => [...frameTimes],
+      pause: () => {
+        paused = true;
+      },
+      resume: () => {
+        paused = false;
+      },
+      advance: (seconds: number) => {
+        for (let i = 0; i < Math.round(seconds * 60); i++) render(1 / 60);
+      },
     },
   });
   document.body.dataset['ready'] = 'true';

@@ -38,6 +38,29 @@ Overlap: expressions, gaze and locomotion are independent layers, so "walk while
 
 Open points: the renderer has no clip mask, so climbing/sinking fades by depth instead of being cut at the ground line; "Surprise me" is resolved by `pickChoreography` (shared/presence.ts), which does not yet use the personality weights in `profile.ts` (`entranceWeights`); facing is returned but the renderer does not mirror yet.
 
+## Grounding contract (for expression acting and body states)
+
+The character stands on a floor. Every system that adds body motion must respect this; it is
+enforced in `motion.ts` and tested in `tests/motion-grounding.test.ts`.
+
+- **Never translate the root for acting.** Body acting is hips/torso/arms over planted feet:
+  `bob` (hips down = knees bend, + down), `shift` (hips over one foot), `lean`, `headTilt`/`headY`,
+  `armL`/`armR`, `squash`. Only locomotion and choreography move the placement.
+- **Feet stay planted** on the ground line unless a beat is deliberately airborne (hop, jump,
+  drop). While grounded the hips cannot rise more than 0.004 BH above standing height (clamped):
+  the legs are nearly straight, so more would lift the feet off the floor.
+- **One gravity** for every airborne phase: `core/physics.ts` (`G_BH` = 9.8 body heights/s^2,
+  `airtime`, `hopHeight`, `fallTime`, `impactSpeed`). Landings compress (squash + knee bend) in
+  proportion to the impact speed, then recover with critical springs (no ringing).
+- **No jerks:** every pose channel except blinks and feet passes through a critical spring, and
+  the grounding test fails on vertical placement acceleration while grounded (> 0.05 px/frame^2 at
+  720p), hip rise (> 0.0045 BH), channel acceleration (> 1.5 px/frame^2) or planted-foot slip (>
+  1.5 px).
+- **Contact shadow:** `MotionFrame.shadow` `{ x, y, scale, opacity }` (normalised x/y on the ground
+  line) shrinks and fades with height and disappears below the edge. The hook passes it through as
+  `shadow` on the motion output; the renderer should draw a soft ellipse (about 0.44 x 0.07 body
+  heights at scale 1). The motion lab draws it as a CSS radial gradient.
+
 ## Rig adapter
 
 `rive/motionRig.ts` loads the .riv with an in-memory `RigPatch` (`rive/patch.ts`): runtime names on chosen nodes and single-property control tracks for joystick channels. Per frame: reset to rest, authored clips (played forward in real time, not scrubbed), channel writes (`value`, `weight`), additive node offsets, `artboard.advance`, draw with lean/facing/squash placement. A new character supplies a manifest like `rigs/lyla.ts` and a binding like `rigs/lylaBinding.ts`.

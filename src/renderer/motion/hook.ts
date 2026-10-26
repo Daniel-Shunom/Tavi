@@ -185,14 +185,18 @@ export function createHookLayer(
         nodes: bound.nodes,
         position: { x: p.x, y: p.y },
         facing: p.facing < 0 ? -1 : 1,
+        // Not part of MotionOutput yet: renderers that support it draw a soft ellipse here.
+        ...{ shadow: frame.shadow },
       };
+      // The renderer masks everything below the ground line while climbing or sinking.
+      output.clipBelow = p.clipBelow;
       if (handlingPresence) {
-        // No clip mask in this renderer: fade as the body sinks below its ground line.
+        // Fully gone once the body is entirely below the edge.
         const below =
           p.clipBelow === null
             ? 0
             : Math.max(0, p.y - p.clipBelow) / Math.max(1e-3, stage.bodyHeight);
-        output.presence = { hidden: Math.min(1, Math.max(1 - p.opacity, below * 1.4)) };
+        output.presence = { hidden: Math.min(1, Math.max(1 - p.opacity, below >= 1 ? 1 : 0)) };
       }
       return output;
     },

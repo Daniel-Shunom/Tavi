@@ -56,6 +56,8 @@ export const mascot: ManifestInput = {
   rest: [{ track: 'wave-once', at: 0 }],
   idleLoop: { track: 'blink-idle', seconds: 2 },
   aspect: 0.8,
+  // Soles are drawn at y 545 of the 600-unit artboard (measured by the body-states agent).
+  soleOffset: 55 / 600,
   locomotion: { mode: 'procedural' },
   expressions: {
     content: {

@@ -33,10 +33,12 @@ export function idleLayer(t: number, seed: number, profile: MotionProfile): Idle
   return {
     // Inhale = slight stretch (negative squash) and shoulders rise.
     squash: -0.14 * breath + 0.02 * fbm1(seed + 2, t * 0.31),
-    bob: -0.002 * breath,
+    // Breathing never moves the hips: the character stays on the floor.
+    bob: 0,
     lean: amp * (0.018 * fbm1(seed + 3, t * 0.11) + 0.006 * fbm1(seed + 4, t * 0.37)),
     headTilt: amp * (0.035 * fbm1(seed + 5, t * 0.153) + 0.01 * fbm1(seed + 6, t * 0.41)),
-    shift: amp * 0.004 * fbm1(seed + 7, t * 0.064),
+    // Weight shift: the hips drift over one foot then the other (never a vertical float).
+    shift: amp * 0.009 * fbm1(seed + 7, t * 0.064),
     armL: 0.035 * breath + amp * 0.02 * fbm1(seed + 8, t * 0.23),
     armR: 0.035 * breath + amp * 0.02 * fbm1(seed + 9, t * 0.27),
     hairSwing: amp * 0.08 * fbm1(seed + 10, t * 0.29),
