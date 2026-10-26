@@ -131,6 +131,22 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
       {chosen && !chosen.configured && chosen.hint ? (
         <p className="helper-note">{chosen.hint}</p>
       ) : null}
+      <details className="ai-connections">
+        <summary>Account connection options</summary>
+        <ul>
+          {status?.connections.map((connection) => (
+            <li key={connection.id}>
+              <span className="ai-connection-title">
+                {connection.label} <span className="ai-badge">{connection.method}</span>
+              </span>
+              <span className="ai-connection-detail">
+                {connection.detail}
+                {connection.availability === 'setup-required' ? ' (not connected yet)' : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
       {status?.last ? (
         <p className="helper-note">
           Last decision: {status.last.by.label}, {status.last.outcome.replace('-', ' ')} in{' '}

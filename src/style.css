@@ -1613,6 +1613,30 @@ input[type='range'] {
   margin: 0;
   min-width: 0;
 }
+.ai-connections {
+  color: var(--muted);
+  font-size: 12px;
+}
+.ai-connections summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.ai-connections ul {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+.ai-connections li {
+  display: grid;
+  gap: 3px;
+}
+.ai-connection-title {
+  color: var(--ink);
+}
+.ai-connection-detail {
+  line-height: 1.45;
+}
 .avatar-body {
   position: absolute;
   inset: 0;

@@ -1,6 +1,6 @@
 // Chooses the active provider, enforces timeouts, cancellation and a usage budget, and falls back
 // to deterministic rules. Reports honestly which one actually decided.
-import type { AiStatus, Selection } from '../../shared/ai.js';
+import { connectionMethods, type AiStatus, type Selection } from '../../shared/ai.js';
 import type { Decision } from '../../shared/decision.js';
 import { AnthropicProvider } from './anthropic.js';
 import { OpenAICompatibleProvider } from './openai.js';
@@ -126,6 +126,7 @@ export class AiManager {
     this.calls = this.calls.filter((at) => now - at < 60_000);
     return {
       active: this.active,
+      connections: [...connectionMethods],
       providers: [
         { id: 'rules', label: 'Rules (not AI)', configured: true },
         {
