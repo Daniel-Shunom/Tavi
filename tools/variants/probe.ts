@@ -1,11 +1,13 @@
-// Probe for variant authoring: draws the mascot large with chosen fill components recoloured to
-// bright green (?hl=17,20) and stored floats edited (?f=12.16=1.2,40.89=60), so you can see which
-// component is which body part and how a proportion edit moves the rig.
-// Serve with Vite and open /tools/variants/probe.html?hl=...
+// Probe for variant authoring: draws Lyla v2 large with a variant applied (?v=<json patch>),
+// chosen fill components recoloured to bright green (?hl=17,20) and a pose (?pose=smile=1).
+// Serve with Vite and open /tools/variants/probe.html?v={"build":"full"}
 import { RuntimeLoader } from '@rive-app/webgl2';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
-import avatarURL from '../../src/renderer/characters/mascot/mascot.riv?url';
-import { setComponentColors, setComponentFloats } from '../../src/renderer/characters/variants/rivEdit';
+import avatarURL from '../../src/renderer/characters/mascot-v2/mascot-v2.riv?url';
+import { originalVariant, withChanges, type VariantPatch } from '../../shared/variants';
+import { applyVariant } from '../../src/renderer/characters/variants/apply';
+import { editComponents } from '../../src/renderer/characters/variants/rivEdit';
+import { mascotV2VariantRig } from '../../src/renderer/characters/variants/rigs/mascotV2';
 import { createSheetRig } from '../expression-sheet/rig';
 
 RuntimeLoader.setWasmUrl(wasmURL);
@@ -17,21 +19,14 @@ const ARTBOARD = 'lyla animation';
 async function main() {
   const runtime = await RuntimeLoader.awaitInstance();
   let bytes = new Uint8Array(await (await fetch(avatarURL)).arrayBuffer());
+  const patch = JSON.parse(params.get('v') ?? '{}') as VariantPatch;
+  bytes = applyVariant(bytes, mascotV2VariantRig, withChanges(originalVariant, patch));
   const hl = (params.get('hl') ?? '').split(',').filter(Boolean).map(Number);
-  bytes = setComponentColors(bytes, ARTBOARD, new Map(hl.map((i) => [i, 0xff00e040])));
-  const floats = (params.get('f') ?? '')
-    .split(',')
-    .filter(Boolean)
-    .map((edit) => {
-      const [target = '', value = '0'] = edit.split('=');
-      const [index = '0', property = '0'] = target.split('.');
-      return { index: Number(index), property: Number(property), value: Number(value) };
-    });
-  bytes = setComponentFloats(bytes, ARTBOARD, floats);
+  bytes = editComponents(bytes, ARTBOARD, { colors: new Map(hl.map((i) => [i, 0xff00e040])) });
   const canvas = document.createElement('canvas');
   document.body.append(canvas);
   const size = Number(params.get('size') ?? 640);
-  const rig = await createSheetRig(runtime, canvas, bytes, size, size);
+  const rig = await createSheetRig(runtime, canvas, bytes, size, size, true);
   const pose = Object.fromEntries(
     (params.get('pose') ?? '')
       .split(',')

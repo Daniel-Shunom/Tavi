@@ -37,6 +37,43 @@ export const sides = ['none', 'left', 'right', 'both'] as const;
 export const vitiligoAreas = ['none', 'face', 'hands', 'face-hands'] as const;
 
 export type SkinTone = (typeof skinTones)[number];
+
+/**
+ * Hand-tuned skin ramp: tone -> [base, shade, highlight]. Shades rotate hue toward red and keep
+ * chroma (never mixed toward grey); five of ten tones are medium to deep. Rules and sources:
+ * docs/character/VARIANTS-RESEARCH.md section 7, enforced by tests/variants.test.ts.
+ */
+export const skinRamp: Readonly<
+  Record<Exclude<SkinTone, 'original'>, readonly [string, string, string]>
+> = {
+  '1': ['#f7dccb', '#e7b39c', '#fff0e6'],
+  '2': ['#f0c8aa', '#dc9f7f', '#fbe0c9'],
+  '3': ['#e4b089', '#ca8760', '#f4cdad'],
+  '4': ['#d39a6f', '#b6714a', '#e9b991'],
+  '5': ['#bf835a', '#9f5e38', '#dba37b'],
+  '6': ['#a66a42', '#854a29', '#c78b60'],
+  '7': ['#8c5434', '#6e381e', '#b17550'],
+  '8': ['#734229', '#582a16', '#9c6546'],
+  '9': ['#5c3220', '#441d0f', '#8b573c'],
+  '10': ['#472518', '#341207', '#7a4832'],
+};
+
+/** Nearest ramp tone to a legacy skin colour (used when migrating old configs). */
+export function nearestSkinTone(hex: string): Exclude<SkinTone, 'original'> {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [r, g, b] = rgb(hex);
+  let best: Exclude<SkinTone, 'original'> = '5',
+    distance = Infinity;
+  for (const [tone, [base]] of Object.entries(skinRamp) as [
+    Exclude<SkinTone, 'original'>,
+    readonly [string, string, string],
+  ][]) {
+    const [x, y, z] = rgb(base);
+    const d = ((r ?? 0) - (x ?? 0)) ** 2 + ((g ?? 0) - (y ?? 0)) ** 2 + ((b ?? 0) - (z ?? 0)) ** 2;
+    if (d < distance) [best, distance] = [tone, d];
+  }
+  return best;
+}
 export type Undertone = (typeof undertones)[number];
 export type FaceShape = (typeof faceShapes)[number];
 export type Build = (typeof builds)[number];
@@ -111,7 +148,10 @@ export const defaultVariant: Variant = originalVariant;
 
 /** True when the variant renders exactly like the shipped mascot (no file edits needed). */
 export function isOriginal(variant: Variant) {
-  return canonical({ ...variant, preset: undefined }) === canonical({ ...originalVariant, preset: undefined });
+  return (
+    canonical({ ...variant, preset: undefined }) ===
+    canonical({ ...originalVariant, preset: undefined })
+  );
 }
 /** JSON with sorted keys, so equal variants compare equal whatever their key order. */
 export function canonical(value: unknown): string {

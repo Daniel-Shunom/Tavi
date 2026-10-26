@@ -15,24 +15,10 @@ export interface Selector {
 }
 
 export type ColorRole =
-  | 'skin'
-  | 'skinShade'
-  | 'skinHighlight'
-  | 'blush'
-  | 'nose'
-  | 'mouth'
-  | 'irisDark'
-  | 'irisLight';
+  'skin' | 'skinShade' | 'skinHighlight' | 'blush' | 'nose' | 'mouth' | 'irisDark' | 'irisLight';
 
 export type OverlayAnchor =
-  | 'head'
-  | 'face'
-  | 'hairBack'
-  | 'hairLeft'
-  | 'hairRight'
-  | 'upper'
-  | 'forearmL'
-  | 'forearmR';
+  'head' | 'face' | 'hairBack' | 'hairLeft' | 'hairRight' | 'upper' | 'forearmL' | 'forearmR';
 
 export interface AnchorBinding {
   /** Runtime name of the node/bone (looked up with artboard.node / artboard.bone). */
@@ -65,11 +51,13 @@ export interface VariantRig {
   /** Per-build edits relative to the authored (average) body. */
   builds: Readonly<Record<'slim' | 'broad' | 'full', readonly ScaleEdit[]>>;
   /** Face outline: a 4-vertex cubic path, vertices in order left, bottom, right, top. */
-  face: { vertices: readonly [Selector, Selector, Selector, Selector] | readonly Selector[] };
+  face: { shape: Selector };
   /** Ears follow face width changes. */
   ears: readonly Selector[];
   anchors: Readonly<Record<OverlayAnchor, AnchorBinding>>;
-  /** Setup-pose geometry (artboard units, relative to the head anchor) that overlays are drawn in. */
+  /** Hand groups per side (recoloured for a prosthetic forearm). */
+  hands: { left: Selector; right: Selector };
+  /** Rest-pose geometry (artboard units, relative to the head anchor) overlays are drawn in. */
   head: {
     /** Face centre, half width/height of the face outline. */
     faceCenter: readonly [number, number];

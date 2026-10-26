@@ -59,5 +59,9 @@ export function contrast(a: string, b: string) {
 /** Moves a colour in OKLCH: lightness/chroma deltas and a hue rotation (degrees). */
 export function adjust(hex: string, { dl = 0, dc = 0, dh = 0, kc = 1 } = {}) {
   const c = oklch(hex);
-  return fromOklch({ l: Math.min(0.99, Math.max(0.02, c.l + dl)), c: Math.max(0, c.c * kc + dc), h: c.h + dh });
+  return fromOklch({
+    l: Math.min(0.99, Math.max(0.02, c.l + dl)),
+    c: Math.max(0, c.c * kc + dc),
+    h: c.h + dh,
+  });
 }
