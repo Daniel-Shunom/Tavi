@@ -91,7 +91,7 @@ export const fidgets: Readonly<Record<string, FidgetDef>> = {
     pose: (t, side) => {
       const flick = Math.sin(Math.min(1, t / 1.1) * Math.PI * 3) * (1 - Math.min(1, t / 1.2));
       return {
-        hairSwoop: 0.8 * side * flick,
+        hairSwoop: 0.16 * side * flick,
         headTilt: 0.08 * side * bump(t, 0.12, 0.15, 0.5),
         blinkL: bump(t, 0.06, 0.04, 0.12) * 0.9,
         blinkR: bump(t, 0.06, 0.04, 0.12) * 0.9,

@@ -65,7 +65,12 @@ async function main() {
   const controls = document.getElementById('controls');
   const status = document.getElementById('status');
   const add = (element: HTMLElement) => controls?.append(element);
-  const select = (label: string, values: string[], onChange: (v: string) => void, initial: string) => {
+  const select = (
+    label: string,
+    values: string[],
+    onChange: (v: string) => void,
+    initial: string,
+  ) => {
     const wrap = document.createElement('label');
     wrap.textContent = label + ' ';
     const s = document.createElement('select');
@@ -86,20 +91,47 @@ async function main() {
   const apply = () => {
     layer.setSettings({ ...settings });
   };
-  select('Personality', ['cozy', 'playful', 'shy'], (v) => ((settings.personality = v as Personality), apply()), settings.personality);
-  select('Attitude', ['gentle', 'cheeky', 'spicy'], (v) => ((settings.attitude = v as Attitude), apply()), settings.attitude);
+  select(
+    'Personality',
+    ['cozy', 'playful', 'shy'],
+    (v) => {
+      settings.personality = v as Personality;
+      apply();
+    },
+    settings.personality,
+  );
+  select(
+    'Attitude',
+    ['gentle', 'cheeky', 'spicy'],
+    (v) => {
+      settings.attitude = v as Attitude;
+      apply();
+    },
+    settings.attitude,
+  );
   const energy = document.createElement('label');
   energy.textContent = 'Energy ';
-  const slider = Object.assign(document.createElement('input'), { type: 'range', min: '0', max: '100', value: '50' });
+  const slider = Object.assign(document.createElement('input'), {
+    type: 'range',
+    min: '0',
+    max: '100',
+    value: '50',
+  });
   slider.oninput = () => {
     settings.energy = Number(slider.value);
     apply();
   };
   energy.append(slider);
   add(energy);
-  for (const [key, label] of [['reducedMotion', 'Reduced motion'], ['quiet', 'Quiet']] as const) {
+  for (const [key, label] of [
+    ['reducedMotion', 'Reduced motion'],
+    ['quiet', 'Quiet'],
+  ] as const) {
     const wrap = document.createElement('label');
-    const box = Object.assign(document.createElement('input'), { type: 'checkbox', checked: settings[key] });
+    const box = Object.assign(document.createElement('input'), {
+      type: 'checkbox',
+      checked: settings[key],
+    });
     box.onchange = () => {
       settings[key] = box.checked;
       apply();
@@ -112,13 +144,20 @@ async function main() {
     legacy.action = id;
     legacy.started = clock;
   };
-  for (const id of Object.keys(expressionLibrary).filter((id) => !['dustOff', 'determined'].includes(id)))
+  for (const id of Object.keys(expressionLibrary).filter(
+    (id) => !['dustOff', 'determined'].includes(id),
+  ))
     button(id, () => {
       express(id);
     });
   const show = (id?: string) => {
     legacy.hidden = false;
-    layer.enter({ at: clock, cue: String(++cue), anchor: layer.locomotion.position, ...(id ? { id } : {}) });
+    layer.enter({
+      at: clock,
+      cue: String(++cue),
+      anchor: layer.locomotion.position,
+      ...(id ? { id } : {}),
+    });
   };
   const hide = (id?: string) => {
     legacy.hidden = true;
@@ -166,9 +205,18 @@ async function main() {
     // After: motion layer.
     const frame = layer.update(clock);
     const p = frame.placement;
-    rigs[1].frame(dt, bindLyla(frame, palette), { x: p.x * w, y: p.y * h, height, rotation: p.lean, facing: p.facing, scaleX: p.scaleX, scaleY: p.scaleY });
+    rigs[1].frame(dt, bindLyla(frame, palette), {
+      x: p.x * w,
+      y: p.y * h,
+      height,
+      rotation: p.lean,
+      facing: p.facing,
+      scaleX: p.scaleX,
+      scaleY: p.scaleY,
+    });
     after.canvas.style.opacity = String(p.opacity);
-    after.canvas.style.clipPath = p.clipBelow === null ? '' : `inset(0 0 ${String((1 - p.clipBelow) * 100)}% 0)`;
+    after.canvas.style.clipPath =
+      p.clipBelow === null ? '' : `inset(0 0 ${String((1 - p.clipBelow) * 100)}% 0)`;
     frameTimes.push(performance.now() - start);
     if (frameTimes.length > 300) frameTimes.shift();
     // Before: the previous approach.
@@ -180,9 +228,26 @@ async function main() {
       { name: 'blink_IDLE', time: clock % 2, mix: 1 },
     ];
     const legacyDef = legacyClip[legacy.action];
-    if (legacyDef && age < 3) clips.push({ name: legacyDef.name, time: legacyDef.time < 0 ? age : legacyDef.time, mix: weight });
+    if (legacyDef && age < 3)
+      clips.push({
+        name: legacyDef.name,
+        time: legacyDef.time < 0 ? age : legacyDef.time,
+        mix: weight,
+      });
     for (const name of palette) clips.push({ name, time: 0, mix: 1 });
-    rigs[0].frame(dt, { clips, channels: {}, offsets: {} }, { x: legacy.x * w, y: 0.92 * h, height: height * (1 + Math.sin(clock * 1.7) * 0.003), rotation: 0, facing: 1, scaleX: 1, scaleY: 1 });
+    rigs[0].frame(
+      dt,
+      { clips, channels: {}, offsets: {} },
+      {
+        x: legacy.x * w,
+        y: 0.92 * h,
+        height: height * (1 + Math.sin(clock * 1.7) * 0.003),
+        rotation: 0,
+        facing: 1,
+        scaleX: 1,
+        scaleY: 1,
+      },
+    );
     before.canvas.style.opacity = legacy.hidden ? '0' : '1';
     if (status) {
       const sorted = [...frameTimes].sort((a, b) => a - b);

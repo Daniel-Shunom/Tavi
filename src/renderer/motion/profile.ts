@@ -162,7 +162,8 @@ export function motionProfile(settings: MotionSettings): MotionProfile {
     idleAmplitude: p.idleAmplitude * (0.75 + 0.5 * energy),
     head: { f, zeta, r: attitude.r },
     body: { f: f * 0.6, zeta: Math.min(1.2, zeta + 0.2), r: 0 },
-    hair: { f: 2.6 + energy, zeta: 0.3 + 0.1 * (1 - energy), r: 0 },
+    // Well damped (no ringing): hair lags and settles, it never wobbles on its own.
+    hair: { f: 1.8 + 0.6 * energy, zeta: 0.85, r: 0 },
     gaze: { f: 5, zeta: 0.9, r: 0 },
     overshoot: p.overshoot * attitude.overshoot,
     anticipation: p.anticipation * attitude.anticipation,

@@ -25,7 +25,7 @@ export interface MotionSettings {
  *  squash     -1 stretch .. 1 squash (volume-preserving, rig-authored)
  *  hair*      -1..1 secondary motion
  *  headTilt, lean, armL/armR  radians (armL/armR: positive raises the arm outward)
- *  bob, shift body offset in body heights (+bob = down/crouch)
+ *  bob, shift body offset in body heights (+bob = down/crouch); headY head offset (+ = down)
  *  footLX..   foot offsets in body heights (+y = up/lift)
  *  "L"/"R" are screen-left / screen-right in the unmirrored artboard.
  */
@@ -46,6 +46,7 @@ export const channelNames = [
   'hairSwoop',
   'hairSquash',
   'headTilt',
+  'headY',
   'lean',
   'bob',
   'shift',

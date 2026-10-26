@@ -406,7 +406,7 @@ export class Locomotion {
       }
       pose.gazeY = def.gazeY * speedFraction;
       pose.gazeX = 0.45 * forward * speedFraction;
-      pose.hairSwing = -0.35 * forward * speedFraction;
+      pose.hairSwing = -0.15 * forward * speedFraction;
     }
 
     if (this.state === 'settling') {
@@ -443,7 +443,7 @@ export class Locomotion {
     this.lean.set(profile.body);
     const leanValue = this.lean.update(dt, this.state === 'idle' ? 0 : leanTarget);
     pose.lean = (pose.lean ?? 0) + leanValue;
-    pose.hairSwoop = -2.2 * leanValue;
+    pose.hairSwoop = -0.6 * leanValue;
 
     return {
       x: this.x,

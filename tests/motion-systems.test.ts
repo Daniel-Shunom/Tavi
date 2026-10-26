@@ -180,6 +180,39 @@ describe('expressions', () => {
     expect(size('playful')).toBeGreaterThan(size('shy'));
   });
 
+  for (const id of ['skeptical', 'caught', 'approve'])
+    it(`${id}: the pose keeps changing frame to frame through the hold`, () => {
+      const expressions = new ExpressionSystem();
+      expressions.play(id, { at: 0 });
+      let still = 0,
+        previous = '';
+      for (let t = 0.6; t < 2.2; t += 1 / 30) {
+        const pose = expressions.evaluate(t, profile).pose;
+        const key = Object.values(pose)
+          .map((v) => v.toFixed(4))
+          .join(',');
+        if (key === previous) still++;
+        previous = key;
+      }
+      expect(still).toBe(0);
+    });
+
+  it('the nod really nods: at least two decaying downbeats on the face pitch', () => {
+    const expressions = new ExpressionSystem();
+    expressions.play('approve', { at: 0 });
+    const peaks: number[] = [];
+    let a = 0,
+      b = 0;
+    for (let t = 0; t < 2.5; t += 1 / 120) {
+      const c = expressions.evaluate(t, profile).pose.gazeY ?? 0;
+      if (b > a && b > c && b > 0.1) peaks.push(b);
+      a = b;
+      b = c;
+    }
+    expect(peaks.length).toBeGreaterThanOrEqual(2);
+    expect(peaks[0]).toBeGreaterThan(peaks[1] ?? Infinity);
+  });
+
   it('exposes a library covering the six core performances', () => {
     for (const id of ['listening', 'skeptical', 'caught', 'approve', 'celebrate', 'wave'])
       expect(expressionLibrary[id]).toBeDefined();

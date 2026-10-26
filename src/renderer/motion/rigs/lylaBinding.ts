@@ -11,6 +11,7 @@ export const lylaClipRoles: Readonly<Record<string, string>> = {
   celebrate: 'celebration',
   think: 'thoughtful',
   hips: 'hands on hips',
+  sway: 'back and forth',
 };
 
 /** Neutral authored pose applied first every frame (eyes open, brows and lids at rest). */
@@ -26,7 +27,7 @@ export function bindLyla(frame: MotionFrame, palette: readonly string[] = []): F
   }
   for (const name of palette) clips.push({ name, time: 0, mix: 1 });
   const offsets: Record<string, NodeOffset> = {
-    head: { rotation: p.headTilt },
+    head: { rotation: p.headTilt, y: p.headY * UNITS },
     upper: { rotation: p.lean },
     body: { x: p.shift * UNITS, y: p.bob * UNITS },
     armL: { rotation: p.armL },

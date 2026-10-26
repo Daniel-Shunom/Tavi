@@ -2,7 +2,7 @@
 // choreography into one abstract MotionFrame per render frame. Deterministic for a given seed
 // and command timeline; frame-rate independent. See docs/motion/INTEGRATION.md.
 import { random } from './core/random';
-import { SecondOrder } from './core/spring';
+import { CriticalSpring, SecondOrder } from './core/spring';
 import { motionProfile, type MotionProfile } from './profile';
 import { BlinkSystem } from './systems/blink';
 import { ChoreographyPlayer, choreographies, selectChoreography } from './systems/choreography';
@@ -33,9 +33,10 @@ const ranges: Partial<Record<Channel, [number, number]>> = {
   mouthX: [-1, 1],
   mouthY: [-1, 1],
   squash: [-1, 1],
-  hairSwing: [-1, 1],
-  hairSwoop: [-1, 1],
-  hairSquash: [-1, 1],
+  // Hair: only the visually plausible part of each channel (probed; larger values balloon).
+  hairSwing: [-0.25, 0.25],
+  hairSwoop: [-0.18, 0.18],
+  hairSquash: [-0.06, 0.06],
 };
 
 export class MotionLayer {
@@ -53,6 +54,8 @@ export class MotionLayer {
   private attention: GazeTarget | null = null;
   private hair = new SecondOrder({ f: 3, zeta: 0.35, r: 0 }, 0);
   private lastSway = 0;
+  /** Output smoothing: no step inputs reach the rig; interrupted cues crossfade without pops. */
+  private smoothers = new Map<Channel, CriticalSpring>();
   private lastX = 0;
   private lastTime: number | null = null;
   private lastChoreography: { entrance?: string; exit?: string } = {};
@@ -227,12 +230,25 @@ export class MotionLayer {
     this.lastSway = sway;
     this.lastX = loco.x;
     this.hair.set(profile.hair);
-    const drag = this.hair.update(dt, -0.9 * swayVelocity - 0.25 * travelVelocity * loco.facing);
+    const drag = this.hair.update(dt, -0.35 * swayVelocity - 0.12 * travelVelocity * loco.facing);
     pose.hairSwing += drag;
-    pose.hairSwoop += 0.5 * drag;
+    pose.hairSwoop += 0.3 * drag;
 
     for (const [key, [min, max]] of Object.entries(ranges) as [Channel, [number, number]][])
       pose[key] = Math.max(min, Math.min(max, pose[key]));
+    // Smooth every channel except blinks (which must stay crisp): critical springs, no ringing.
+    for (const key of Object.keys(pose) as Channel[]) {
+      if (key === 'blinkL' || key === 'blinkR' || key.startsWith('foot')) continue;
+      let spring = this.smoothers.get(key);
+      if (!spring) {
+        spring = new CriticalSpring(
+          key.startsWith('hair') ? 0.12 : key.startsWith('gaze') ? 0.045 : 0.07,
+          pose[key],
+        );
+        this.smoothers.set(key, spring);
+      }
+      pose[key] = spring.update(dt, pose[key]);
+    }
     // Reduced motion: cap squash and travel-type body offsets.
     if (this.settings.reducedMotion) pose.squash = Math.max(-0.3, Math.min(0.3, pose.squash));
 
