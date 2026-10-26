@@ -2,6 +2,13 @@
 // rig (docs/motion/BODY-STATES-RESEARCH.md, "How the rig numbers were measured"). Pose channels
 // use motion/types.ts units: node offsets in artboard units / 600 (1 BH = 600 u); `armR` is
 // mirrored by the binding (positive raises both arms outward).
+import {
+  sitFloorSlouch,
+  sitFloorUpright,
+  sitLedgeSlouch,
+  sitLedgeUpright,
+} from '../../motion/pose/library/sit';
+import { holdPose } from '../../motion/pose/runtime';
 import type { StateRig } from '../../motion/states/types';
 
 const u = (value: number) => value / 600;
@@ -10,30 +17,17 @@ export const mascotStates: StateRig = {
   keys: {
     // Bird-like crouch: hips down 90 u, feet splayed 45 u (also the jump anticipation).
     crouch: { bob: u(90), footLX: -u(45), footRX: u(45), squash: 0.3 },
-    // Splayed floor sit: the seat (skirt hem) meets the floor at hips down ~106 u (measured;
-    // deeper sinks the skirt below the floor). Feet stay planted, splayed 55 u.
-    sitFloor: {
-      bob: u(106),
-      footLX: -u(55),
-      footRX: u(55),
-      squash: 0.45,
-      armL: -0.2,
-      armR: -0.2,
-    },
-    // Seated on an edge: feet lifted 18 u brings the knees toward the camera; hands on the edge.
-    sitLedge: {
-      bob: u(10),
-      footLX: -u(8),
-      footRX: u(8),
-      footLY: u(18),
-      footRY: u(18),
-      armL: 0.4,
-      armR: 0.4,
-    },
+    // Sitting postures are authored as pose beats (pose/library/sit.ts): cross-legged on the
+    // floor with the hands planted beside the knees; on an edge with the hands gripping it.
+    sitFloor: holdPose(sitFloorUpright),
+    sitLedge: holdPose(sitLedgeUpright),
+    // Slumped where it sits (cross-legged like the floor sit), head lolled, hands in the lap.
     dozeFloor: {
       bob: u(106),
-      footLX: -u(55),
-      footRX: u(55),
+      footLX: 0.04,
+      footRX: -0.02,
+      footLY: 0.03,
+      footRY: 0.03,
       headTilt: 0.38,
       headY: u(35),
       lean: 0.14,
@@ -126,4 +120,7 @@ export const mascotStates: StateRig = {
   },
   leanContact: { x: -u(150), y: u(287) },
   head: { x: 0, y: u(345) },
+  holds: {
+    sit: { floor: [sitFloorUpright, sitFloorSlouch], ledge: [sitLedgeUpright, sitLedgeSlouch] },
+  },
 };

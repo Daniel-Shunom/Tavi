@@ -1,5 +1,7 @@
 // Vocabulary of the body-state layer (src/renderer/motion/states/). Character-agnostic: a
 // character supplies a StateRig (key poses + contact geometry) next to its motion binding.
+import type { BodyStateId } from '../../../../shared/states';
+import type { Beat } from '../pose/schema';
 import type { Pose } from '../types';
 
 /**
@@ -54,4 +56,13 @@ export interface StateRig {
   leanContact: ContactPoint;
   /** Head centre (for z z z and the nap shadow). */
   head: ContactPoint;
+  /**
+   * Authored hold postures (pose beats, src/renderer/motion/pose/library/) per state and surface.
+   * The held pose is the beat's last key (hands solved); its life keeps the hold moving with the
+   * contacts planted. Several beats are posture variants, picked per cue by its seed.
+   */
+  holds?: Partial<Record<BodyStateId, Partial<Record<HoldSurface, readonly Beat[]>>>>;
 }
+
+/** Where a hold happens: the floor, a ledge (seated on an edge), a top edge, a wall, a panel. */
+export type HoldSurface = 'floor' | 'ledge' | 'top' | 'side' | 'panel';

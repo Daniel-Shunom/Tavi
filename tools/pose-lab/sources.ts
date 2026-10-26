@@ -19,6 +19,7 @@ import { motionProfile } from '../../src/renderer/motion/profile';
 import {
   enterPlan,
   exitPlan,
+  holdBeat,
   sampleTimeline,
   type PlanContext,
 } from '../../src/renderer/motion/states/plan';
@@ -87,7 +88,7 @@ function choreographySource(id: string): Source {
   }
   return {
     id: 'legacy-' + id,
-    label: `Current: ${id}`,
+    label: `Runtime: ${id}`,
     frame: id === 'climb' || id === 'slideUp' ? 'edge' : 'floor',
     gap: 0,
     surfaces: [{ id: 'edge', kind: 'floor', at: 0 }],
@@ -135,7 +136,12 @@ function choreographySource(id: string): Source {
 }
 
 /** Current runtime body-state transition (enter or exit plan) at a spot. */
-function stateSource(state: BodyStateId, ledge: boolean, phase: 'enter' | 'exit'): Source {
+function stateSource(
+  state: BodyStateId,
+  ledge: boolean,
+  phase: 'enter' | 'exit',
+  variant = 0,
+): Source {
   const gap = 0.9;
   const spot: Spot | null = ledge
     ? { surface: 'ledge', rect: 'webcam', x: 0.23, y: 0.5, approach: { x: 0.23, y: 0.72 }, side: 1 }
@@ -155,24 +161,30 @@ function stateSource(state: BodyStateId, ledge: boolean, phase: 'enter' | 'exit'
     gap: ledge || state === 'perch' ? gap : 0,
     edgeDistance: 0.36,
     reducedMotion: false,
+    variant,
   };
+  const hold = phase === 'enter' ? holdBeat(state, spot, context) : null;
   const timeline =
     phase === 'enter' ? enterPlan(state, spot, context) : exitPlan(state, spot, context, 'normal');
   return {
-    id: `legacy-${state}-${ledge ? 'ledge' : 'floor'}-${phase}`,
-    label: `Current: ${state} ${ledge ? 'on the ledge' : ''} (${phase})`,
+    id: `legacy-${state}-${ledge ? 'ledge' : 'floor'}-${phase}${variant ? '-' + String(variant) : ''}`,
+    label: `Runtime: ${state}${ledge ? ' on the ledge' : ''} (${phase}${variant ? ', variant ' + String(variant) : ''})`,
     frame: 'floor',
     gap,
     surfaces: [
       { id: 'floor', kind: 'floor', at: 0 },
       ...(ledge || state === 'perch' ? [{ id: 'ledge', kind: 'ledge' as const, at: gap }] : []),
     ],
-    duration: timeline.duration + 1,
+    duration: timeline.duration + (hold ? 6 : 1),
     keys: timeline.segments.map((s, i) => ({ name: `segment ${String(i + 1)}`, at: s.at + s.dur })),
-    sample(t) {
+    sample(t, rig) {
       const key = sampleTimeline(timeline, t);
+      const life =
+        hold && t > timeline.duration
+          ? sampleBeat(hold, beatDuration(hold) + t - timeline.duration, rig)
+          : null;
       return {
-        pose: key.pose,
+        pose: life ? life.pose : key.pose,
         place: { lift: key.lift, dx: key.dx, dy: key.dy, rot: key.rot, scaleX: 1, scaleY: 1 },
         clipBelow: null,
         contacts: [],
@@ -187,7 +199,9 @@ export function allSources(): Source[] {
     ...Object.values(beats).map(beatSource),
     ...['climb', 'drop', 'hopOff', 'slideUp'].map(choreographySource),
     stateSource('sit', false, 'enter'),
+    stateSource('sit', false, 'enter', 1),
     stateSource('sit', true, 'enter'),
+    stateSource('sit', true, 'enter', 1),
     stateSource('nap', false, 'enter'),
     stateSource('perch', false, 'enter'),
     stateSource('peek', false, 'enter'),
