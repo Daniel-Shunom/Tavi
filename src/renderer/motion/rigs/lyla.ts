@@ -5,8 +5,6 @@ import { RiveProperty, type ControlTrack, type RigPatch } from '../rive/patch';
 
 const JOYSTICK = 148;
 const NODE = 2;
-const BONE = 40;
-const ROOT_BONE = 41;
 
 /** Joystick axes the artist animated every expression through (-1..1, clips overshoot ~1.1). */
 const joysticks = {
@@ -31,27 +29,14 @@ export type LylaChannel = keyof typeof joysticks;
 
 /** Transform components given runtime names for additive procedural offsets. */
 const nodes = {
-  root: { index: 1, type: NODE },
-  armTargetA: { index: 3, type: NODE },
-  armTargetB: { index: 4, type: NODE },
-  n7: { index: 7, type: NODE },
-  body: { index: 8, type: NODE },
-  upper: { index: 9, type: NODE },
-  n11: { index: 11, type: NODE },
-  n12: { index: 12, type: NODE },
-  n13: { index: 13, type: NODE },
-  face: { index: 26, type: NODE },
-  hair: { index: 303, type: NODE },
-  n658: { index: 658, type: NODE },
-  n672: { index: 672, type: NODE },
-  hairBoneA: { index: 68, type: BONE },
-  hairBoneB: { index: 86, type: BONE },
-  rb490: { index: 490, type: ROOT_BONE },
-  rb558: { index: 558, type: ROOT_BONE },
-  rb660: { index: 660, type: ROOT_BONE },
-  rb674: { index: 674, type: ROOT_BONE },
-  b661: { index: 661, type: BONE },
-  b675: { index: 675, type: BONE },
+  // Roles verified visually with tools/motion-lab/probe.mjs (see docs/motion/ASSET-AUDIT.md).
+  footL: { index: 3, type: NODE }, // screen-left foot IK target
+  footR: { index: 4, type: NODE }, // screen-right foot IK target
+  body: { index: 8, type: NODE }, // hips: offsets crouch/rise/shift with feet planted
+  upper: { index: 9, type: NODE }, // torso lean over planted feet
+  head: { index: 11, type: NODE }, // head roll around the neck
+  armL: { index: 672, type: NODE }, // screen-left arm (positive rotation raises outward)
+  armR: { index: 658, type: NODE }, // screen-right arm (negative rotation raises outward)
 } as const;
 
 export type LylaNode = keyof typeof nodes;
@@ -92,11 +77,11 @@ export const lylaRig = {
     ]),
   ) as Record<LylaChannel, { track: string; min: number; max: number; rest: number }>,
   nodes: Object.fromEntries(
-    Object.entries(nodes).map(([name, node]) => [
+    Object.keys(nodes).map((name) => [
       name,
       {
         name: 'tavi/' + name,
-        kind: node.type === BONE ? 'bone' : node.type === ROOT_BONE ? 'rootBone' : 'node',
+        kind: 'node',
       },
     ]),
   ) as Record<LylaNode, { name: string; kind: 'node' | 'bone' | 'rootBone' }>,
