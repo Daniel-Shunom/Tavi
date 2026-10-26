@@ -12,7 +12,9 @@
 import type { ExpressionId } from '../../../shared/expressions';
 import {
   channelGroup,
+  discreteChannels,
   faceChannels,
+  mirroredPairs,
   sidedChannels,
   type FaceChannel,
   type FaceValues,
@@ -152,6 +154,7 @@ export class FaceLayer {
   /** Raw target before springs: weighted poses plus living drift. */
   target(input: FaceInput): { values: FaceValues; dominant: FaceCue | null } {
     const values: FaceValues = {};
+    const discreteWeight: Partial<Record<FaceChannel, number>> = {};
     let dominant: FaceCue | null = null;
     let drift = 0;
     for (const cue of input.cues) {
@@ -163,11 +166,18 @@ export class FaceLayer {
       const sample = sampleFacePose(def, intensity, cue.elapsed * (input.tempo ?? 1));
       const flip = def.towardTarget && cue.side === -1;
       for (const [authored, value] of Object.entries(sample) as [FaceChannel, number][]) {
-        const name =
-          flip && authored === 'armL' ? 'armR' : flip && authored === 'armR' ? 'armL' : authored;
+        const name = flip ? (mirroredPairs[authored] ?? authored) : authored;
         const group = channelGroup[name];
         if (cue.featuresOnly && (group === 'head' || group === 'body')) continue;
         if (input.held?.has(name)) continue;
+        if (discreteChannels.has(name)) {
+          // Pose indices: the most present cue wins once it is reasonably in.
+          if (cue.weight >= 0.35 && cue.weight > (discreteWeight[name] ?? 0)) {
+            values[name] = Math.round(value);
+            discreteWeight[name] = cue.weight;
+          }
+          continue;
+        }
         const signed = flip && sidedChannels.has(name) ? -value : value;
         values[name] = (values[name] ?? 0) + signed * cue.weight;
       }
@@ -208,6 +218,10 @@ export class FaceLayer {
       const group = channelGroup[name];
       const source = group === 'mouth' ? mouth : group === 'body' ? body : target;
       const goal = source[name] ?? 0;
+      if (discreteChannels.has(name)) {
+        if (goal !== 0) out[name] = goal;
+        continue;
+      }
       const spring = this.springs.get(name);
       if (!spring) continue;
       stepSpring(spring, goal, halfLives[group], dt);

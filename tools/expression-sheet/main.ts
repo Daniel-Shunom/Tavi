@@ -6,7 +6,8 @@ import { RuntimeLoader } from '@rive-app/webgl2';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
 import { beat, type ExpressionScript } from '../../shared/cue';
 import { expressions, type ExpressionId } from '../../shared/expressions';
-import avatarURL from '../../src/renderer/characters/mascot/mascot.riv?url';
+import v1URL from '../../src/renderer/characters/mascot/mascot.riv?url';
+import v2URL from '../../src/renderer/characters/mascot-v2/mascot-v2.riv?url';
 import { characters } from '../../src/renderer/characters/registry';
 import { phaseLookup } from '../../src/renderer/compose';
 import type { FaceValues } from '../../src/renderer/face/channels';
@@ -20,7 +21,8 @@ import { createSheetRig } from './rig';
 RuntimeLoader.setWasmUrl(wasmURL);
 RuntimeLoader.setWasmFallbackUrl(null);
 
-const manifest = characters.get('mascot');
+const V2 = new URLSearchParams(location.search).get('character') === 'mascot-v2';
+const manifest = characters.get(V2 ? 'mascot-v2' : 'mascot');
 const face = manifest?.face;
 if (!manifest || !face) throw new Error('mascot face missing');
 const lookup = phaseLookup(manifest);
@@ -67,20 +69,23 @@ function element<T extends HTMLElement>(selector: string) {
 async function main() {
   const [runtime, bytes] = await Promise.all([
     RuntimeLoader.awaitInstance(),
-    fetch(avatarURL).then(async (response) => new Uint8Array(await response.arrayBuffer())),
+    fetch(V2 ? v2URL : v1URL).then(
+      async (response) => new Uint8Array(await response.arrayBuffer()),
+    ),
   ]);
   const offscreenLarge = element<HTMLCanvasElement>('#render');
   const offscreenSmall = document.createElement('canvas');
   offscreenSmall.style.cssText = 'position:absolute;left:-9999px';
   document.body.append(offscreenSmall);
-  const large = await createSheetRig(runtime, offscreenLarge, bytes, LARGE.width, LARGE.height);
-  const small = await createSheetRig(runtime, offscreenSmall, bytes, SMALL.width, SMALL.height);
+  const large = await createSheetRig(runtime, offscreenLarge, bytes, LARGE.width, LARGE.height, V2);
+  const small = await createSheetRig(runtime, offscreenSmall, bytes, SMALL.width, SMALL.height, V2);
   const playerLarge = await createSheetRig(
     runtime,
     element('#player-large'),
     bytes,
     LARGE.width,
     LARGE.height,
+    V2,
   );
   const playerSmall = await createSheetRig(
     runtime,
@@ -88,6 +93,7 @@ async function main() {
     bytes,
     SMALL.width,
     SMALL.height,
+    V2,
   );
   const ratio = Math.min(devicePixelRatio || 1, 2);
 
