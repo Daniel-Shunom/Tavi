@@ -68,7 +68,10 @@ async function main() {
     await createMotionRig(runtime, after.canvas, bytes, patch, lylaRig),
   ];
   const stage = { aspect: 16 / 9, bodyHeight: 0.3, margin: 0.02 };
-  const layer = new MotionLayer(7, settings, stage, { feet: true });
+  const layer = new MotionLayer(7, settings, stage, {
+    feet: true,
+    ...(useV2 ? { authored: ['walk', 'trudge'] as const } : {}),
+  });
   layer.place(0.5, 0.92);
   const legacy = { x: 0.5, target: 0.5, action: '', started: -10, hidden: false };
   let clock = 0,

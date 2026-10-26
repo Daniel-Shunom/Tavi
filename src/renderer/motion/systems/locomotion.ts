@@ -16,6 +16,7 @@ import { range, rngFor, type Rng } from '../core/random';
 import { airtime, apexFor, hopHeight, impactSpeed } from '../core/physics';
 import { CriticalSpring, SecondOrder } from '../core/spring';
 import {
+  authoredGaitClips,
   gaitLibrary,
   resolveGait,
   type GaitBeat,
@@ -44,6 +45,8 @@ export type TurnStyle = 'cheat' | 'mirror-hidden' | 'authored';
 export interface LocomotionCaps {
   /** Default 'cheat'. */
   turnStyle?: TurnStyle;
+  /** Gaits the character provides authored cycles for (manifest tracks); others are procedural. */
+  authored?: readonly GaitId[];
   /** Rig has foot IK targets (planted steps); otherwise travel uses flight cycles. */
   feet: boolean;
 }
@@ -94,6 +97,8 @@ export interface LocomotionFrame {
   moving: boolean;
   gait: Gait | null;
   state: State;
+  /** Authored gait cycle to play, phase-locked to ground speed (0..1 of one loop). */
+  clip: { gait: GaitId; phase: number; mix: number } | null;
   /** Current gait/arrival beat name (diagnostics). */
   beat: string | null;
   /** Mood to perform while travelling (face pose id), with an envelope weight. */
@@ -315,7 +320,17 @@ export class Locomotion {
       if (b.facing) facingScale = b.facing(k);
       return t >= length;
     };
-    const vmax = def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
+    // Authored cycle for this gait? Then play it phase-locked to distance (no foot slip) at a
+    // little above its natural ground speed, with procedural lean/mood/beats on top.
+    const authoredClip =
+      this.gait && caps.authored?.includes(this.gait) ? authoredGaitClips[this.gait] : undefined;
+    const authored =
+      authoredClip?.stride && authoredClip.seconds
+        ? { stride: authoredClip.stride, seconds: authoredClip.seconds }
+        : null;
+    const vmax = authored
+      ? (authored.stride / authored.seconds) * 1.6 * bh * tempo * this.speedScale
+      : def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
     const cheat = (caps.turnStyle ?? 'cheat') === 'cheat';
     const facing = cheat ? 1 : this.facingAt(now);
     const forward = Math.sign(this.facingTo) || 1;
@@ -433,7 +448,8 @@ export class Locomotion {
     if (travelling && dt > 0) {
       const distance = Math.abs(v) * dt;
       this.sincePause += distance;
-      if (flying) {
+      if (authored) this.authoredPhase += distance / (authored.stride * bh);
+      if (flying && !authored) {
         // Spend the distance in the air: weight w(s) is 0 on the ground, normalised to mean 1.
         const s = this.phase % 1;
         const w = s < contactEdge || s > 1 - contactEdge ? 0 : 1 / def.flight;
@@ -463,7 +479,10 @@ export class Locomotion {
     const speedFraction = vmax > 0 ? Math.min(1, Math.abs(v) / vmax) : 0;
     const s = this.phase % 1;
     if (this.gait && (travelling || this.state === 'settling')) {
-      if (flying) {
+      if (authored) {
+        // The clip keys feet, hips, torso, arms and head; add only crouch and posture here.
+        pose.bob = def.crouch * this.travelWeight * 0;
+      } else if (flying) {
         const airborne = s >= contactEdge && s <= 1 - contactEdge;
         const x = (s - contactEdge) / def.flight;
         const flight = airborne ? 4 * x * (1 - x) : 0;
@@ -575,6 +594,11 @@ export class Locomotion {
     pose.hairSwoop = -0.6 * leanValue;
 
     this.lastFeet = [pose.footLX ?? 0, pose.footRX ?? 0];
+    const clip =
+      authored && this.gait && this.travelWeight > 0.01
+        ? { gait: this.gait, phase: this.authoredPhase % 1, mix: this.travelWeight }
+        : null;
+    if (this.state === 'idle') this.authoredPhase = 0;
     // Pose is in forward coordinates. Mirror styles let the renderer flip it; the cheat keeps the
     // body front-facing, so direction-signed channels point the way it travels instead.
     const out: Partial<Pose> = { ...pose };
@@ -606,11 +630,13 @@ export class Locomotion {
       gait: this.gait,
       state: this.state,
       beat,
+      clip,
       mood: this.moodFrame(now, def, beatMood),
     };
   }
 
   private speedScale = 1;
+  private authoredPhase = 0;
   private beats: 'all' | 'start' | 'none' = 'all';
   private mood: MoodId | null = null;
   private moveStart = 0;

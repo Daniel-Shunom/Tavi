@@ -21,6 +21,7 @@ import {
 import {
   neutralPose,
   type Channel,
+  type ClipRequest,
   type MotionFrame,
   type MotionSettings,
   type Pose,
@@ -363,6 +364,17 @@ export class MotionLayer {
 
     // Floor constraint: while the feet are on the ground the hips cannot rise above standing
     // height (the legs are nearly straight, so the IK would lift the feet off the floor).
+    // Authored gait cycle: role 'gait:<id>' with a normalised phase as time (binding maps it).
+    const gaitClips: ClipRequest[] = loco.clip
+      ? [
+          {
+            role: 'gait:' + loco.clip.gait,
+            time: loco.clip.phase,
+            mix: loco.clip.mix,
+            owns: ['body', 'arms'],
+          },
+        ]
+      : [];
     const liftFraction = loco.lift + choreo.liftBH * stage.bodyHeight;
     const airborne = liftFraction / stage.bodyHeight;
     if (Math.abs(airborne) < 1e-6) pose.bob = Math.max(-MAX_HIP_RISE, pose.bob);
@@ -372,7 +384,7 @@ export class MotionLayer {
     return {
       time: now,
       pose,
-      clips: face?.clips ? [...expr.clips, ...face.clips] : expr.clips,
+      clips: [...expr.clips, ...(face?.clips ?? []), ...gaitClips],
       placement: {
         x: loco.x,
         y: loco.y - liftFraction,

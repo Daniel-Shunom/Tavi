@@ -23,11 +23,23 @@ export const lylaClipRoles: Readonly<Record<string, string>> = {
 /** Neutral authored pose applied first every frame (eyes open, brows and lids at rest). */
 export const lylaRestClip = { name: 'rig testing', time: 0, mix: 1 };
 
+/** Lyla v2 authored gait loops by motion role. */
+const authoredGaitNames: Readonly<Record<string, { name: string; seconds: number }>> = {
+  'gait:walk': { name: 'tavi/gait/walk', seconds: 42 / 60 },
+  'gait:trudge': { name: 'tavi/gait/trudge', seconds: 80 / 60 },
+};
+
 export function bindLyla(frame: MotionFrame, palette: readonly string[] = []): FrameInput {
   const p = frame.pose;
   const full = (value: number) => ({ value, weight: 1 });
   const clips = [lylaRestClip];
   for (const clip of frame.clips) {
+    // Authored gait cycles (Lyla v2): phase 0..1 -> seconds of the loop.
+    const gait = authoredGaitNames[clip.role];
+    if (gait && clip.mix > 0.001) {
+      clips.push({ name: gait.name, time: clip.time * gait.seconds, mix: clip.mix });
+      continue;
+    }
     const name = lylaClipRoles[clip.role];
     if (name && clip.mix > 0.001) clips.push({ name, time: clip.time, mix: clip.mix });
   }

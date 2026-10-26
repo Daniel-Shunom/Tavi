@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { expressionIds } from '../shared/expressions';
 import { gaits as cueGaits, moods as cueMoods, movementStyles } from '../shared/locomotion';
 import {
+  authoredGaitClips,
   gaitIds,
   gaitLibrary,
   moodIds,
@@ -130,6 +131,34 @@ describe('every gait travels on the floor', () => {
       const stopped = frames.findIndex((f, i) => i > reached && !f.moving);
       expect(reached).toBeGreaterThan(0);
       expect((stopped - reached) / 60).toBeLessThan(0.6);
+    }
+  });
+
+  it('authored cycles (Lyla v2) play phase-locked to ground distance, replacing procedural feet', () => {
+    for (const id of ['walk', 'trudge'] as const) {
+      const clip = authoredGaitClips[id];
+      const loco = new Locomotion(2);
+      loco.place(0.3, 0.92);
+      loco.moveTo({ x: 0.55, at: 0, gait: id, beats: 'none' });
+      const caps = { feet: true, authored: [id] };
+      let previous: LocomotionFrame | null = null,
+        checked = 0;
+      for (let i = 0; i <= 60 * 30; i++) {
+        const f = loco.update(i ? 1 / 60 : 0, i / 60, profile, stage, caps);
+        if (f.clip && previous?.clip && f.state === 'moving') {
+          // Phase advance x ground per loop = distance travelled (planted foot stays put).
+          let dPhase = f.clip.phase - previous.clip.phase;
+          if (dPhase < -0.5) dPhase += 1;
+          const ground = dPhase * (clip.stride ?? 0) * stage.bodyHeight;
+          const travelled = Math.abs(f.x - previous.x) * stage.aspect;
+          expect(Math.abs(ground - travelled) * 720).toBeLessThan(0.05);
+          expect(f.pose.footLX ?? 0).toBe(0);
+          checked++;
+        }
+        previous = f;
+      }
+      expect(checked).toBeGreaterThan(60);
+      expect(previous?.clip).toBeNull();
     }
   });
 
