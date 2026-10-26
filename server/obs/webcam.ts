@@ -118,14 +118,14 @@ export class ObsWebcam {
     if (this.refreshing) return this.refreshing;
     const generation = this.generation;
     const work = this.readScene(generation)
-      .catch(async () => {
+      .catch(async (error: unknown) => {
         if (generation !== this.generation) return;
+        const detail = error instanceof Error ? error.message : 'Unknown OBS response';
         this.state = {
           ...this.state,
           webcam: null,
           sources: [],
-          message:
-            'The OBS layout could not be read. Webcam perching is unavailable; refresh or reconnect.',
+          message: `Could not read the OBS scene (${detail}). Webcam perching is unavailable; refresh or reconnect.`,
         };
         await this.apply(null);
       })
