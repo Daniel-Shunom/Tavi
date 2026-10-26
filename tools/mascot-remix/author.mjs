@@ -10,6 +10,7 @@
 //   - hand poses on each forearm (rest, open, fist, point, thumb): tavi/handL, tavi/handR
 //   - arms drawn in front of the hair on demand: tavi/armsFront
 //   - in-place gait cycles for the gait system: tavi/gait/walk (42 f), tavi/gait/trudge (80 f)
+//   - body-state poses: sit_floor, swing_legs, sleep_breath, zzz
 // The original art and animations are not changed. Source: "Mascot / Avatar Customization" by
 // alisketch (CC BY 4.0), remixed.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -77,6 +78,10 @@ export const lylaSpec = {
     neck: { id: '0:5358' },
     armL: { id: '0:5038' },
     armR: { id: '0:4914' },
+    /** The head node (Zs float above it). */
+    head: { id: '0:437' },
+    /** Hip drop for sitting on the floor (measured by the body-states work on v1). */
+    seatDrop: 106,
   },
   brows: {
     L: { inner: '0:478', innerY: -4.513, outer: '0:476', outerY: 8.527 },
@@ -530,6 +535,129 @@ export function authorTavi(source, spec = lylaSpec) {
       swing: 0.05,
       head: 0.07,
     }),
+  );
+
+  // --- 7. Body-state poses (names from docs/motion/BODY-STATES-RESEARCH.md; bones only) -------
+  // sit_floor: one-frame pose, hips dropped onto the seat with the feet drawn in.
+  tracks.push(
+    anim(
+      'sit_floor',
+      keyed(g.hip.id, { y: [[0, g.hip.y + g.seatDrop]] }) +
+        keyed(g.footL.id, { x: [[0, g.footL.x + 9]], y: [[0, g.footL.y]] }) +
+        keyed(g.footR.id, { x: [[0, g.footR.x - 9]], y: [[0, g.footR.y]] }) +
+        keyed(g.armL.id, { rotation: [[0, 0.25]] }) +
+        keyed(g.armR.id, { rotation: [[0, -0.25]] }),
+      1,
+    ),
+  );
+  // swing_legs: 1 s loop, feet alternate forward/up (layer over a ledge sit).
+  tracks.push(
+    `<LinearAnimation duration="60" loopValue="loop" name="swing_legs" id="${id()}">` +
+      keyed(g.footL.id, {
+        x: [
+          [0, g.footL.x - 6],
+          [30, g.footL.x + 6],
+          [60, g.footL.x - 6],
+        ],
+        y: [
+          [0, g.footL.y],
+          [15, g.footL.y - 9],
+          [30, g.footL.y],
+          [60, g.footL.y],
+        ],
+      }) +
+      keyed(g.footR.id, {
+        x: [
+          [0, g.footR.x + 6],
+          [30, g.footR.x - 6],
+          [60, g.footR.x + 6],
+        ],
+        y: [
+          [0, g.footR.y],
+          [30, g.footR.y],
+          [45, g.footR.y - 9],
+          [60, g.footR.y],
+        ],
+      }) +
+      `</LinearAnimation>`,
+  );
+  // sleep_breath: 5 s loop, belly then shoulders (2-3% torso scale).
+  tracks.push(
+    `<LinearAnimation duration="300" loopValue="loop" name="sleep_breath" id="${id()}">` +
+      keyed(g.torso.id, {
+        scaleY: [
+          [0, 1],
+          [120, 1.025],
+          [300, 1],
+        ],
+        scaleX: [
+          [0, 1],
+          [100, 1.012],
+          [300, 1],
+        ],
+      }) +
+      keyed(g.neck.id, {
+        y: [
+          [0, -101.578],
+          [140, -102.8],
+          [300, -101.578],
+        ],
+      }) +
+      `</LinearAnimation>`,
+  );
+  // zzz: 2 s loop of three Zs rising and fading above the head (hidden at rest).
+  const zIds = [id(), id(), id()];
+  const zShape = (zid, x, y, size) =>
+    `<Shape x="${String(x)}" y="${String(y)}" opacity="0" name="z" id="${zid}"><PointsPath name="Path" id="${id()}">` +
+    `<StraightVertex x="${String(-size / 2)}" y="${String(-size / 2)}" name="a" id="${id()}"/>` +
+    `<StraightVertex x="${String(size / 2)}" y="${String(-size / 2)}" name="b" id="${id()}"/>` +
+    `<StraightVertex x="${String(-size / 2)}" y="${String(size / 2)}" name="c" id="${id()}"/>` +
+    `<StraightVertex x="${String(size / 2)}" y="${String(size / 2)}" name="d" id="${id()}"/>` +
+    `</PointsPath><Stroke thickness="4" cap="round" join="round" name="Stroke" id="${id()}"><SolidColor colorValue="FF6F7AD8" name="Color" id="${id()}"/></Stroke></Shape>`;
+  const zSpots = [
+    [62, -150, 12],
+    [80, -175, 16],
+    [100, -205, 20],
+  ];
+  insertAfterOpen(
+    g.head.id,
+    block(
+      'zzz',
+      `<Node name="tavi/zzz" id="${id()}">` +
+        zIds.map((zid, i) => zShape(zid, ...zSpots[i])).join('') +
+        `</Node>`,
+    ),
+  );
+  tracks.push(
+    `<LinearAnimation duration="120" loopValue="loop" name="zzz" id="${id()}">` +
+      zIds
+        .map((zid, i) => {
+          const start = i * 25;
+          const [x, y] = zSpots[i];
+          return keyed(zid, {
+            opacity: [
+              [0, 0],
+              [start, 0],
+              [start + 15, 1],
+              [start + 60, 0],
+              [120, 0],
+            ],
+            y: [
+              [0, y + 20],
+              [start, y + 20],
+              [start + 60, y - 10],
+              [120, y + 20],
+            ],
+            x: [
+              [0, x],
+              [start + 30, x + 6],
+              [start + 60, x],
+              [120, x],
+            ],
+          });
+        })
+        .join('') +
+      `</LinearAnimation>`,
   );
 
   // Animations go at the end of the lyla artboard (before its closing tag).

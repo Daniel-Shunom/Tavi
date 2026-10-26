@@ -29,13 +29,30 @@ export const mascotV2GaitTracks = {
   'trudge-cycle': 'tavi/gait/trudge',
 };
 
+/**
+ * Authored body-state poses (names from docs/motion/BODY-STATES-RESEARCH.md; bones only, so
+ * acting layers over them): sit_floor (one frame, hips dropped 106 u onto the seat), swing_legs
+ * (1 s loop), sleep_breath (5 s loop, torso scale) and zzz (2 s loop of Zs above the head).
+ */
+export const mascotV2PoseTracks = {
+  'pose.sit-floor': 'sit_floor',
+  'pose.swing-legs': 'swing_legs',
+  'pose.sleep-breath': 'sleep_breath',
+  'fx.zzz': 'zzz',
+};
+
 export const mascotV2: ManifestInput = {
   ...mascot,
   id: 'mascot-v2',
   name: 'Lyla v2 (remix preview)',
   credit: 'Mascot / Avatar Customization by alisketch (CC BY 4.0), remixed for Tavi',
   asset: 'mascot-v2.riv',
-  tracks: { ...mascot.tracks, ...mascotV2ControlTracks, ...mascotV2GaitTracks },
+  tracks: {
+    ...mascot.tracks,
+    ...mascotV2ControlTracks,
+    ...mascotV2GaitTracks,
+    ...mascotV2PoseTracks,
+  },
   nodes: {
     ...mascot.nodes,
     'arm-l-fore': 'tavi/armL.fore',
@@ -46,6 +63,7 @@ export const mascotV2: ManifestInput = {
     ...(mascot.motionTracks ?? []),
     ...Object.keys(mascotV2ControlTracks),
     ...Object.keys(mascotV2GaitTracks),
+    ...Object.keys(mascotV2PoseTracks),
   ],
   face: mascotV2Face,
 };
