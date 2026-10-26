@@ -21,6 +21,8 @@ import {
   Shield,
   Smile,
   Sparkles,
+  Square,
+  Brain,
   Sun,
   VolumeX,
   Wifi,
@@ -29,23 +31,41 @@ import {
   CircleAlert,
 } from 'lucide-react';
 import { TwitchPanel } from './TwitchPanel';
+import { AiPanel } from './AiPanel';
 import { Avatar } from './renderer/Avatar';
+import { catalog, characters } from './renderer/characters/registry';
 import type { useConnection } from './useConnection';
-import type { Config, Gesture } from '../shared/protocol';
-const gestures: Record<Gesture, ReactNode> = {
-  wave: <Hand />,
-  smile: <Smile />,
-  surprise: <CircleAlert />,
-  point: <ArrowUpRight />,
-  peek: <Eye />,
-  idle: <Heart />,
-  listening: <Eye />,
-  skeptical: <CircleAlert />,
-  caught: <Cloud />,
-  nod: <Check />,
-  celebrate: <Sparkles />,
-  scene: <FlaskConical />,
-};
+import type { Config } from '../shared/protocol';
+import { supportedSequences, type CharacterCapabilities } from '../shared/capabilities';
+import { isScriptActive } from '../shared/cue';
+import {
+  channelInfo,
+  channels,
+  expressionIds,
+  expressions,
+  sequences,
+  type ExpressionId,
+  type SequenceId,
+} from '../shared/expressions';
+import { anchors, type AnchorId } from '../shared/locomotion';
+import { choreographies, choreographyIds } from '../shared/presence';
+type Cue = { expression: ExpressionId } | { sequence: SequenceId };
+/** The six core reactions plus a greeting and peek, offered when the character supports them. */
+const coreCues: { cue: Cue; label: string; icon: ReactNode }[] = [
+  { cue: { sequence: 'greeting' }, label: 'wave', icon: <Hand /> },
+  { cue: { expression: 'listening' }, label: 'listen', icon: <Eye /> },
+  { cue: { sequence: 'doubt-then-nod' }, label: 'really?', icon: <CircleAlert /> },
+  { cue: { sequence: 'caught-innocent' }, label: 'oops', icon: <Cloud /> },
+  { cue: { sequence: 'restrained-approval' }, label: 'nice', icon: <Check /> },
+  { cue: { sequence: 'big-win' }, label: 'celebrate', icon: <Sparkles /> },
+  { cue: { expression: 'peek' }, label: 'peek', icon: <Smile /> },
+];
+function supports(character: CharacterCapabilities | undefined, cue: Cue) {
+  if (!character) return false;
+  return 'sequence' in cue
+    ? supportedSequences(character).includes(cue.sequence)
+    : character.expressions.includes(cue.expression);
+}
 const personalities = {
   cozy: { icon: <Coffee />, description: 'Warm, calm, quietly present.' },
   playful: { icon: <Sparkles />, description: 'A little cheek. A lot of character.' },
@@ -54,12 +74,35 @@ const personalities = {
 const sections = [
   { id: 'appearance', name: 'Make it yours', icon: <Palette /> },
   { id: 'personality', name: 'Personality', icon: <Heart /> },
+  { id: 'expressions', name: 'Expressions', icon: <Smile /> },
+  { id: 'brain', name: 'Brain', icon: <Brain /> },
   { id: 'connections', name: 'Twitch', icon: <Radio /> },
   { id: 'playground', name: 'Playground', icon: <FlaskConical /> },
   { id: 'setup', name: 'Stream setup', icon: <Monitor /> },
 ] as const;
-export function Studio({ state, connected, error, send }: ReturnType<typeof useConnection>) {
+export function Studio({
+  state,
+  connected,
+  error,
+  send,
+  serverNow,
+}: ReturnType<typeof useConnection>) {
   const c = state.config;
+  const character = catalog[c.character];
+  const script = state.performance.script;
+  useEffect(() => {
+    // Escape stops the current performance, as a streamer-first control.
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape' && connected) send({ type: 'cancel' });
+    }
+    addEventListener('keydown', onKey);
+    return () => {
+      removeEventListener('keydown', onKey);
+    };
+  }, [connected, send]);
+  const perform = (cue: Cue) => {
+    send({ type: 'perform', ...cue });
+  };
   const [tab, setTab] = useState<'character' | 'scene'>('character');
   const [lighting, setLighting] = useState<'moonlight' | 'daydream' | 'afterhours'>('moonlight');
   const [spacious, setSpacious] = useState(false);
@@ -68,6 +111,17 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
   const [copyError, setCopyError] = useState('');
   const [text, setText] = useState('Tavi, that was a close one!');
   const [source, setSource] = useState<'streamer' | 'chat'>('streamer');
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    // Re-render once a second so the "currently performing" line clears when a cue finishes.
+    const timer = setInterval(() => {
+      setTick((value) => value + 1);
+    }, 1000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+  const performing = isScriptActive(script, serverNow()) ? script : null;
   const tools = useRef<HTMLDivElement>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(
@@ -109,15 +163,8 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
     }
     setActive(current);
   }
-  function anchor(value: Config['anchor']) {
-    patch({
-      anchor: value,
-      ...(value === 'webcam'
-        ? { x: 0.23, y: 0.72 }
-        : value === 'chat'
-          ? { x: 0.82, y: 0.63 }
-          : { x: 0.9, y: 0.92 }),
-    });
+  function anchor(value: AnchorId) {
+    patch({ anchor: value, x: anchors[value].x, y: anchors[value].y });
   }
   return (
     <div className={`companion-studio ${spacious ? 'tools-expanded' : ''}`}>
@@ -200,14 +247,18 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
           </span>
           <div className="portrait-space">
             <div className="portrait-halo" aria-hidden="true" />
-            <Avatar state={state} presentation="portrait" />
+            <Avatar state={state} serverNow={serverNow} presentation="portrait" />
             <button
               className="avatar-touch-target"
               aria-label={`Wave to ${c.name}`}
               title="Say hello"
               disabled={!connected || state.retracted}
               onClick={() => {
-                send({ type: 'gesture', gesture: 'wave' });
+                perform(
+                  supports(character, { sequence: 'greeting' })
+                    ? { sequence: 'greeting' }
+                    : { expression: 'wave' },
+                );
               }}
             />
           </div>
@@ -219,9 +270,11 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
             <span>
               {state.retracted
                 ? 'Taking a little break'
-                : state.quiet
-                  ? 'Just enjoying the quiet'
-                  : 'Click your companion to say hello'}
+                : performing
+                  ? `${performing.decidedBy.label}: ${performing.beats.map((value) => expressions[value.expression].label.toLowerCase()).join(', ')}`
+                  : state.quiet
+                    ? 'Just enjoying the quiet'
+                    : 'Click your companion to say hello'}
             </span>
           </div>
           <div className="stage-session">
@@ -251,51 +304,64 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
                 <PanelLeftClose size={15} />
                 {state.retracted ? 'Bring Tavi back' : 'Tuck away'}
               </button>
+              <select
+                className="presence-style"
+                aria-label="Entrance and exit style"
+                title="Entrance and exit style"
+                value={c.presenceStyle}
+                disabled={!connected}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  patch({
+                    presenceStyle: choreographyIds.find((id) => id === value) ?? 'random',
+                  });
+                }}
+              >
+                <option value="random">Surprise me</option>
+                {choreographyIds.map((id) => (
+                  <option key={id} value={id}>
+                    {choreographies[id].label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="gesture-dock" role="group" aria-label="Try an expression">
-            {(
-              [
-                'wave',
-                'listening',
-                'skeptical',
-                'caught',
-                'nod',
-                'celebrate',
-                'peek',
-                'scene',
-              ] as const
-            ).map((gesture) => (
-              <button
-                key={gesture}
-                disabled={!connected || state.retracted}
-                onClick={() => {
-                  send({ type: 'gesture', gesture });
-                }}
-              >
-                {gestures[gesture]}
-                <span>
-                  {
-                    {
-                      wave: 'wave',
-                      listening: 'listen',
-                      skeptical: 'really?',
-                      caught: 'oops',
-                      nod: 'nod',
-                      celebrate: 'celebrate',
-                      peek: 'peek',
-                      scene: 'try scene',
-                    }[gesture]
+            {coreCues
+              .filter((entry) => supports(character, entry.cue))
+              .map((entry) => (
+                <button
+                  key={entry.label}
+                  disabled={!connected || state.retracted}
+                  title={
+                    'sequence' in entry.cue
+                      ? sequences[entry.cue.sequence].meaning
+                      : expressions[entry.cue.expression].meaning
                   }
-                </span>
-              </button>
-            ))}
+                  onClick={() => {
+                    perform(entry.cue);
+                  }}
+                >
+                  {entry.icon}
+                  <span>{entry.label}</span>
+                </button>
+              ))}
+            <button
+              disabled={!connected || !performing}
+              title="Stop the current performance (Esc)"
+              onClick={() => {
+                send({ type: 'cancel' });
+              }}
+            >
+              <Square />
+              <span>stop</span>
+            </button>
           </div>
           <div className="stage-footnote">
             <span>
               Live character preview <span className="preview-dot" />{' '}
-              <a href="/credits/rive-avatar.md" target="_blank" rel="noreferrer">
-                Character by alisketch (CC BY)
+              <a href={character?.creditUrl ?? '#'} target="_blank" rel="noreferrer">
+                {character?.credit ?? 'Character'}
               </a>
             </span>
             <button
@@ -444,53 +510,47 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
                             }}
                           />
                         </label>
-                        <label className="field">
-                          Hair color
-                          <select
-                            name="rive-hair"
-                            value={c.riveHair}
-                            onChange={(event) => {
-                              patch({ riveHair: event.target.value as Config['riveHair'] });
-                            }}
-                          >
-                            <option value="Pink">Pink</option>
-                            <option value="Orange">Blonde</option>
-                            <option value="Brown">Brown</option>
-                          </select>
-                        </label>
+                        {characters.size > 1 ? (
+                          <label className="field">
+                            Character
+                            <select
+                              name="character"
+                              value={c.character}
+                              onChange={(event) => {
+                                patch({ character: event.target.value });
+                              }}
+                            >
+                              {[...characters.values()].map((entry) => (
+                                <option key={entry.id} value={entry.id}>
+                                  {entry.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : null}
                       </div>
                       <div className="control-column">
-                        <label className="field">
-                          Outfit color
-                          <select
-                            name="rive-outfit"
-                            value={c.riveOutfit}
-                            onChange={(event) => {
-                              patch({ riveOutfit: event.target.value as Config['riveOutfit'] });
-                            }}
-                          >
-                            <option value="green">Green</option>
-                            <option value="black">Black</option>
-                            <option value="light green">Light green</option>
-                          </select>
-                        </label>
-                        <label className="field">
-                          Glasses color
-                          <select
-                            name="rive-glasses"
-                            value={c.riveGlasses}
-                            onChange={(event) => {
-                              patch({ riveGlasses: event.target.value as Config['riveGlasses'] });
-                            }}
-                          >
-                            <option value="blue">Blue</option>
-                            <option value="white">White</option>
-                            <option value="grey">Grey</option>
-                          </select>
-                        </label>
+                        {Object.entries(character?.appearance ?? {}).map(([slot, definition]) => (
+                          <label className="field" key={slot}>
+                            {definition.label}
+                            <select
+                              name={'appearance-' + slot}
+                              value={c.appearance[slot] ?? definition.default}
+                              onChange={(event) => {
+                                patch({ appearance: { [slot]: event.target.value } });
+                              }}
+                            >
+                              {definition.options.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ))}
                         <p className="field">
-                          This character has one hairstyle and built-in glasses. More looks will
-                          need new character artwork.
+                          Options come from the character&apos;s artwork. More looks need new
+                          character artwork.
                         </p>
                       </div>
                     </>
@@ -503,12 +563,18 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
                             name="perch"
                             value={c.anchor}
                             onChange={(event) => {
-                              anchor(event.target.value as Config['anchor']);
+                              const value = event.target.value;
+                              const found = (Object.keys(anchors) as AnchorId[]).find(
+                                (id) => id === value,
+                              );
+                              if (found) anchor(found);
                             }}
                           >
-                            <option value="webcam">Webcam panel</option>
-                            <option value="chat">Chat panel</option>
-                            <option value="corner">Bottom corner</option>
+                            {(Object.keys(anchors) as AnchorId[]).map((id) => (
+                              <option key={id} value={id}>
+                                {anchors[id].label}
+                              </option>
+                            ))}
                           </select>
                         </label>
                         <label className="field">
@@ -584,6 +650,19 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
                     ))}
                   </div>
                   <label className="field">
+                    Initiative
+                    <select
+                      value={c.initiative}
+                      onChange={(event) => {
+                        patch({ initiative: event.target.value as Config['initiative'] });
+                      }}
+                    >
+                      <option value="reserved">Reserved</option>
+                      <option value="occasional">Occasional</option>
+                      <option value="outgoing">Outgoing</option>
+                    </select>
+                  </label>
+                  <label className="field">
                     Attitude
                     <select
                       value={c.attitude}
@@ -629,6 +708,113 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
                   cooldown.
                 </p>
               </section>
+              <section className="tool-section" id="expressions">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">
+                      <Smile size={14} /> Expression library
+                    </span>
+                    <h2>Everything they can show.</h2>
+                    <p>Only what {character?.name ?? 'this character'} can perform is enabled.</p>
+                  </div>
+                </div>
+                <fieldset disabled={!connected || state.retracted} className="expression-gallery">
+                  {channels
+                    .filter((channel) => channel !== 'idle')
+                    .map((channel) => (
+                      <div key={channel} className="expression-group">
+                        <h3 title={channelInfo[channel].meaning}>{channelInfo[channel].label}</h3>
+                        <div>
+                          {expressionIds
+                            .filter(
+                              (id) =>
+                                expressions[id].channel === channel && expressions[id].selectable,
+                            )
+                            .map((id) => {
+                              const supported = character?.expressions.includes(id) ?? false;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  disabled={!supported}
+                                  title={
+                                    supported
+                                      ? expressions[id].meaning
+                                      : `${expressions[id].meaning} (not supported by this character)`
+                                  }
+                                  onClick={() => {
+                                    perform({ expression: id });
+                                  }}
+                                >
+                                  {expressions[id].label}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    ))}
+                  <div className="expression-group">
+                    <h3>Sequences</h3>
+                    <div>
+                      {(character ? supportedSequences(character) : []).map((id) => (
+                        <button
+                          key={id}
+                          type="button"
+                          title={`${sequences[id].meaning} ${sequences[id].useWhen}`}
+                          onClick={() => {
+                            perform({ sequence: id });
+                          }}
+                        >
+                          {sequences[id].label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </fieldset>
+                <div className="range-row">
+                  <label className="field checkbox-field">
+                    <input
+                      type="checkbox"
+                      checked={c.captions.studio}
+                      disabled={!connected}
+                      onChange={(event) => {
+                        patch({ captions: { ...c.captions, studio: event.target.checked } });
+                      }}
+                    />
+                    Show captions in the studio
+                  </label>
+                  <label className="field checkbox-field">
+                    <input
+                      type="checkbox"
+                      checked={c.captions.overlay}
+                      disabled={!connected}
+                      onChange={(event) => {
+                        patch({ captions: { ...c.captions, overlay: event.target.checked } });
+                      }}
+                    />
+                    Show captions on stream
+                  </label>
+                </div>
+              </section>
+              <section className="tool-section" id="brain">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">
+                      <Brain size={14} /> Who decides
+                    </span>
+                    <h2>Pick their brain.</h2>
+                    <p>
+                      Built-in rules, or any OpenAI-compatible or Anthropic model you configure.
+                    </p>
+                  </div>
+                </div>
+                <AiPanel serviceConnected={connected} />
+                <p className="helper-note">
+                  <Shield size={14} />
+                  API keys are read by the local service from its environment and never reach the
+                  studio or the overlay. Chat text is treated as untrusted input.
+                </p>
+              </section>
               <section className="tool-section" id="connections">
                 <div className="section-heading">
                   <div>
@@ -647,28 +833,30 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
                     <span className="section-kicker">
                       <FlaskConical size={14} /> Try a moment
                     </span>
-                    <h2>See their personality happen.</h2>
-                    <p>Same words. A different little reaction.</p>
+                    <h2>Talk to them.</h2>
+                    <p>Say something and watch the reaction. Same words, different personality.</p>
                   </div>
-                  <span className="demo-badge">Simulated input</span>
+                  {source === 'chat' ? <span className="demo-badge">Simulated chat</span> : null}
                 </div>
                 <form
                   className="playground-form"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    if (text.trim()) send({ type: 'simulate', source, text });
+                    if (!text.trim()) return;
+                    if (source === 'streamer') send({ type: 'say', text });
+                    else send({ type: 'simulate', source: 'chat', text });
                   }}
                 >
                   <label className="field">
-                    Demo input
+                    Who is talking
                     <select
                       value={source}
                       onChange={(event) => {
                         setSource(event.target.value as typeof source);
                       }}
                     >
-                      <option value="streamer">Streamer says...</option>
-                      <option value="chat">Chat says...</option>
+                      <option value="streamer">I say... (to {c.name})</option>
+                      <option value="chat">Simulated chat says...</option>
                     </select>
                   </label>
                   <label className="field message-field">
@@ -687,16 +875,16 @@ export function Studio({ state, connected, error, send }: ReturnType<typeof useC
                   </label>
                   <button className="primary-button" disabled={!connected || !text.trim()}>
                     <Zap size={15} />
-                    Try reaction
+                    {source === 'streamer' ? 'Say it' : 'Send test chat'}
                   </button>
                 </form>
                 <p className="reaction-note" role="status">
-                  {state.action.note}
+                  {state.performance.note}
                 </p>
                 <p className="helper-note">
                   <Eye size={14} />
-                  This playground is simulated. Twitch can be live; microphone and AI are not
-                  connected yet.
+                  Typed lines go through the decision provider shown in Brain. Simulated chat is
+                  labelled as a test. The microphone is not connected yet.
                 </p>
               </section>
               <section className="tool-section" id="setup">

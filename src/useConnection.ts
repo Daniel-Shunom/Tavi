@@ -5,6 +5,8 @@ export function useConnection() {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
   const ws = useRef<WebSocket | null>(null);
+  // Offset between the service clock and this browser, so cues render on a shared timeline.
+  const offset = useRef(0);
   useEffect(() => {
     let disposed = false;
     let retry: ReturnType<typeof setTimeout>;
@@ -22,7 +24,10 @@ export function useConnection() {
       socket.onmessage = (event) => {
         try {
           const message = serverMessageSchema.parse(JSON.parse(String(event.data)));
-          if (message.type === 'state') setState(message.state);
+          if (message.type === 'state') {
+            offset.current = message.now - Date.now();
+            setState(message.state);
+          }
           if (message.type === 'error') setError(message.message);
         } catch {
           setError('Received an unreadable update.');
@@ -51,5 +56,6 @@ export function useConnection() {
       ws.current.send(JSON.stringify(command));
     } else setError('Studio is disconnected. Changes have not been saved.');
   }, []);
-  return { state, connected, error, send };
+  const serverNow = useCallback(() => Date.now() + offset.current, []);
+  return { state, connected, error, send, serverNow };
 }
