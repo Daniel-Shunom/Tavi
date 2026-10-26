@@ -222,7 +222,11 @@ export class BodyStatePlayer {
         const goal = spot?.approach ?? frame.target;
         // Locomotion settles on whole steps, so "arrived" is "stopped near the spot".
         const distance = Math.hypot(goal.x - frame.position.x, goal.y - frame.position.y);
-        const arrived = !frame.travelling && distance < 0.03;
+        // Locomotion's arrive creeps the last few pixels for seconds; start once close and
+        // already facing the right way (or once it has fully stopped nearby).
+        const facingOk =
+          (this.facingOnArrival() ?? (frame.facing < 0 ? -1 : 1)) === (frame.facing < 0 ? -1 : 1);
+        const arrived = (!frame.travelling && distance < 0.03) || (facingOk && distance < 0.004);
         const overdue = !frame.travelling && now - this.travelStart > 4;
         if (arrived || overdue) {
           if (cue.state === 'stand') this.toHold(now);
