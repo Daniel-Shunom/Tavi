@@ -32,6 +32,7 @@ export async function createSheetRig(
           ...lylaRig.nodes,
           elbowL: { name: 'tavi/armL.fore', kind: 'bone' as const },
           elbowR: { name: 'tavi/armR.fore', kind: 'bone' as const },
+          eyes: { name: 'tavi/eyes', kind: 'node' as const },
         },
       }
     : lylaRig;
@@ -84,7 +85,7 @@ export async function createSheetRig(
           { name: 'tavi/browTiltL', time: clamp01((p.browTiltL + 1) / 2), mix: 1 },
           { name: 'tavi/browTiltR', time: clamp01((p.browTiltR + 1) / 2), mix: 1 },
           { name: 'tavi/mouthOpen', time: clamp01(p.mouthOpen), mix: 1 },
-          { name: 'tavi/viseme', time: step(p.viseme), mix: 1 },
+          { name: 'tavi/mouthWide', time: clamp01((p.mouthWide + 1) / 2), mix: 1 },
           { name: 'tavi/handL', time: step(p.handL), mix: 1 },
           { name: 'tavi/handR', time: step(p.handR), mix: 1 },
           { name: 'tavi/armsFront', time: p.armsFront >= 0.5 ? 0.99 : 0.01, mix: 1 },
@@ -93,6 +94,7 @@ export async function createSheetRig(
           ...input.offsets,
           elbowL: { rotation: p.elbowL },
           elbowR: { rotation: -p.elbowR },
+          eyes: { x: (0.5 * p.gazeX + p.pupilX) * 14, y: (0.5 * p.gazeY + p.pupilY) * 10 },
         };
       }
       rig.frame(dt, input, {

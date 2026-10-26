@@ -7,6 +7,7 @@ import { MotionLayer } from '../src/renderer/motion/motion';
 import { expressionLibrary } from '../src/renderer/motion/systems/expressions';
 import { choreographies } from '../src/renderer/motion/systems/choreography';
 import { G_BH } from '../src/renderer/motion/core/physics';
+import { gaitIds } from '../src/renderer/motion/systems/gaits/library';
 import type { MotionFrame, Stage } from '../src/renderer/motion/types';
 
 const stage: Stage = { aspect: 16 / 9, bodyHeight: 220 / 720, margin: 0.02 };
@@ -107,11 +108,23 @@ describe('grounding', () => {
     expectGrounded(
       analyse(
         run(l, 14, 0, (t) => {
-          if (t === 0.2) l.moveTo({ x: 0.75, at: 0.2, gait: 'step' });
+          if (t === 0.2) l.moveTo({ x: 0.75, at: 0.2, gait: 'walk' });
         }),
       ),
     );
   });
+
+  for (const gait of gaitIds)
+    it(`gait ${gait} keeps feet planted, hips on the floor and no jerks`, () => {
+      const l = layer('cozy');
+      expectGrounded(
+        analyse(
+          run(l, 16, 0, (t) => {
+            if (t === 0.2) l.moveTo({ x: 0.72, at: 0.2, gait });
+          }),
+        ),
+      );
+    });
 
   for (const id of Object.keys(choreographies))
     it(`choreography ${id} is grounded whenever it is not airborne`, () => {

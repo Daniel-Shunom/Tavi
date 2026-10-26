@@ -61,6 +61,47 @@ enforced in `motion.ts` and tested in `tests/motion-grounding.test.ts`.
   `shadow` on the motion output; the renderer should draw a soft ellipse (about 0.44 x 0.07 body
   heights at scale 1). The motion lab draws it as a CSS radial gradient.
 
+## Gaits and moods
+
+`systems/gaits/library.ts` defines each gait as data: cycle (`step`, `skip`, `run`, `hop`), stride,
+cadence, foot lift, hip bob/crouch/sway, lean, arms, head, the mood it carries (an expression id
+performed by the character's face poses, as a face-only cue), and optional start/stop/mid-route
+beats. Movement cues may name `gait` (walk, amble, skip, trudge, scurry, sneak, stomp, run, hop;
+stroll/hurry/tiptoe are aliases) and `mood`. Without a gait, `systems/gaits/select.ts` picks one
+from the reason for moving (dragged by the streamer, chat, home, wander, peek), personality,
+attitude, energy, distance and body state, seeded by the cue id. That function is the extension
+point for a richer or AI-driven policy. The studio "How it moves" setting (`config.movementStyle`,
+default `auto`) fixes the gait for studio placement moves.
+
+Authored gait cycles a remixed rig can provide (manifest track handles; procedural otherwise).
+Each loop is one full cycle at 60 fps, contact frame 0 = screen-left foot down, measured stride
+noted in the clip description so locomotion can play it at rate = speed / stride:
+
+| Handle         | Loop                                  | Notes                                        |
+| -------------- | ------------------------------------- | -------------------------------------------- |
+| `walk-cycle`   | 2 steps, 0.7 s (42 frames)            | neutral step                                 |
+| `amble-cycle`  | 2 steps, 0.9 s                        | loose arms, hip sway                         |
+| `skip-cycle`   | 2 skips, 0.83 s, contacts at 0 and 25 | high alternate knee, big arm swing, airtime  |
+| `trudge-cycle` | 2 steps, 1.14 s                       | slumped, toe drag on the swing, arms hanging |
+| `scurry-cycle` | 2 steps, 0.53 s                       | small quick steps, arms tucked               |
+| `sneak-cycle`  | 2 steps, 1.25 s                       | tiptoe, crouched, slow touchdowns            |
+| `stomp-cycle`  | 2 steps, 0.87 s                       | heavy heel strikes, stiff arms               |
+| `run-cycle`    | 2 strides, 0.62 s                     | flight between contacts                      |
+| `hop-cycle`    | 1 hop, 0.45 s                         | two-footed bunny hop                         |
+
+Plus one-shots: `groan-sigh`, `stop-and-sigh`, `slump-hmph`, `skip-twirl`, `stomp-stop`, `sneak-look`.
+
 ## Rig adapter
 
 `rive/motionRig.ts` loads the .riv with an in-memory `RigPatch` (`rive/patch.ts`): runtime names on chosen nodes and single-property control tracks for joystick channels. Per frame: reset to rest, authored clips (played forward in real time, not scrubbed), channel writes (`value`, `weight`), additive node offsets, `artboard.advance`, draw with lean/facing/squash placement. A new character supplies a manifest like `rigs/lyla.ts` and a binding like `rigs/lylaBinding.ts`.
+
+## Authored gait cycles (Lyla v2)
+
+`mascot-v2` provides authored in-place cycles under the `authoredGaitClips` handles:
+`walk-cycle` (`tavi/gait/walk`, 42 frames = 0.7 s, two steps) and `trudge-cycle`
+(`tavi/gait/trudge`, 80 frames = 1.33 s, small dragged steps, crouched and leaning). They loop.
+They key the foot IK targets (the planted foot slides back by ±14 u for walk and ±9 u for
+trudge, so the stage speed for a planted foot is 56 u per cycle and 36 u per cycle), the hip
+bob, the torso twist and lean, the shoulder swing and the head. The motion layer moves the
+character, and node offsets stay additive on top. Play them by time: frame / 60 s. Other gaits
+fall back to the procedural cycles. Source: `tools/mascot-remix/author.mjs` (step 6).

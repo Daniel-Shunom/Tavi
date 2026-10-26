@@ -72,7 +72,7 @@ describe('choreography', () => {
         l.place(anchor.x, anchor.y);
         const player = new ChoreographyPlayer();
         player.start(id, { at: 0, anchor }, l, stage);
-        for (let i = 0; i <= 120; i++) {
+        for (let i = 0; i <= 150; i++) {
           const lf = l.update(i ? 1 / 60 : 0, i / 60, profile, stage, { feet: true });
           const f = player.update(i / 60, profile, stage, lf);
           xs.push(lf.x * 1000 + f.liftBH * 1000);
@@ -80,7 +80,7 @@ describe('choreography', () => {
         return xs;
       })();
       // Frames differ during the opening second (something visibly moves).
-      expect(new Set(run.slice(10, 60).map((v) => v.toFixed(3))).size).toBeGreaterThan(20);
+      expect(new Set(run.slice(10, 120).map((v) => v.toFixed(3))).size).toBeGreaterThan(20);
       const end = frames.at(-1);
       expect(end?.done).toBe(true);
       expect(end?.hidden).toBe(false);

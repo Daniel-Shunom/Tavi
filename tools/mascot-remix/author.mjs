@@ -6,9 +6,11 @@
 //   - control tracks `tavi/<channel>` keying each joystick axis from -1.25 to 1.25 (no in-memory
 //     patch needed for this file)
 //   - brow tilt (inner end up/down) via brow vertex keys: tavi/browTiltL, tavi/browTiltR
-//   - an open mouth with viseme shapes: tavi/mouthOpen, tavi/viseme
+//   - an opening mouth that morphs from the line: tavi/mouthOpen, tavi/mouthWide
 //   - hand poses on each forearm (rest, open, fist, point, thumb): tavi/handL, tavi/handR
 //   - arms drawn in front of the hair on demand: tavi/armsFront
+//   - in-place gait cycles for the gait system: tavi/gait/walk (42 f), tavi/gait/trudge (80 f)
+//   - body-state poses: sit_floor, swing_legs, sleep_breath, zzz
 // The original art and animations are not changed. Source: "Mascot / Avatar Customization" by
 // alisketch (CC BY 4.0), remixed.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -36,6 +38,9 @@ export const lylaSpec = {
     '0:2080': 'tavi/armL.fore',
     '0:2340': 'tavi/armR.upper',
     '0:2341': 'tavi/armR.fore',
+    // Pupil look-at target: the irises follow it (translation constraint) within 8 units of each
+    // eye centre (distance constraint). Clips key it; Tavi adds offsets.
+    '0:1265': 'tavi/eyes',
   },
   /** Forearm bones (hands attach at `tip` along each) and shoulder groups (draw rules). */
   arms: {
@@ -47,8 +52,37 @@ export const lylaSpec = {
     front: '0:447',
   },
   /** The mouth line; the open mouth sits behind it at `y`. */
-  mouth: { line: '0:552', y: 47 },
+  /** The mouth line, its rest geometry, and the timelines that move it. */
+  mouth: {
+    line: '0:552',
+    x: -0.020858049,
+    y: 41.940498,
+    right: [18.316, -2.3575001],
+    middle: [-0.56199998, 2.3575001],
+    left: [-18.316, -2.3575001],
+    vertices: { right: '0:554', middle: '0:555', left: '0:2703' },
+    stroke: 4.3523202,
+    lineColor: 'FFEB0066',
+    /** Lower-lip drop when fully open (units). */
+    depth: 20,
+    smileTimeline: 'mouth smile frown',
+    positionTimelines: ['mouth X', 'mouth Y'],
+  },
   /** Brow path vertices: inner/outer end and their rest y. */
+  /** Rest transforms of the parts gait cycles key (absolute values in their parents). */
+  gait: {
+    footL: { id: '0:2559', x: 288.5, y: 525.5 },
+    footR: { id: '0:2506', x: 322.5, y: 525.5 },
+    hip: { id: '0:2207', y: -150 },
+    torso: { id: '0:2206' },
+    neck: { id: '0:5358' },
+    armL: { id: '0:5038' },
+    armR: { id: '0:4914' },
+    /** The head node (Zs float above it). */
+    head: { id: '0:437' },
+    /** Hip drop for sitting on the floor (measured by the body-states work on v1). */
+    seatDrop: 106,
+  },
   brows: {
     L: { inner: '0:478', innerY: -4.513, outer: '0:476', outerY: 8.527 },
     R: { inner: '0:484', innerY: -4.513, outer: '0:482', outerY: 8.527 },
@@ -203,26 +237,69 @@ export function authorTavi(source, spec = lylaSpec) {
   insertAfterOpen(spec.arms.L.fore, block('hand-l', handL.content));
   insertAfterOpen(spec.arms.R.fore, block('hand-r', handR.content));
 
-  // --- 3. Open mouth with visemes (behind the mouth line) ---------------------------------------
-  const mouthIds = { group: id(), solo: id(), a: id(), o: id(), e: id(), u: id() };
-  const viseme = (key, name, parts) => `<Node name="${name}" id="${mouthIds[key]}">${parts}</Node>`;
+  // --- 3. Opening mouth (one mouth at a time) ------------------------------------------------
+  // The open mouth is a filled, lip-outlined copy of the mouth line whose lower lip separates as
+  // `tavi/mouthOpen` rises: at 0 it is flat and exactly on the line. The line's stroke hands over
+  // to it within the first 8% of opening (same geometry, so it reads as one mouth throughout).
+  // Its corners and upper lip copy the line's smile/frown keys, and its wrapper copies the line's
+  // position keys, so an open smile and an open frown both follow the curve. `tavi/mouthWide`
+  // scales the wrapper: -1 round (O/U) .. 0 neutral .. 1 wide (E).
+  const m = spec.mouth;
+  const mouthIds = {
+    wrap: id(),
+    shape: id(),
+    path: id(),
+    right: id(),
+    top: id(),
+    left: id(),
+    bottom: id(),
+  };
+  const lipStroke = `<Stroke thickness="${String(m.stroke)}" cap="round" join="round" name="lips" id="${id()}"><SolidColor colorValue="${m.lineColor}" name="Color" id="${id()}"/></Stroke>`;
   insertAfterElement(
-    spec.mouth.line,
+    m.line,
     block(
       'mouth-open',
-      `<Node x="0" y="${String(spec.mouth.y)}" scaleX="0.6" scaleY="0" name="tavi/mouthOpen" id="${mouthIds.group}">` +
-        `<Solo activeComponentId="${mouthIds.a}" name="tavi/visemes" id="${mouthIds.solo}">` +
-        viseme(
-          'a',
-          'A',
-          ellipse('tongue', 0, 5, 14, 7, TONGUE) + ellipse('open', 0, 0, 30, 20, MOUTH),
-        ) +
-        viseme('o', 'O', ellipse('open', 0, 1, 16, 19, MOUTH)) +
-        viseme('e', 'E', capsule('open', 0, -1, 34, 10, MOUTH)) +
-        viseme('u', 'U', ellipse('open', 0, 1, 10, 11, MOUTH)) +
-        `</Solo></Node>`,
+      `<Node x="${String(m.x)}" y="${String(m.y)}" name="tavi/mouth" id="${mouthIds.wrap}">` +
+        `<Shape opacity="0" name="tavi/mouthInterior" id="${mouthIds.shape}">` +
+        `<PointsPath isClosed="true" name="Path" id="${mouthIds.path}">` +
+        `<CubicDetachedVertex x="${String(m.right[0])}" y="${String(m.right[1])}" name="R" id="${mouthIds.right}"/>` +
+        `<CubicDetachedVertex inDistance="11.687" outRotation="3.1415927" outDistance="11.686" x="${String(m.middle[0])}" y="${String(m.middle[1])}" name="upper lip" id="${mouthIds.top}"/>` +
+        `<StraightVertex x="${String(m.left[0])}" y="${String(m.left[1])}" name="L" id="${mouthIds.left}"/>` +
+        `<CubicDetachedVertex inRotation="3.1415927" inDistance="11.687" outDistance="11.686" x="${String(m.middle[0])}" y="${String(m.middle[1])}" name="lower lip" id="${mouthIds.bottom}"/>` +
+        `</PointsPath>` +
+        lipStroke +
+        fill(MOUTH) +
+        `</Shape></Node>`,
     ),
   );
+  /** Copies a timeline's keys on `from` onto `to` (fresh ids), inside that timeline. */
+  const mirrorKeys = (timeline, pairs) => {
+    const start = rml.search(new RegExp(`<LinearAnimation [^>]*?name="${timeline}"`));
+    if (start < 0) throw new Error('timeline not found: ' + timeline);
+    const end = rml.indexOf('</LinearAnimation>', start);
+    const body = rml.slice(start, end);
+    let copies = '';
+    for (const [from, to] of pairs) {
+      const match = new RegExp(
+        `<KeyedObject objectId="${from}"[^>]*>[\\s\\S]*?</KeyedObject>`,
+      ).exec(body);
+      if (!match) continue;
+      copies += match[0]
+        .replace(`objectId="${from}"`, `objectId="${to}"`)
+        .replace(/ id="[^"]*"/g, () => ` id="${id()}"`);
+    }
+    if (copies)
+      rml =
+        rml.slice(0, end) +
+        block(`mirror-${timeline.toLowerCase().replace(/[^a-z]+/g, '-')}`, copies) +
+        rml.slice(end);
+  };
+  mirrorKeys(m.smileTimeline, [
+    [m.vertices.right, mouthIds.right],
+    [m.vertices.middle, mouthIds.top],
+    [m.vertices.left, mouthIds.left],
+  ]);
+  for (const timeline of m.positionTimelines) mirrorKeys(timeline, [[m.line, mouthIds.wrap]]);
 
   // --- 4. Arms in front of the hair (draw rules on each shoulder group) -------------------------
   const armRules = {};
@@ -288,32 +365,57 @@ export function authorTavi(source, spec = lylaSpec) {
       anim('tavi/browTilt' + side, tilt(brow.inner, brow.innerY, brow.outer, brow.outerY)),
     );
   }
-  // Open mouth: 0 closed .. 1 fully open (the viseme shape scales up from nothing).
+  // Open mouth: 0 closed (only the line) .. 1 fully open. Hand-over in the first 8%: the line
+  // fades out while the open mouth, still flat on the same curve, fades in.
   tracks.push(
     anim(
       'tavi/mouthOpen',
-      keyed(mouthIds.group, {
-        scaleY: [
-          [0, 0],
-          [60, 1],
+      keyed(m.line, {
+        opacity: [
+          [0, 1],
+          [5, 0],
+          [60, 0],
         ],
-        scaleX: [
-          [0, 0.6],
-          [60, 1],
-        ],
-      }),
+      }) +
+        keyed(mouthIds.shape, {
+          opacity: [
+            [0, 0],
+            [5, 1],
+            [60, 1],
+          ],
+        }) +
+        keyed(mouthIds.bottom, {
+          y: [
+            [0, m.middle[1]],
+            [60, m.middle[1] + m.depth],
+          ],
+          inDistance: [
+            [0, 11.687],
+            [60, 14],
+          ],
+          outDistance: [
+            [0, 11.686],
+            [60, 14],
+          ],
+        }),
     ),
   );
-  // Discrete selections: pose k is held from frame 10k (scrub to (10k + 5) / 60 s).
+  // Mouth width: frame 0 round (O/U), 30 neutral, 60 wide (E).
   tracks.push(
     anim(
-      'tavi/viseme',
-      keyedIds(mouthIds.solo, 'activeComponentId', [
-        [0, mouthIds.a],
-        [10, mouthIds.o],
-        [20, mouthIds.e],
-        [30, mouthIds.u],
-      ]),
+      'tavi/mouthWide',
+      keyed(mouthIds.wrap, {
+        scaleX: [
+          [0, 0.55],
+          [30, 1],
+          [60, 1.25],
+        ],
+        scaleY: [
+          [0, 1.2],
+          [30, 1],
+          [60, 0.85],
+        ],
+      }),
     ),
   );
   for (const [side, hand] of [
@@ -344,6 +446,218 @@ export function authorTavi(source, spec = lylaSpec) {
           [30, armRules.R.front],
         ]),
     ),
+  );
+
+  // --- 6. Authored gait cycles (in place; locomotion moves the character) -----------------
+  // Names and loop lengths follow motion/systems/gaits/library.ts (authoredGaitClips): one cycle
+  // is two steps. Feet are IK targets: the planted foot slides back at ground speed while the
+  // other lifts and swings forward; hips bob (low at contact), the torso counter-twists and the
+  // arms swing opposite the legs.
+  const g = spec.gait;
+  const cycle = ({ name, frames, stride, lift, bob, crouch, lean, twist, swing, head }) => {
+    const half = frames / 2;
+    const foot = (part, plantStart) => {
+      // Planted: front -> back over half a cycle; swing: back -> front, lifted at mid-swing.
+      const at = (f) => ((f % frames) + frames) % frames;
+      const keysX = new Map(),
+        keysY = new Map();
+      keysX.set(at(plantStart), part.x + stride);
+      keysY.set(at(plantStart), part.y);
+      keysX.set(at(plantStart + half), part.x - stride);
+      keysY.set(at(plantStart + half), part.y);
+      keysX.set(at(plantStart + half * 1.5), part.x);
+      keysY.set(at(plantStart + half * 1.5), part.y - lift);
+      /** Sorted keys over 0..frames, closing the loop (frame 0 interpolated if needed). */
+      const close = (map) => {
+        const sorted = [...map.entries()].sort((a, b) => a[0] - b[0]);
+        const first = sorted[0];
+        if (first && first[0] !== 0) {
+          // Interpolate the value at frame 0 from the wrap-around segment.
+          const last = sorted[sorted.length - 1];
+          const span = frames - last[0] + first[0];
+          const value = last[1] + ((first[1] - last[1]) * (frames - last[0])) / span;
+          sorted.unshift([0, value]);
+        }
+        sorted.push([frames, sorted[0][1]]);
+        return sorted;
+      };
+      return keyed(part.id, { x: close(keysX), y: close(keysY) });
+    };
+    const wave = (value, base, offset = 0) => [
+      [0, base + value * Math.cos(offset)],
+      [half / 2, base + value * Math.cos(offset + Math.PI / 2)],
+      [half, base + value * Math.cos(offset + Math.PI)],
+      [half * 1.5, base + value * Math.cos(offset + Math.PI * 1.5)],
+      [frames, base + value * Math.cos(offset)],
+    ];
+    const body =
+      foot(g.footL, 0) +
+      foot(g.footR, half) +
+      keyed(g.hip.id, {
+        y: [
+          [0, g.hip.y + crouch + bob],
+          [half / 2, g.hip.y + crouch - bob],
+          [half, g.hip.y + crouch + bob],
+          [half * 1.5, g.hip.y + crouch - bob],
+          [frames, g.hip.y + crouch + bob],
+        ],
+      }) +
+      keyed(g.torso.id, { rotation: wave(twist, lean) }) +
+      keyed(g.armL.id, { rotation: wave(swing, 0) }) +
+      keyed(g.armR.id, { rotation: wave(swing, 0) }) +
+      keyed(g.neck.id, { rotation: wave(twist * 0.5, head, Math.PI) });
+    return `<LinearAnimation duration="${String(frames)}" loopValue="loop" name="${name}" id="${id()}">${body}</LinearAnimation>`;
+  };
+  tracks.push(
+    cycle({
+      name: 'tavi/gait/walk',
+      frames: 42,
+      stride: 14,
+      lift: 11,
+      bob: 3,
+      crouch: 0,
+      lean: 0.02,
+      twist: 0.03,
+      swing: 0.12,
+      head: 0,
+    }),
+  );
+  tracks.push(
+    cycle({
+      name: 'tavi/gait/trudge',
+      frames: 80,
+      stride: 9,
+      lift: 3,
+      bob: 2,
+      crouch: 7,
+      lean: 0.08,
+      twist: 0.02,
+      swing: 0.05,
+      head: 0.07,
+    }),
+  );
+
+  // --- 7. Body-state poses (names from docs/motion/BODY-STATES-RESEARCH.md; bones only) -------
+  // sit_floor: one-frame pose, hips dropped onto the seat with the feet drawn in.
+  tracks.push(
+    anim(
+      'sit_floor',
+      keyed(g.hip.id, { y: [[0, g.hip.y + g.seatDrop]] }) +
+        keyed(g.footL.id, { x: [[0, g.footL.x + 9]], y: [[0, g.footL.y]] }) +
+        keyed(g.footR.id, { x: [[0, g.footR.x - 9]], y: [[0, g.footR.y]] }) +
+        keyed(g.armL.id, { rotation: [[0, 0.25]] }) +
+        keyed(g.armR.id, { rotation: [[0, -0.25]] }),
+      1,
+    ),
+  );
+  // swing_legs: 1 s loop, feet alternate forward/up (layer over a ledge sit).
+  tracks.push(
+    `<LinearAnimation duration="60" loopValue="loop" name="swing_legs" id="${id()}">` +
+      keyed(g.footL.id, {
+        x: [
+          [0, g.footL.x - 6],
+          [30, g.footL.x + 6],
+          [60, g.footL.x - 6],
+        ],
+        y: [
+          [0, g.footL.y],
+          [15, g.footL.y - 9],
+          [30, g.footL.y],
+          [60, g.footL.y],
+        ],
+      }) +
+      keyed(g.footR.id, {
+        x: [
+          [0, g.footR.x + 6],
+          [30, g.footR.x - 6],
+          [60, g.footR.x + 6],
+        ],
+        y: [
+          [0, g.footR.y],
+          [30, g.footR.y],
+          [45, g.footR.y - 9],
+          [60, g.footR.y],
+        ],
+      }) +
+      `</LinearAnimation>`,
+  );
+  // sleep_breath: 5 s loop, belly then shoulders (2-3% torso scale).
+  tracks.push(
+    `<LinearAnimation duration="300" loopValue="loop" name="sleep_breath" id="${id()}">` +
+      keyed(g.torso.id, {
+        scaleY: [
+          [0, 1],
+          [120, 1.025],
+          [300, 1],
+        ],
+        scaleX: [
+          [0, 1],
+          [100, 1.012],
+          [300, 1],
+        ],
+      }) +
+      keyed(g.neck.id, {
+        y: [
+          [0, -101.578],
+          [140, -102.8],
+          [300, -101.578],
+        ],
+      }) +
+      `</LinearAnimation>`,
+  );
+  // zzz: 2 s loop of three Zs rising and fading above the head (hidden at rest).
+  const zIds = [id(), id(), id()];
+  const zShape = (zid, x, y, size) =>
+    `<Shape x="${String(x)}" y="${String(y)}" opacity="0" name="z" id="${zid}"><PointsPath name="Path" id="${id()}">` +
+    `<StraightVertex x="${String(-size / 2)}" y="${String(-size / 2)}" name="a" id="${id()}"/>` +
+    `<StraightVertex x="${String(size / 2)}" y="${String(-size / 2)}" name="b" id="${id()}"/>` +
+    `<StraightVertex x="${String(-size / 2)}" y="${String(size / 2)}" name="c" id="${id()}"/>` +
+    `<StraightVertex x="${String(size / 2)}" y="${String(size / 2)}" name="d" id="${id()}"/>` +
+    `</PointsPath><Stroke thickness="4" cap="round" join="round" name="Stroke" id="${id()}"><SolidColor colorValue="FF6F7AD8" name="Color" id="${id()}"/></Stroke></Shape>`;
+  const zSpots = [
+    [62, -150, 12],
+    [80, -175, 16],
+    [100, -205, 20],
+  ];
+  insertAfterOpen(
+    g.head.id,
+    block(
+      'zzz',
+      `<Node name="tavi/zzz" id="${id()}">` +
+        zIds.map((zid, i) => zShape(zid, ...zSpots[i])).join('') +
+        `</Node>`,
+    ),
+  );
+  tracks.push(
+    `<LinearAnimation duration="120" loopValue="loop" name="zzz" id="${id()}">` +
+      zIds
+        .map((zid, i) => {
+          const start = i * 25;
+          const [x, y] = zSpots[i];
+          return keyed(zid, {
+            opacity: [
+              [0, 0],
+              [start, 0],
+              [start + 15, 1],
+              [start + 60, 0],
+              [120, 0],
+            ],
+            y: [
+              [0, y + 20],
+              [start, y + 20],
+              [start + 60, y - 10],
+              [120, y + 20],
+            ],
+            x: [
+              [0, x],
+              [start + 30, x + 6],
+              [start + 60, x],
+              [120, x],
+            ],
+          });
+        })
+        .join('') +
+      `</LinearAnimation>`,
   );
 
   // Animations go at the end of the lyla artboard (before its closing tag).

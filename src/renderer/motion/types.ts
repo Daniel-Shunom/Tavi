@@ -30,8 +30,9 @@ export interface MotionSettings {
  *  elbowL/R   radians, forearm bend added to the elbow (same sign convention as armL/armR)
  *  handL/R    discrete hand pose index: 0 rest, 1 open palm, 2 fist, 3 point, 4 thumbs up
  *  armsFront  discrete: 1 draws the arms in front of the hair
- *  mouthOpen  0 closed .. 1 open; viseme discrete: 0 A, 1 O, 2 E, 3 U
+ *  mouthOpen  0 closed (the line) .. 1 open; mouthWide -1 round (O/U) .. 1 wide (E)
  *  browTilt*  -1 inner end up (sad) .. 1 inner end down (angry)
+ *  pupilX/Y   -1..1 pupils within the eyes (x: screen right, y: down), on top of the gaze
  *  "L"/"R" are screen-left / screen-right in the unmirrored artboard.
  */
 export const channelNames = [
@@ -68,9 +69,11 @@ export const channelNames = [
   'handR',
   'armsFront',
   'mouthOpen',
-  'viseme',
+  'mouthWide',
   'browTiltL',
   'browTiltR',
+  'pupilX',
+  'pupilY',
 ] as const;
 
 export type Channel = (typeof channelNames)[number];

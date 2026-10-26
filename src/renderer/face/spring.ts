@@ -22,3 +22,26 @@ export function stepSpring(state: SpringState, target: number, halfLife: number,
   state.velocity = eydt * (state.velocity - j1 * y * dt);
   return state;
 }
+
+/**
+ * Under-damped spring (`zeta` < 1 gives a small overshoot, e.g. a mouth popping open slightly
+ * past its target and settling), integrated in fixed sub-steps so it is stable at any frame rate.
+ */
+export function stepDampedSpring(
+  state: SpringState,
+  target: number,
+  halfLife: number,
+  dt: number,
+  zeta: number,
+) {
+  if (dt <= 0) return state;
+  const omega = (2 * Math.LN2) / Math.max(1e-4, halfLife);
+  const steps = Math.max(1, Math.ceil(dt / (1 / 480)));
+  const h = dt / steps;
+  for (let i = 0; i < steps; i++) {
+    const acceleration = omega * omega * (target - state.value) - 2 * zeta * omega * state.velocity;
+    state.velocity += acceleration * h;
+    state.value += state.velocity * h;
+  }
+  return state;
+}

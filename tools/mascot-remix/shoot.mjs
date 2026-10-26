@@ -12,6 +12,8 @@ const cases = process.argv[2] ? JSON.parse(await readFile(process.argv[2], 'utf8
 const query = new URLSearchParams();
 if (process.env.FILE) query.set('file', process.env.FILE);
 if (process.env.BONES) query.set('bones', process.env.BONES);
+if (process.env.ZOOM) query.set('zoom', process.env.ZOOM);
+if (process.env.FOCUS) query.set('focus', process.env.FOCUS);
 const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });

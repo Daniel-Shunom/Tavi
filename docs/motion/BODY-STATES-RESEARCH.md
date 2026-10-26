@@ -10,6 +10,23 @@ at the body height, so **1 BH = 600 u** (the binding's `UNITS`). Node offsets ar
 probe writes them (node space: `+y` = down, so `footL y -18` lifts the foot), and also as pose
 channels where useful (`bob = body.y / 600`, `footLY = -foot.y / 600`).
 
+## Corrections from the implementation (October 26)
+
+Measured again while building (`src/renderer/characters/mascot/states.ts`, same values on Lyla
+v2). These supersede the numbers below:
+
+- **Floor sit: hips down 106 u, not 130 u.** The 26 u "sink" at 130 u was the skirt and seat
+  going through the floor, not the feet. At 106 u the seat meets the floor and the planted feet
+  stay the lowest point; feet are not lifted.
+- **Lie: about -62 deg**, solved from two contacts (widest point of the hair, shifted with the
+  hips, and the feet) rather than the -72 deg eyeballed in the probe.
+- **Lean: hips 10 u, upper -0.04, head -0.06** (the probe pose tipped the head 56 u away from the
+  edge); Tavi stands 0.36 BH from the edge and rotates about 14 deg until the hair touches.
+- **Stretch:** no hip rise (the grounding contract forbids it); the stretch is arms, squash and
+  face.
+- Walking to a spot ends with a several-second arrive tail in locomotion; states start once Tavi
+  is within about 5 px and facing the right way.
+
 ## Summary of findings
 
 1. **The deep states should be earned through chains, not picked at random.** Shimeji only

@@ -52,7 +52,7 @@ import {
   type ExpressionId,
   type SequenceId,
 } from '../shared/expressions';
-import { anchors, type AnchorId } from '../shared/locomotion';
+import { anchors, movementStyles, type AnchorId } from '../shared/locomotion';
 import { choreographies, choreographyIds } from '../shared/presence';
 type Cue = { expression: ExpressionId } | { sequence: SequenceId };
 /** The six core reactions plus a greeting and peek, offered when the character supports them. */
@@ -581,6 +581,27 @@ export function Studio({
                             {(Object.keys(anchors) as AnchorId[]).map((id) => (
                               <option key={id} value={id}>
                                 {anchors[id].label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="field">
+                          How it moves
+                          <select
+                            name="movement-style"
+                            value={c.movementStyle}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              patch({
+                                movementStyle: movementStyles.find((id) => id === value) ?? 'auto',
+                              });
+                            }}
+                          >
+                            {movementStyles.map((id) => (
+                              <option key={id} value={id}>
+                                {id === 'auto'
+                                  ? 'Auto (by mood and reason)'
+                                  : id.charAt(0).toUpperCase() + id.slice(1)}
                               </option>
                             ))}
                           </select>

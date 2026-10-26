@@ -8,7 +8,7 @@ import { mascotV2 } from './mascot-v2/manifest';
 const manifests: CharacterManifest[] = [mascot, mascotV2].map((input) =>
   manifestSchema.parse(input),
 );
-export const defaultCharacterId = 'mascot';
+export const defaultCharacterId = 'mascot-v2';
 export const characters: ReadonlyMap<string, CharacterManifest> = new Map(
   manifests.map((manifest) => [manifest.id, manifest]),
 );

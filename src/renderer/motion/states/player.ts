@@ -222,7 +222,11 @@ export class BodyStatePlayer {
         const goal = spot?.approach ?? frame.target;
         // Locomotion settles on whole steps, so "arrived" is "stopped near the spot".
         const distance = Math.hypot(goal.x - frame.position.x, goal.y - frame.position.y);
-        const arrived = !frame.travelling && distance < 0.03;
+        // Locomotion's arrive creeps the last few pixels for seconds; start once close and
+        // already facing the right way (or once it has fully stopped nearby).
+        const facingOk =
+          (this.facingOnArrival() ?? (frame.facing < 0 ? -1 : 1)) === (frame.facing < 0 ? -1 : 1);
+        const arrived = (!frame.travelling && distance < 0.03) || (facingOk && distance < 0.004);
         const overdue = !frame.travelling && now - this.travelStart > 4;
         if (arrived || overdue) {
           if (cue.state === 'stand') this.toHold(now);
@@ -385,16 +389,19 @@ export class BodyStatePlayer {
       height = Math.max(0, key.lift - gap);
     }
     let floorShadow: FloorShadow | null = null;
-    if (Math.abs(key.rot) > 15) {
+    // A rotated body would tilt the regular contact shadow with it: draw a flat one instead.
+    if (Math.abs(key.rot) > 8) {
+      const lying = Math.abs(key.rot) > 30;
       const head = toWorld(this.rig.lieContacts.head);
       const feet = toWorld(this.rig.lieContacts.feet);
-      const span = Math.abs(head.x - feet.x) + (0.3 * stage.bodyHeight) / stage.aspect;
+      const width = (0.44 * stage.bodyHeight) / stage.aspect;
       floorShadow = {
-        x: (head.x + feet.x) / 2,
+        x: lying ? (head.x + feet.x) / 2 : frame.position.x,
         y: frame.position.y,
-        width: span,
+        width: lying ? Math.abs(head.x - feet.x) + (0.3 * stage.bodyHeight) / stage.aspect : width,
         height: 0.07 * stage.bodyHeight,
-        opacity: 0.5 * Math.min(1, (Math.abs(key.rot) - 15) / 20),
+        // Crossfades with the regular shadow between 8 and 14 degrees.
+        opacity: Math.min(1, (Math.abs(key.rot) - 8) / 6) * (lying ? 0.5 : 0.4),
       };
     }
     const effects: StateEffect[] = [];

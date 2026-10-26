@@ -12,6 +12,8 @@ const params = new URLSearchParams(location.search);
 const file = params.get('file') ?? '/art/mascot-remix/build/mascot-remix.riv';
 const artboard = params.get('artboard') ?? 'lyla animation';
 const size = 600;
+const zoom = Number(params.get('zoom') ?? 1);
+const focus = Number(params.get('focus') ?? 0.3);
 
 interface ViewState {
   clips?: { name: string; time: number; mix?: number }[];
@@ -54,7 +56,15 @@ async function main() {
         channels: {},
         offsets: state.offsets ?? {},
       },
-      { x: size / 2, y: size, height: size, rotation: 0, facing: 1, scaleX: 1, scaleY: 1 },
+      {
+        x: size / 2,
+        y: zoom === 1 ? size : size / 2 + (1 - focus) * size * zoom,
+        height: size * zoom,
+        rotation: 0,
+        facing: 1,
+        scaleX: 1,
+        scaleY: 1,
+      },
     );
   };
   Object.assign(window, {

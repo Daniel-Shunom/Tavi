@@ -10,7 +10,14 @@ import { ExpressionSystem } from './systems/expressions';
 import { FidgetSystem } from './systems/fidget';
 import { GazeSystem, type GazeTarget } from './systems/gaze';
 import { idleLayer } from './systems/idle';
-import { Locomotion, type LocomotionCaps, type MoveCommand } from './systems/locomotion';
+import { resolveGait, type GaitId, type MoodId } from './systems/gaits/library';
+import { selectGait, type MoveReason } from './systems/gaits/select';
+import {
+  Locomotion,
+  type LocomotionCaps,
+  type LocomotionFrame,
+  type MoveCommand,
+} from './systems/locomotion';
 import {
   neutralPose,
   type Channel,
@@ -41,11 +48,27 @@ const ranges: Partial<Record<Channel, [number, number]>> = {
   hairSquash: [-0.06, 0.06],
 };
 
+/** Motion-library stand-ins for travel moods when a rig has no face poses (e.g. the lab). */
+const moodFallback: Partial<Record<MoodId, string>> = {
+  excited: 'happy',
+  grin: 'happy',
+  content: 'happy',
+  sad: 'tired',
+  sleepy: 'tired',
+  annoyed: 'determined',
+  frown: 'determined',
+  pout: 'bashful',
+  worried: 'bashful',
+  focused: 'think',
+  determined: 'determined',
+  bored: 'tired',
+};
+
 /** Hips may rise at most this far above standing (BH) while grounded. */
 const MAX_HIP_RISE = 0.004;
 
 /** Pose indices and switches: never interpolated (a spring would pass through other poses). */
-const discrete: ReadonlySet<Channel> = new Set(['handL', 'handR', 'armsFront', 'viseme']);
+const discrete: ReadonlySet<Channel> = new Set(['handL', 'handR', 'armsFront']);
 
 export class MotionLayer {
   readonly seed: number;
@@ -120,9 +143,48 @@ export class MotionLayer {
     this.attention = target;
   }
 
-  moveTo(command: MoveCommand) {
+  /**
+   * Travel to a point. Without an explicit `gait`, the selection rules (gaits/select.ts) pick
+   * gait and mood from why it is moving, personality, energy and distance (seeded by `cue`).
+   */
+  moveTo(command: MoveCommand & { reason?: MoveReason; cue?: string; bodyState?: string }) {
     this.fidget.interrupt();
-    this.locomotion.moveTo(command);
+    const { reason, cue, bodyState, ...move } = command;
+    if (!resolveGait(move.gait)) {
+      const from = this.locomotion.position;
+      const distanceBH =
+        (Math.abs(move.x - from.x) * this.stage.aspect) / Math.max(1e-3, this.stage.bodyHeight);
+      const choice = selectGait({
+        reason: reason ?? 'cue',
+        personality: this.settings.personality,
+        attitude: this.settings.attitude,
+        energy: this.settings.energy,
+        distanceBH,
+        seed: this.seed,
+        cue: cue ?? String(Math.round(move.at * 1000)),
+        previous: this.lastAutoGait,
+        bodyState,
+      });
+      move.gait = choice.gait;
+      if (!move.mood && choice.mood) move.mood = choice.mood;
+      this.lastAutoGait = choice.gait;
+    }
+    this.locomotion.moveTo(move);
+  }
+
+  private lastAutoGait: GaitId | undefined;
+  private lastLoco: LocomotionFrame | null = null;
+  private fallbackMood: string | null = null;
+
+  /**
+   * The travel mood as face cues (expression id from shared/expressions.ts) for the character's
+   * face layer; additive with any other expression. Empty while standing still.
+   */
+  moodCues(): { expression: MoodId; weight: number; elapsed: number }[] {
+    const mood = this.lastLoco?.mood;
+    return mood && mood.weight > 0.01
+      ? [{ expression: mood.id, weight: mood.weight, elapsed: mood.elapsed }]
+      : [];
   }
 
   wander(at: number) {
@@ -210,6 +272,17 @@ export class MotionLayer {
     };
 
     const loco = this.locomotion.update(dt, now, profile, stage, this.caps);
+    this.lastLoco = loco;
+    // Rigs without a face layer: show the travel mood with the motion expression library.
+    if (!face) {
+      const fallback = loco.mood ? moodFallback[loco.mood.id] : undefined;
+      const wanted = fallback && loco.mood && loco.mood.weight > 0.2 ? fallback : null;
+      if (wanted !== this.fallbackMood) {
+        if (this.fallbackMood) this.expressions.release(this.fallbackMood, now);
+        if (wanted) this.expressions.play(wanted, { at: now, hold: 30, intensity: 0.7 });
+        this.fallbackMood = wanted;
+      }
+    }
     const choreo = this.choreo.update(now, profile, stage, loco);
     for (const id of choreo.expressions) {
       const hold = choreo.holds[id];

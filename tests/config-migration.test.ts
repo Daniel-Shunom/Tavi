@@ -40,7 +40,7 @@ describe('configuration migration', () => {
       anchor: 'chat',
       x: 0.82,
       y: 0.63,
-      character: 'mascot',
+      character: 'mascot-v2',
       appearance: { hair: 'orange', outfit: 'light-green', glasses: 'grey' },
       initiative: 'occasional',
     });
@@ -77,7 +77,7 @@ describe('configuration migration', () => {
     );
     expect(invalid.config.appearance).toEqual({ hair: 'pink', outfit: 'green', glasses: 'blue' });
     const unknown = reduce(state, { type: 'configure', patch: { character: 'nobody' } }, catalog);
-    expect(unknown.config.character).toBe('mascot');
+    expect(unknown.config.character).toBe('mascot-v2');
   });
   it('keeps the WebSocket protocol strict', () => {
     for (const input of [
@@ -99,5 +99,17 @@ describe('configuration migration', () => {
     expect(
       commandSchema.safeParse({ type: 'retract', value: true, choreography: 'drop' }).success,
     ).toBe(true);
+  });
+});
+
+describe('movement style', () => {
+  it('defaults older saved configs to auto and accepts a chosen gait', () => {
+    const older: Record<string, unknown> = { ...defaults };
+    delete older['movementStyle'];
+    expect(configSchema.parse(older).movementStyle).toBe('auto');
+    const patch = { type: 'configure', patch: { movementStyle: 'skip' } };
+    expect(commandSchema.safeParse(patch).success).toBe(true);
+    const bad = { type: 'configure', patch: { movementStyle: 'teleport' } };
+    expect(commandSchema.safeParse(bad).success).toBe(false);
   });
 });

@@ -277,7 +277,10 @@ export class Companion {
             decidedBy: { kind: 'manual', label: 'Studio placement' },
             priority: priorities.manual,
             sourceEventId: this.id('config'),
-            gait: 'walk',
+            // Auto: the motion layer picks gait and mood (reason: moved by the streamer).
+            ...(this.current.config.movementStyle !== 'auto'
+              ? { gait: this.current.config.movementStyle }
+              : {}),
           });
         return;
       }
