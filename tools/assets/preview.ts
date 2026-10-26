@@ -3,7 +3,7 @@
 import { RuntimeLoader } from '@rive-app/webgl2';
 import type { Artboard, LinearAnimationInstance } from '@rive-app/webgl2/rive_advanced.mjs';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
-import avatarURL from '../../src/renderer/assets/mascot.riv?url';
+import avatarURL from '../../src/renderer/characters/mascot/mascot.riv?url';
 import { itemsForSlot } from '../../src/renderer/attachments/catalog';
 import { loadAttachments } from '../../src/renderer/attachments/bundle';
 import {
@@ -12,13 +12,17 @@ import {
   slotFrame,
   type Affine,
 } from '../../src/renderer/attachments/layer';
-import { hide, recolor, lylaRecolor } from '../../src/renderer/attachments/recolor';
+import { hide, recolor } from '../../src/renderer/attachments/recolor';
 import {
   patchForAttachments,
   riveTransformSource,
   viewMatrix,
 } from '../../src/renderer/attachments/rive';
-import { lylaAttachmentRig, lylaSlots } from '../../src/renderer/attachments/rigs/lyla';
+import {
+  lylaAttachmentRig,
+  lylaRecolor,
+  lylaSlots,
+} from '../../src/renderer/characters/mascot/attachments';
 import {
   slotIds,
   type AttachmentTints,

@@ -3,7 +3,7 @@
 // names, so nameComponents() adds runtime names in memory before loading. expectTypes guards
 // against silently binding the wrong component if the asset is replaced.
 // INTEGRATION: these belong in the character manifest (see docs/assets/INTEGRATION.md).
-import type { CharacterSlots } from '../schema';
+import type { CharacterSlots } from '../../attachments/schema';
 
 const NODE = 2;
 const BONE = 40;
@@ -95,3 +95,11 @@ export const lylaSlots: CharacterSlots = {
     rotation: 0,
   },
 };
+
+/** Lyla's appearance animations (artboard "lyla animation"). */
+export const lylaRecolor = {
+  artboard: 'lyla animation',
+  hair: { animation: 'hair Pink', base: '#d80b4c' },
+  outfit: { animation: 'clothing green', base: '#276065', keep: ['#7992af'] },
+  glasses: { animation: 'glasses blue', base: '#2fc1e2', keep: ['#002aaf'] },
+} as const;

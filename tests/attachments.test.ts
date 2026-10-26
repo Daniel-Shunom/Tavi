@@ -15,14 +15,20 @@ import {
   type Affine,
   type Canvas2D,
 } from '../src/renderer/attachments/layer';
-import { hide, lylaRecolor, recolor } from '../src/renderer/attachments/recolor';
+import { hide, recolor } from '../src/renderer/attachments/recolor';
 import { patchForAttachments, riveTransformSource } from '../src/renderer/attachments/rive';
 import { colorKeys } from '../src/renderer/attachments/riv/rivPatch';
-import { lylaAttachmentRig, lylaSlots } from '../src/renderer/attachments/rigs/lyla';
+import {
+  lylaAttachmentRig,
+  lylaRecolor,
+  lylaSlots,
+} from '../src/renderer/characters/mascot/attachments';
 import { AttachmentSpec, SlotBinding, Spring } from '../src/renderer/attachments/schema';
 
 const mascot = async () =>
-  new Uint8Array(await readFile(new URL('../src/renderer/assets/mascot.riv', import.meta.url)));
+  new Uint8Array(
+    await readFile(new URL('../src/renderer/characters/mascot/mascot.riv', import.meta.url)),
+  );
 
 describe('attachment catalog', () => {
   it('validates every bundled item and has a starter pack across categories', () => {

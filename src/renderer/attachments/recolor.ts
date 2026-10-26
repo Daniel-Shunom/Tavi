@@ -5,21 +5,13 @@ import { parseHex, retarget } from './color';
 import { recolorAnimation } from './riv/rivPatch';
 
 export interface RecolorTarget {
-  /** Appearance animation whose keys are rewritten (e.g. "hair Pink"). */
+  /** Appearance animation whose keys are rewritten (e.g. a hair colour animation). */
   animation: string;
   /** The animation's main colour; other keys keep their offset from it. */
   base: string;
   /** Colours left untouched (e.g. shoes keyed by the outfit animation). */
   keep?: readonly string[];
 }
-
-/** Lyla's appearance animations (artboard "lyla animation"). */
-export const lylaRecolor = {
-  artboard: 'lyla animation',
-  hair: { animation: 'hair Pink', base: '#d80b4c' },
-  outfit: { animation: 'clothing green', base: '#276065', keep: ['#7992af'] },
-  glasses: { animation: 'glasses blue', base: '#2fc1e2', keep: ['#002aaf'] },
-} as const;
 
 function rgbOf(argb: number) {
   return argb & 0xffffff;

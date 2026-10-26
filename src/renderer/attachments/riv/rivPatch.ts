@@ -1,6 +1,6 @@
 // In-memory .riv patches for appearance: runtime names on transform components (so attachment
 // slots can read world transforms) and in-place recolouring of the colour keys of appearance
-// animations such as "hair Pink". The source file is never modified; colours are fixed-width,
+// animations such as a hair colour animation. The source file is never modified; colours are fixed-width,
 // so recolouring never changes the byte layout.
 import { RivWriter, scanRiv, splice, type RivObject } from './rivBinary';
 
