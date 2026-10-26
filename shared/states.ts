@@ -328,7 +328,8 @@ export function resolveSpot(state: BodyStateId, context: SpotContext): Spot | nu
         for (const side of [-1, 1] as const) {
           // side: where the edge is relative to Tavi. Edge on Tavi's right = the rect's left edge.
           const edgeX = side === 1 ? rect.x : rect.x + rect.w;
-          const x = edgeX - side * bhX(0.3);
+          // Far enough out that the lean tips ~13 degrees before the hair touches the edge.
+          const x = edgeX - side * bhX(0.36);
           if (x < bounds.minX || x > bounds.maxX) continue;
           const approach = clampPoint({ x, y: floor });
           options.push({ surface: 'side', rect: id, x, y: floor, approach, side, edgeX });

@@ -105,14 +105,15 @@ export const mascotStates: StateRig = {
       browR: -0.6,
     },
     perch: { bob: u(90), footLX: -u(45), footRX: u(45), armL: -0.2, armR: -0.2 },
-    // Leaning back against an edge behind (opposite the facing side).
+    // Leaning back against an edge behind (opposite the facing side). The torso and head tip
+    // slightly toward the edge so the hair, the widest point, makes the contact (measured).
     lean: {
-      shift: u(25),
-      lean: 0.12,
-      headTilt: 0.1,
-      footLX: u(30),
-      footRX: u(40),
-      armL: -0.2,
+      shift: u(10),
+      lean: -0.04,
+      headTilt: -0.06,
+      footLX: u(20),
+      footRX: u(34),
+      armL: -0.15,
     },
     airTuck: { footLY: u(30), footRY: u(30), bob: u(20), armL: 0.6, armR: 0.6 },
   },
@@ -123,6 +124,6 @@ export const mascotStates: StateRig = {
     head: { x: -u(152 + 40), y: u(297) },
     feet: { x: -u(42), y: u(18) },
   },
-  leanContact: { x: -u(152 - 25), y: u(297) },
+  leanContact: { x: -u(150), y: u(287) },
   head: { x: 0, y: u(345) },
 };
