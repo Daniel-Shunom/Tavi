@@ -96,3 +96,15 @@ and `presence.hidden` when it performs the entrance/exit itself. Without a layer
 eases position toward the target and slides/fades for entrances and exits.
 
 A binding may set `motion: "<performance>"` (mascot: agreeing -> `nod`, skeptical -> `skeptical`, innocent -> `caught`). If the registered motion layer lists that id in `performances`, the binding's own tracks and transforms are skipped and the layer receives the cue layer in `input.performances` to drive the accent and hold; cue timing, priority and captions are unchanged. Held poses are never frozen: `play` + `pingpong` swings during the hold, fixed frames drift slightly, and `tests/living-holds.test.ts` fails if any hold renders identically over time.
+
+## Face and body acting (`src/renderer/face/`)
+
+Expressions are acted out by a data-driven layer that runs inside the motion hook. Each character
+manifest's `face.poses` gives, per expression id, a face/head/body pose at typical and strong
+intensity, an onset accent, timed micro-acting keys, an optional authored clip and living-hold
+settings (blink rate and hold, drift). Per frame, cues are weighted by their envelopes, the mouth
+trails the brows by `mouthLag`, the body trails the head by `bodyLag`, and every channel follows
+a critically damped spring, so transitions never pop. The result is added to the motion pose
+(offsets, so it layers over idle, locomotion and body states). For motion-library performances
+(nod, skeptical, Oops), the face pose supplies only the facial channels it sets. Design notes:
+`docs/character/` (DESIGN-RESEARCH, EXPRESSIONS, RIG-SPEC, RIVE-CLI).

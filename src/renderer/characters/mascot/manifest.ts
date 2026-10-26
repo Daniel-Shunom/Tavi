@@ -1,12 +1,9 @@
 // Mascot / Avatar Customization by alisketch (CC BY 4.0), artboard "lyla animation".
-// Grounded in tools/rive-inventory.mjs and tools/rive-clip-sampler.mjs (see README.md):
-// - Face x/y, brows, mouth, lids, squash and hair clips render nothing when sampled raw: they
-//   are joystick channels that only work once the motion rig patch (./motionRig.ts) is applied
-//   in memory. They are exposed as motion control tracks (./motion.ts), not bound here.
-// - "wave testing folio header" permanently rescales the artboard to ~65% and is excluded.
-// - Every expression below is composed from verified full-body clips plus small host offsets;
-//   these clips have no independently controllable brows, mouth or eyes. The face itself is driven
-//   through the joysticks by the face layer (face.ts poses, src/renderer/face/).
+// Body clips below are verified full-body clips plus small host offsets: the fallback when no
+// motion layer runs. With the motion layer, every binding that names `motion: '<id>'` is performed
+// instead: nod/skeptical/caught by the motion library, everything else by the acting poses in
+// face.ts (face, head and body through the joysticks; see docs/character/EXPRESSIONS.md).
+// "wave testing folio header" permanently rescales the artboard to ~65% and is excluded.
 import type { ManifestInput } from '../manifest';
 import { mascotFace } from './face';
 import { mascotControlTracks, mascotMotionNodes } from './motion';

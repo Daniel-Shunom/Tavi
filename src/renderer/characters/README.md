@@ -28,7 +28,13 @@ when a character is added.
    changed pixels per clip, whether a clip rescales the artboard, and writes contact strips to
    `test-results/clips-<id>/`. Names are not proof: many mascot face/brow/mouth tracks render
    nothing, and "wave testing folio header" permanently rescales the artboard.
-5. Register it in `registry.ts`. With more than one character the studio shows a picker.
+5. Optional `face`: the rig's face/head/body channels with safe ranges and per-expression acting
+   poses (`pose`/`strong`/`subtle`, `onset`, timed `keys`, `clip`, `towardTarget`, `living`),
+   performed by the face layer (`src/renderer/face/`) through the motion hook. Bindings opt in
+   with `motion: '<id>'`. Probe channels with `tools/expression-sheet/probe.mjs` and review every
+   pose at overlay and large size on the expression sheet (`/tools/expression-sheet/`,
+   screenshots via `tools/expression-sheet/shoot.mjs`). See `docs/character/`.
+6. Register it in `registry.ts`. With more than one character the studio shows a picker.
    `npm test` checks every bound clip exists in the shipped file.
 
 `tests/fixtures/test-character.ts` is a minimal second manifest (different artboard, state

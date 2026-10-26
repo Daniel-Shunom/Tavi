@@ -138,8 +138,17 @@ export const facePoses: ActingPoses = {
       gazeY: -0.55,
     },
     onset: {
-      pose: { browL: -1.25, browR: -1.25, smile: -0.6, mouthY: 1, gazeX: 0.15 },
-      seconds: 0.6,
+      pose: {
+        browL: -1.25,
+        browR: -1.25,
+        smile: -0.75,
+        mouthY: 1,
+        mouthX: 0.1,
+        gazeX: 0.25,
+        gazeY: -0.1,
+      },
+      hold: 0.4,
+      seconds: 0.45,
     },
     keys: {
       channels: {

@@ -161,6 +161,7 @@ async function main() {
     performing: Set<string>;
   }
   let run: Run | null = null;
+  let lastPose: unknown = null;
   const HOLD_A = 1.6;
   const settings = {
     personality: 'playful',
@@ -220,8 +221,10 @@ async function main() {
       values: result.values,
       owned,
       blinkScale: result.blink.rate / (face?.blink.rate ?? 17),
+      clips: result.clips,
     });
     clock.textContent = `t = ${run.time.toFixed(2)} s`;
+    lastPose = frame.pose;
     playerLarge.drawFrame(frame, { zoom: LARGE.zoom, focus: LARGE.focus, dt });
     playerSmall.drawFrame(frame, { zoom: 1, dt });
   }
@@ -244,6 +247,7 @@ async function main() {
     sheet: {
       ids,
       /** Pauses the live player and jumps to `seconds` after A starts, at 60 fps. */
+      pose: () => lastPose,
       seek(seconds: number, a?: string, b?: string) {
         paused = true;
         if (a) from.value = a;
