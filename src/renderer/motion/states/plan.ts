@@ -1,7 +1,7 @@
 // Transition plans for body states: keyframed segments between key poses, with ballistic
 // segments on the shared gravity (core/physics.ts) for jumps onto and off ledges. Pure: the same
 // cue, rig and stage always give the same plan, so studio and overlay agree.
-import type { BodyStateId, Spot } from '../../../../shared/states';
+import { reach, type BodyStateId, type Spot } from '../../../../shared/states';
 import { G_BH } from '../core/physics';
 import { holdPose } from '../pose/runtime';
 import type { Beat } from '../pose/schema';
@@ -228,12 +228,16 @@ function heldKeyBase(state: BodyStateId, spot: Spot | null, context: PlanContext
       );
     case 'nap': {
       const lie = solveLie(rig.lieContacts.head, rig.lieContacts.feet);
-      return sleepy(key(rig, 'lie', { rot: lie.rot, dy: lie.dy, lift: ledge ? gap : 0 }));
+      const webcamSurface =
+        spot?.rect === 'webcam' && (spot.surface === 'ledge' || spot.surface === 'top');
+      return sleepy(key(rig, 'lie', { rot: lie.rot, dy: lie.dy, lift: webcamSurface ? gap : 0 }));
     }
     case 'peek':
       return key(rig, 'peek');
     case 'perch':
-      return key(rig, 'perch', { lift: gap });
+      return ledge
+        ? key(rig, 'sitLedge', { lift: gap - rig.seatHeight })
+        : key(rig, 'perch', { lift: gap });
     case 'lean':
       return key(rig, 'lean', { rot: solveLean(rig.leanContact, context.edgeDistance) });
   }
@@ -257,6 +261,7 @@ export function enterPlan(state: BodyStateId, spot: Spot | null, context: PlanCo
     case 'sit':
     case 'doze': {
       if (spot?.surface === 'ledge') {
+        if (gap < reach.minJump) return b.to(held, 0.8).build();
         jumpUp();
         b.to(key(rig, null, { lift: gap, pose: { gazeY: 0.6, lean: 0.08 } }), 0.3);
         const seated = heldKey('sit', spot, context);
@@ -268,13 +273,15 @@ export function enterPlan(state: BodyStateId, spot: Spot | null, context: PlanCo
       return b.build();
     }
     case 'nap':
-      if (spot?.surface === 'ledge') return lieDownOnLedge(b, held);
+      if (spot?.rect === 'webcam' && (spot.surface === 'ledge' || spot.surface === 'top'))
+        return lieDownOnLedge(b, held);
       sitDownFloor(b, rig);
       lieDown(b, rig, held);
       return b.build();
     case 'peek':
       return b.to(held, 0.6).build();
     case 'perch':
+      if (spot?.surface === 'ledge') return enterPlan('sit', spot, context);
       jumpUp();
       return b.to(held, 0.5).build();
     case 'lean':
@@ -344,12 +351,21 @@ export function exitPlan(
         dropFromLedge(b, rig, gap, seated);
         return b.build();
       }
+      if (spot?.rect === 'webcam' && spot.surface === 'top') {
+        const perched = heldKey('perch', spot, context);
+        b.to({ ...perched, sleep: 0.2 }, wake === 'urgent' ? 0.2 : 0.8);
+        b.to(key(rig, 'crouch', { lift: gap }), 0.25);
+        b.jump(restKey, gap + 0.08, rig.keys.airTuck);
+        b.land(restKey, gap + 0.08);
+        return b.build();
+      }
       wakeFromLie(b, rig, wake ?? 'normal', true);
       return b.build();
     case 'peek':
       b.to(key(rig, null, { pose: { headTilt: 0.1, gazeY: 0.2 } }), 0.25);
       return b.to(restKey, 0.25).build();
     case 'perch':
+      if (ledge) return exitPlan('sit', spot, context, wake);
       b.to(key(rig, 'crouch', { lift: gap }), 0.25);
       b.jump(restKey, gap + 0.08, rig.keys.airTuck);
       return b.land(restKey, gap + 0.08).build();
@@ -429,7 +445,12 @@ export function shortcutPlan(
     lieDown(b, rig, end);
     return b.build();
   }
-  if ((from === 'sit' || from === 'doze') && to === 'nap' && spot?.surface === 'ledge')
+  if (
+    (from === 'sit' || from === 'doze' || from === 'perch') &&
+    to === 'nap' &&
+    spot?.rect === 'webcam' &&
+    (spot.surface === 'ledge' || spot.surface === 'top')
+  )
     return lieDownOnLedge(b, end);
   if (from === 'nap' && (to === 'sit' || to === 'doze') && floor) {
     wakeFromLie(b, rig, wake ?? 'normal', false);

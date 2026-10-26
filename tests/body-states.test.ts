@@ -27,11 +27,19 @@ describe('scene spots', () => {
     expect(spot?.approach.y).toBeCloseTo(home.y);
     expect(spot?.approach.x).toBeCloseTo(spot?.x ?? 0);
   });
-  it('falls back to the floor when the ledge is out of reach (above 1.2 body heights)', () => {
+  it('uses the reachable lower webcam edge when its top is beyond jump reach', () => {
     const scene: Scene = { ...defaultScene, webcam: { ...defaultScene.webcam, y: 0.3, h: 0.4 } };
     expect((home.y - 0.3) / nominalStage.bodyHeight).toBeGreaterThan(1.2);
-    expect(resolveSpot('sit', { scene, home, prefer: 'ledge' })?.surface).toBe('floor');
-    expect(resolveSpot('perch', { scene, home })).toBeNull();
+    expect(resolveSpot('sit', { scene, home, prefer: 'ledge' })).toMatchObject({
+      surface: 'ledge',
+      rect: 'webcam',
+      y: 0.7,
+    });
+    expect(resolveSpot('perch', { scene, home })).toMatchObject({
+      surface: 'ledge',
+      rect: 'webcam',
+      y: 0.7,
+    });
   });
   it('perches on top of the webcam and naps at the same ledge where it sat', () => {
     expect(resolveSpot('perch', { scene: defaultScene, home })?.surface).toBe('top');

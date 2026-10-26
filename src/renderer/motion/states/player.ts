@@ -201,6 +201,7 @@ export class BodyStatePlayer {
   facingOnArrival(): 1 | -1 | undefined {
     const spot = this.cue?.spot;
     if (!spot) return undefined;
+    if (this.cue?.state === 'nap' && spot.rect === 'webcam') return spot.side;
     if (this.cue?.state === 'peek') return spot.side;
     if (this.cue?.state === 'lean') return spot.side === 1 ? -1 : 1;
     return undefined;

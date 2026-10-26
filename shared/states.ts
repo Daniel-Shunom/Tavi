@@ -118,7 +118,8 @@ export const bodyStates = {
   },
   perch: {
     label: 'Perch',
-    meaning: 'Hops up and crouches on top of the webcam frame like a bird.',
+    meaning:
+      'Sits on the webcam edge: hops to the top when reachable, or uses its lower edge as a seat.',
     useWhen: 'Playful downtime; getting a better view.',
     avoidWhen: 'The webcam top is out of reach or off screen.',
     initiative: true,
@@ -232,7 +233,8 @@ export function ledgeCandidates(scene: Scene, home: Point) {
     for (const edge of ['top', 'bottom'] as const) {
       const y = edge === 'top' ? rect.y : rect.y + rect.h;
       const gap = (floor - y) / nominalStage.bodyHeight;
-      if (gap < reach.minJump || gap > reach.maxJump) continue;
+      // A lower edge just above the floor can be sat on without a jump.
+      if (gap < (edge === 'bottom' ? 0 : reach.minJump) || gap > reach.maxJump) continue;
       if (y < bhY(reach.seatHeadroom)) continue;
       const margin = bhX(reach.halfWidth * 0.8);
       const x0 = Math.max(rect.x + margin, bounds.minX),
@@ -275,16 +277,22 @@ export function webcamPerchStatus(context: SpotContext): { spot: Spot | null; re
   const { scene, home } = context;
   const webcam = scene.webcam;
   if (!webcam.enabled) return { spot: null, reason: 'No webcam region is available.' };
+  const edges = ledgeCandidates(scene, home).filter((candidate) => candidate.rect === 'webcam');
+  const top = edges.find((candidate) => candidate.edge === 'top');
+  if (top && webcam.y >= bhY(reach.standHeadroom))
+    return { spot: ledgeSpot(top, scene, home, 'top'), reason: 'The webcam top is reachable.' };
+  const bottom = edges.find((candidate) => candidate.edge === 'bottom');
+  if (bottom)
+    return {
+      spot: ledgeSpot(bottom, scene, home, 'ledge'),
+      reason: 'The top is out of reach; using the reachable lower webcam edge as a seat.',
+    };
   if (webcam.y < bhY(reach.standHeadroom))
-    return { spot: null, reason: 'There is not enough room above the webcam.' };
-  const gap = (floorOf(scene, home) - webcam.y) / nominalStage.bodyHeight;
-  if (gap < reach.minJump || gap > reach.maxJump)
-    return { spot: null, reason: 'The webcam top is outside Tavi’s jump reach.' };
-  const top = ledgeCandidates(scene, home).find(
-    (candidate) => candidate.rect === 'webcam' && candidate.edge === 'top',
-  );
-  if (!top) return { spot: null, reason: 'The webcam top is too narrow for a perch.' };
-  return { spot: ledgeSpot(top, scene, home, 'top'), reason: 'The webcam has room for a perch.' };
+    return {
+      spot: null,
+      reason: 'There is not enough room above the webcam or on its lower edge.',
+    };
+  return { spot: null, reason: 'No webcam edge is reachable with enough room to sit.' };
 }
 /** Where a state happens, or null when it cannot happen in this scene. Pure. */
 export function resolveSpot(state: BodyStateId, context: SpotContext): Spot | null {
@@ -303,17 +311,25 @@ export function resolveSpot(state: BodyStateId, context: SpotContext): Spot | nu
     }
     case 'doze': {
       const current = context.current;
-      if (current?.spot && (current.state === 'sit' || current.state === 'doze'))
+      if (
+        current?.spot &&
+        (current.state === 'sit' ||
+          current.state === 'doze' ||
+          (current.state === 'perch' && current.spot.rect === 'webcam'))
+      )
         return current.spot;
       return resolveSpot('sit', { ...context, prefer: context.prefer ?? 'floor' });
     }
     case 'nap': {
-      // Keep a seated ledge position for sleep; otherwise nap on the floor at the same x.
+      // Keep a webcam seat/perch for sleep; otherwise nap on the floor at the same x.
       if (
-        context.current?.spot?.surface === 'ledge' &&
-        ['sit', 'doze'].includes(context.current.state)
+        context.current?.spot?.rect === 'webcam' &&
+        ['sit', 'doze', 'perch'].includes(context.current.state)
       )
-        return context.current.spot;
+        return {
+          ...context.current.spot,
+          side: context.current.spot.approach.x < scene.webcam.x + scene.webcam.w / 2 ? -1 : 1,
+        };
       const x = context.current?.spot?.approach.x ?? home.x;
       return floorSpot(scene, home, Math.min(bounds.maxX - 0.1, Math.max(bounds.minX + 0.1, x)));
     }
