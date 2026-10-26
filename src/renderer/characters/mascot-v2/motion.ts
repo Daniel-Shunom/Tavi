@@ -7,6 +7,8 @@ import { mascotMotion } from '../mascot/motion';
 /** Discrete selections are held from frame 10k of a 60-frame track; sample mid-step. */
 const step = (index: number) => Math.min(0.99, (10 * Math.max(0, Math.round(index)) + 5) / 60);
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+/** Turn value (-1..1) -> normalised time on its 60-frame track (kept off the very last frame). */
+export const turnTime = (value: number) => Math.min(0.999, clamp01((value + 1) / 2));
 
 export const mascotV2Motion: CharacterMotionRig = {
   patch: { artboard: 'lyla animation' },
@@ -25,6 +27,9 @@ export const mascotV2Motion: CharacterMotionRig = {
         { track: 'ctl.hand-l', time: step(p.handL), mix: 1 },
         { track: 'ctl.hand-r', time: step(p.handR), mix: 1 },
         { track: 'ctl.arms-front', time: p.armsFront >= 0.5 ? 0.99 : 0.01, mix: 1 },
+        // Turnaround: -1 .. 1 maps onto the 60-frame track (frame 30 faces the camera).
+        { track: 'ctl.turn-head', time: turnTime(p.turnHead), mix: 1 },
+        { track: 'ctl.turn-body', time: turnTime(p.turnBody), mix: 1 },
       ],
       nodes: {
         ...base.nodes,

@@ -45,12 +45,14 @@ export const lylaTurnSpec = {
   body: {
     shirt: '0:613',
     pants: '0:635',
-    shoulders: { L: '0:5038', R: '0:4914' },
+    /** Left and right shirt shapes (the "shirt" node's scale belongs to variant builds). */
+    shirtHalves: ['0:614', '0:625'],
+    /** Arm groups inside the shoulders (the shoulders' x belongs to variant builds). */
     arms: { L: '0:2090', R: '0:2339' },
     legs: { L: '0:2518', R: '0:2507' },
   },
   /** Face-plane travel at a full turn (artboard units). */
-  travel: 16,
+  travel: 14,
 };
 
 const SIDES = /** @type {const} */ ([
@@ -148,19 +150,19 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
   // The ears follow the face plane exactly; hold them on the head instead.
   head += keyed(h.ears.group, { x: (t) => attr(h.ears.group, 'x', 0) - D * t });
   for (const [side, sign] of SIDES) {
-    // Eyes: the far one squashes toward its outer edge, the near one leads.
+    // Eyes: both draw in toward the nose; the far one squashes.
     const eye = h.eyes[side];
     const eyeX = attr(eye, 'x', 0),
       eyeSX = attr(eye, 'scaleX', 1);
     head += keyed(eye, {
-      x: (t) => eyeX + 4 * near(sign, t) - 2 * far(sign, t),
+      x: (t) => eyeX - sign * (4 * near(sign, t) + 5 * far(sign, t)),
       scaleX: (t) => eyeSX * (1 - 0.3 * far(sign, t) + 0.04 * near(sign, t)),
     });
     // Brows: the transform is joystick-owned, so squash and shift the path's vertices.
     for (const vertex of vertices(h.brows[side])) {
       const vx = attr(vertex, 'x', 0);
       head += keyed(vertex, {
-        x: (t) => vx * (1 - 0.28 * far(sign, t)) + 4 * near(sign, t) - 2 * far(sign, t),
+        x: (t) => vx * (1 - 0.28 * far(sign, t)) - sign * (4 * near(sign, t) + 5 * far(sign, t)),
       });
     }
     // Lenses squash with the eyes; the far temple slips behind the head, the near one shows.
@@ -168,13 +170,13 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
     const lensX = attr(lens, 'x', 0),
       lensSX = attr(lens, 'scaleX', 1);
     head += keyed(lens, {
-      x: (t) => lensX + 4 * near(sign, t) - 3 * far(sign, t),
-      scaleX: (t) => lensSX * (1 - 0.3 * far(sign, t) + 0.04 * near(sign, t)),
+      x: (t) => lensX - sign * (4 * near(sign, t) + 11 * far(sign, t)),
+      scaleX: (t) => lensSX * (1 - 0.34 * far(sign, t) + 0.04 * near(sign, t)),
     });
     const temple = h.temples[side];
     const templeX = attr(temple, 'x', 0);
     head += keyed(temple, {
-      x: (t) => templeX + 5 * near(sign, t) - sign * 14 * far(sign, t),
+      x: (t) => templeX - sign * (5 * near(sign, t) + 18 * far(sign, t)),
       opacity: (t) => 1 - smooth(far(sign, t) / 0.45),
     });
     // Ears: the near ear comes round toward the cheek and grows, the far one hides.
@@ -208,24 +210,28 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
 
   // --- Body -----------------------------------------------------------------------------------
   const b = spec.body;
+  // The shirt's own scale and the shoulder groups' x are variant build edits
+  // (characters/variants/rigs/mascotV2.ts), so narrow the shirt halves and move the arms inside.
   const shirtX = attr(b.shirt, 'x', 0),
-    shirtSX = attr(b.shirt, 'scaleX', 1),
     pantsSX = attr(b.pants, 'scaleX', 1);
   let body =
-    keyed(b.shirt, {
-      x: (t) => shirtX + 2 * t,
-      scaleX: (t) => shirtSX * (1 - 0.1 * Math.abs(t)),
-    }) + keyed(b.pants, { scaleX: (t) => pantsSX * (1 - 0.08 * Math.abs(t)) });
-  for (const [side, sign] of SIDES) {
-    const shoulder = b.shoulders[side];
-    const shoulderX = attr(shoulder, 'x', 0);
-    body += keyed(shoulder, {
-      x: (t) => shoulderX - sign * (2 * near(sign, t) + 6 * far(sign, t)),
+    keyed(b.shirt, { x: (t) => shirtX + 2 * t }) +
+    keyed(b.pants, { scaleX: (t) => pantsSX * (1 - 0.08 * Math.abs(t)) });
+  for (const half of b.shirtHalves) {
+    const halfX = attr(half, 'x', 0),
+      halfSX = attr(half, 'scaleX', 1);
+    body += keyed(half, {
+      x: (t) => halfX * (1 - 0.1 * Math.abs(t)),
+      scaleX: (t) => halfSX * (1 - 0.1 * Math.abs(t)),
     });
+  }
+  for (const [side, sign] of SIDES) {
     const arm = b.arms[side];
-    const armSX = attr(arm, 'scaleX', 1),
+    const armX = attr(arm, 'x', 0),
+      armSX = attr(arm, 'scaleX', 1),
       armSY = attr(arm, 'scaleY', 1);
     body += keyed(arm, {
+      x: (t) => armX - sign * (2 * near(sign, t) + 6 * far(sign, t)),
       scaleX: (t) => armSX * (1 + 0.06 * near(sign, t) - 0.04 * far(sign, t)),
       scaleY: (t) => armSY * (1 + 0.06 * near(sign, t) - 0.04 * far(sign, t)),
     });
