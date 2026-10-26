@@ -303,7 +303,7 @@ export const climbUp = defineBeat({
     },
     {
       name: 'stand',
-      at: 4.2,
+      at: 4.35,
       ease: 'overshoot',
       place: { lift: 0 },
       pose: { squash: -0.2, armL: 0.15, armR: 0.1, gazeY: 0, smile: 0.3 },

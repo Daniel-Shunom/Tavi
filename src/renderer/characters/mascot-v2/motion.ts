@@ -2,7 +2,7 @@
 // already carries the runtime names and control tracks, so the load-time patch is a no-op.
 import type { CharacterMotionRig } from '../../motion/hook';
 import type { MotionFrame } from '../../motion/types';
-import { mascotMotion } from '../mascot/motion';
+import { bindMascotBody, mascotMotion } from '../mascot/motion';
 
 /** Discrete selections are held from frame 10k of a 60-frame track; sample mid-step. */
 const step = (index: number) => Math.min(0.99, (10 * Math.max(0, Math.round(index)) + 5) / 60);
@@ -13,7 +13,8 @@ export const mascotV2Motion: CharacterMotionRig = {
   // Same skeleton and art as the mascot, so the body-state key poses and contacts carry over.
   ...(mascotMotion.states ? { states: mascotMotion.states } : {}),
   bind(frame: MotionFrame) {
-    const base = mascotMotion.bind(frame);
+    // The unfolded body binding: this file bends the elbows itself.
+    const base = bindMascotBody(frame);
     const p = frame.pose;
     return {
       tracks: [
