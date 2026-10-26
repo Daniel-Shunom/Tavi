@@ -16,23 +16,24 @@ export interface AppOptions {
   saveAi?: (selection: ReturnType<AiManager['selection']>) => Promise<void>;
   now?: () => number;
 }
-const servicePort = process.env['TAVI_PORT'];
-const trustedOrigins = [
+const localOrigins = [
   'http://127.0.0.1:5173',
   'http://localhost:5173',
   'http://127.0.0.1:4318',
   'http://localhost:4318',
-  // A service started on another port (TAVI_PORT) serves its own studio and overlay.
-  ...(servicePort && /^\d+$/.test(servicePort)
-    ? [`http://127.0.0.1:${servicePort}`, `http://localhost:${servicePort}`]
-    : []),
 ];
+/**
+ * `extraOrigins` lets a service listening on a non-default port (TAVI_PORT) trust its own
+ * studio origin; the default 4318/5173 origins are always trusted.
+ */
 export async function createApp(
   config?: Config,
   save?: (config: Config) => Promise<void>,
   twitchOptions: TwitchOptions = {},
+  extraOrigins: readonly string[] = [],
   options: AppOptions = {},
 ) {
+  const trustedOrigins = new Set([...localOrigins, ...extraOrigins]);
   const app = Fastify({ logger: false, bodyLimit: 16384 });
   await app.register(websocket, { options: { maxPayload: 16384 } });
   const ai = options.ai ?? new AiManager();
@@ -63,7 +64,7 @@ export async function createApp(
     },
   });
   function isTrusted(origin: string | undefined) {
-    return !!origin && trustedOrigins.includes(origin);
+    return !!origin && trustedOrigins.has(origin);
   }
   function studioOnly(request: { headers: Record<string, string | string[] | undefined> }) {
     const origin = request.headers['origin'];

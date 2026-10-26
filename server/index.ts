@@ -25,6 +25,7 @@ async function atomicWrite(name: string, value: unknown) {
 }
 // Provider credentials come from the environment only. The saved file holds the non-secret
 // provider/model choice made in the studio.
+const port = Number(process.env['TAVI_PORT'] ?? 4318);
 const ai = new AiManager(settingsFromEnv());
 try {
   const saved = JSON.parse(await readFile(resolve(directory, 'ai.json'), 'utf8')) as Record<
@@ -59,6 +60,7 @@ const app = await createApp(
     await atomicWrite('character.json', value);
   },
   {},
+  [`http://127.0.0.1:${String(port)}`, `http://localhost:${String(port)}`],
   {
     ai,
     saveAi: async (selection) => {
@@ -71,7 +73,6 @@ if (existsSync(resolve('dist/index.html'))) {
   app.get('/overlay', async (_, reply) => reply.sendFile('index.html'));
 }
 try {
-  const port = Number(process.env['TAVI_PORT'] ?? 4318);
   await app.listen({ host: '127.0.0.1', port });
   console.log(`Tavi service: http://127.0.0.1:${String(port)} (decisions: ${ai.active.label})`);
 } catch (error) {
