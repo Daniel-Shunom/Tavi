@@ -51,7 +51,7 @@ variant ──> applyVariant(mascot-v2.riv)  in-memory edits, same byte layout o
   Back masses follow `hair squash`. Springs add secondary motion (puffs, buns and the ponytail
   bounce).
 - **Characters.** `src/renderer/characters/variantRigs.ts` maps character ids to variant rigs.
-  Only `mascot-v2` has one. With another character, the creator offers to switch.
+  Only `mascot-v2` (the default) has one. With another character, the creator offers to switch.
 
 ## Files
 
@@ -179,8 +179,8 @@ These need art in the remix (`art/mascot-remix/`, authored through
 - **Default look.** New and existing configs default to the original mascot (pink skin, curls,
   glasses). The research advises a deliberate default that is not the lightest tone. Options are to
   keep the original, pick a mid-tone preset, or randomise on first run.
-- **Default character.** Variants need Lyla v2 (`mascot-v2`). The registry default is still
-  `mascot`. Should v2 become the default?
+- **Default character.** Lyla v2 (`mascot-v2`) is now the registry default, so new companions
+  can use variants at once. Saved companions on the original mascot get the switch offer.
 - **Preset names.** Presets use feature descriptions, not names. Friendly names would need care to
   avoid ethnic connotations.
 - **Which features ship.** All of the features above are implemented. Before release, decide

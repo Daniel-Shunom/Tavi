@@ -1,5 +1,5 @@
 // Probe for variant authoring: draws Lyla v2 large with a variant applied (?v=<json patch>),
-// chosen fill components recoloured to bright green (?hl=17,20) and a pose (?pose=smile=1).
+// chosen fill components recoloured to bright green (?hl=17,20 or by name ?hln=lid,nose) and a pose (?pose=smile=1).
 // Serve with Vite and open /tools/variants/probe.html?v={"build":"full"}
 import { RuntimeLoader } from '@rive-app/webgl2';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
@@ -7,6 +7,7 @@ import avatarURL from '../../src/renderer/characters/mascot-v2/mascot-v2.riv?url
 import { originalVariant, withChanges, type VariantPatch } from '../../shared/variants';
 import { applyVariant } from '../../src/renderer/characters/variants/apply';
 import { editComponents } from '../../src/renderer/characters/variants/rivEdit';
+import { RigIndex } from '../../src/renderer/characters/variants/rig';
 import { mascotV2VariantRig } from '../../src/renderer/characters/variants/rigs/mascotV2';
 import { createSheetRig } from '../expression-sheet/rig';
 
@@ -21,7 +22,15 @@ async function main() {
   let bytes = new Uint8Array(await (await fetch(avatarURL)).arrayBuffer());
   const patch = JSON.parse(params.get('v') ?? '{}') as VariantPatch;
   bytes = applyVariant(bytes, mascotV2VariantRig, withChanges(originalVariant, patch));
-  const hl = (params.get('hl') ?? '').split(',').filter(Boolean).map(Number);
+  const index = new RigIndex(bytes, ARTBOARD);
+  const hl = [
+    ...(params.get('hl') ?? '').split(',').filter(Boolean).map(Number),
+    // ?hln=lid,lower lid : every fill inside components with those names.
+    ...(params.get('hln') ?? '')
+      .split(',')
+      .filter(Boolean)
+      .flatMap((name) => index.colorsOf({ name })),
+  ];
   bytes = editComponents(bytes, ARTBOARD, { colors: new Map(hl.map((i) => [i, 0xff00e040])) });
   const canvas = document.createElement('canvas');
   document.body.append(canvas);
