@@ -13,6 +13,7 @@ import {
 import { FaceLayer } from '../face/faceLayer';
 import { poseChannels } from '../face/pose';
 import { MotionLayer } from './motion';
+import type { MoveReason } from './systems/gaits/select';
 import type { RigPatch } from './rive/patch';
 import type { MotionFrame } from './types';
 // Body states (sit, nap, peek...): src/renderer/motion/states/.
@@ -49,6 +50,31 @@ const exitFor: Readonly<Record<string, string>> = {
   walk: 'walkOff',
   climb: 'hopOff',
 };
+
+/**
+ * Gait, mood and the reason for moving from the movement cue (shared/locomotion.ts). Explicit
+ * `gait`/`mood` win; otherwise the motion layer's selection rules use the reason.
+ */
+function gaitCue(input: MotionInput) {
+  const movement = input.locomotion.movement;
+  if (!movement) return {};
+  const reason: MoveReason =
+    movement.kind === 'return'
+      ? 'home'
+      : movement.kind === 'wander'
+        ? 'wander'
+        : movement.anchor === 'chat' || movement.source === 'chat'
+          ? 'chat'
+          : movement.source === 'config'
+            ? 'dragged'
+            : 'cue';
+  return {
+    reason,
+    cue: movement.id,
+    ...(movement.gait ? { gait: movement.gait } : {}),
+    ...(movement.mood ? { mood: movement.mood } : {}),
+  };
+}
 
 /** Shared seed: studio and overlay make the same idle choices. */
 const SEED = 20261025;
@@ -159,6 +185,7 @@ export function createHookLayer(
             x: target.x,
             y: target.y,
             at: now,
+            ...gaitCue(input),
             ...(face ? { faceOnArrival: face } : {}),
           });
           lastTarget = { ...target };
@@ -195,20 +222,31 @@ export function createHookLayer(
           reducedMotion: input.reducedMotion,
           amplitude: layer.currentProfile.amplitude,
           tempo: layer.currentProfile.tempo,
-          cues: input.layers.map((cue) => {
-            const performance = performed.get(cue.expression);
-            const motionId = performance ? performances[performance] : undefined;
-            const pose = manifest.face?.poses[cue.expression];
-            if (motionId && pose) owned.set(motionId, poseChannels(pose));
-            return {
-              expression: cue.expression,
-              intensity: cue.intensity,
-              weight: cue.weight,
-              elapsed: cue.elapsed,
-              featuresOnly: Boolean(motionId),
+          cues: [
+            // Travel mood (gait library): face features only, the gait owns the body.
+            ...layer.moodCues().map((mood) => ({
+              expression: mood.expression,
+              intensity: 1,
+              weight: mood.weight,
+              elapsed: mood.elapsed,
+              featuresOnly: true,
               side: input.attention?.side ?? 1,
-            };
-          }),
+            })),
+            ...input.layers.map((cue) => {
+              const performance = performed.get(cue.expression);
+              const motionId = performance ? performances[performance] : undefined;
+              const pose = manifest.face?.poses[cue.expression];
+              if (motionId && pose) owned.set(motionId, poseChannels(pose));
+              return {
+                expression: cue.expression,
+                intensity: cue.intensity,
+                weight: cue.weight,
+                elapsed: cue.elapsed,
+                featuresOnly: Boolean(motionId),
+                side: input.attention?.side ?? 1,
+              };
+            }),
+          ],
         });
         face = {
           values: result.values,
