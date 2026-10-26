@@ -346,7 +346,11 @@ export class Companion {
 
   private retract(value: boolean, override?: ChoreographyPreference) {
     const now = this.now();
-    if (value === this.current.retracted) return;
+    if (value === this.current.retracted) {
+      // Acknowledge repeated controls so every client resynchronizes.
+      this.set(this.current);
+      return;
+    }
     this.abortPending(value ? 'Tucked away.' : 'Returning.');
     const previous = this.current.performance.presence;
     const seed = (now + this.sequence * 7919) % 100000;

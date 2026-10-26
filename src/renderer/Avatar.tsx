@@ -244,6 +244,9 @@ export function Avatar({
           const primary = [...layers].sort((a, b) => b.weight - a.weight)[0];
           element.dataset['performance'] =
             primary && primary.channel !== 'idle' ? primary.expression : 'idle';
+          element.dataset['layers'] = layers
+            .map((layer) => `${layer.expression}:${layer.weight.toFixed(2)}`)
+            .join(' ');
           element.dataset['retracted'] = String(current.retracted);
           element.dataset['decidedBy'] = current.performance.script?.decidedBy.kind ?? 'none';
           element.dataset['ready'] = 'true';

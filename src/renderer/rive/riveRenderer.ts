@@ -206,14 +206,14 @@ export async function createRiveRenderer(
         // eslint-disable-next-line @typescript-eslint/no-deprecated -- the pinned 2.45 runtime lacks beginFrame.
         activeRenderer.clear();
         activeRenderer.save();
-        // Rotate around the bottom-centre anchor so the character pivots from its feet.
-        const pivotX = placement.x * ratio,
-          pivotY = placement.y * ratio;
-        if (placement.rotation) {
-          activeRenderer.translate(pivotX, pivotY);
-          activeRenderer.rotate((placement.rotation * Math.PI) / 180);
-          activeRenderer.translate(-pivotX, -pivotY);
-        }
+        // Rotate around the bottom-centre anchor so the character pivots from its feet. The
+        // pinned 2.45 runtime has no renderer translate/rotate, and each canvas holds exactly
+        // one character, so rotate the canvas itself around the same pivot.
+        const degrees = Math.round(placement.rotation * 100) / 100;
+        const origin = `${placement.x.toFixed(1)}px ${placement.y.toFixed(1)}px`;
+        if (canvas.style.transformOrigin !== origin) canvas.style.transformOrigin = origin;
+        const transform = degrees ? `rotate(${String(degrees)}deg)` : '';
+        if (canvas.style.transform !== transform) canvas.style.transform = transform;
         activeRenderer.align(
           runtime.Fit.contain,
           runtime.Alignment.bottomCenter,
