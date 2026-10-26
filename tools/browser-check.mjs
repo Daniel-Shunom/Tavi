@@ -39,7 +39,8 @@ try {
   const page = await context.newPage();
   currentPage = page;
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto(base);
+  // The public landing page now lives at `/`; exercise the editable Studio explicitly.
+  await page.goto(base + '/studio');
   await expect(page.getByText('Local service connected')).toBeVisible();
   await expect(page.locator('canvas[aria-label]')).toBeVisible();
   const config = await (await page.request.get(base + '/api/state')).json();

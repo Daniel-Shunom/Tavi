@@ -10,7 +10,12 @@ import { attachmentRigs } from './characters/attachmentRigs';
 import { variantRigs } from './characters/variantRigs';
 import { createVariantLayer, type VariantLayer } from './characters/variants/overlay/layer';
 import { canonical, isOriginal, variantSchema } from '../../shared/variants';
-import { createCharacterRenderer, type CharacterRenderer, type RenderFrame } from './adapter';
+import {
+  createCharacterRenderer,
+  type CharacterRenderer,
+  type RenderFrame,
+  type TrackApplication,
+} from './adapter';
 import { getCharacter } from './characters/registry';
 import { composePose, phaseLookup, variantFor } from './compose';
 import { IdleScheduler } from './idle';
@@ -40,6 +45,7 @@ export function Avatar({
     ? state.config.captions.overlay
     : state.config.captions.studio,
   onPosition,
+  directTracks,
 }: {
   state: State;
   serverNow?: () => number;
@@ -47,6 +53,8 @@ export function Avatar({
   captions?: boolean;
   /** Imperative frame callback; lets controls sample the live ground point without rerenders. */
   onPosition?: (position: Point) => void;
+  /** Optional imperative Rive clips for authored page choreography. */
+  directTracks?: () => TrackApplication[];
 }) {
   const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -56,8 +64,8 @@ export function Avatar({
   const front = useRef<HTMLCanvasElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   const stateLayer = useRef<HTMLDivElement>(null);
-  const latest = useRef({ state, serverNow, captions, onPosition });
-  latest.current = { state, serverNow, captions, onPosition };
+  const latest = useRef({ state, serverNow, captions, onPosition, directTracks });
+  latest.current = { state, serverNow, captions, onPosition, directTracks };
   const [error, setError] = useState('');
   const characterId = state.config.character;
   // Recolours are baked into the character file, so they reload the renderer (on commit).
@@ -302,6 +310,8 @@ export function Avatar({
               mix: sample.mix * tuckWeight,
             });
         if (output.tracks) renderFrame.tracks.push(...output.tracks);
+        for (const sample of latest.current.directTracks?.() ?? [])
+          if (manifest.tracks[sample.track]) renderFrame.tracks.push(sample);
         view.setAppearance(config.appearance);
         view.applyFrame(renderFrame);
         // Placement in CSS pixels; manifest offsets are in 720p reference pixels.

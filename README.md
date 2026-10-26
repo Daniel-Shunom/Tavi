@@ -2,6 +2,14 @@
 
 A customizable, expressive chibi companion that hangs out in a streamer's OBS canvas. Built for the Twitch x Codex hackathon.
 
+## Project description
+
+Tavi is a customizable animated companion for livestreamers. It lives in an OBS Browser Source and can wave, emote, move between scene positions, tuck away, and react to chat with small, personality-aware gestures. Streamers can adjust Tavi's appearance, wardrobe, personality, and placement in the studio. Twitch chat reactions use bounded rules and cooldowns; the current build does not make AI-generated decisions or replies. The reaction playground is clearly labeled as a demo, so simulated events are not presented as live stream activity.
+
+## How we used Codex
+
+We used Codex as a collaborative coding partner to explore the existing React, TypeScript, Rive, and Node service architecture, then implement and refine features across the studio, shared behavior contracts, character renderer, and OBS overlay. Codex helped trace behavior from the UI through the validated commands and renderer, and supported iterative UI and motion work. We kept the product boundaries explicit in the code and documentation: Twitch reactions are rule-based, demo inputs are labeled, and AI integration is not described as live functionality.
+
 ## Run the proof of concept
 
 Requirements: Node.js 22.12+ (use the same Node major across machines), npm, and Python 3.10+ for skill verification.
@@ -12,7 +20,15 @@ python tools/skills.py
 npm run dev
 ```
 
-Open http://127.0.0.1:5173. Customize the character, try gestures, and compare cozy, playful, and shy personalities in the reaction playground. Character changes are saved by the Node service to `.data/character.json` and synchronized with all connected previews.
+Open http://127.0.0.1:5173 for the cinematic landing page, or visit http://127.0.0.1:5173/studio to customize the character, try gestures, and compare cozy, playful, and shy personalities in the reaction playground. Character changes are saved by the Node service to `.data/character.json` and synchronized with all connected previews.
+
+## Landing page vision
+
+The landing page introduces Tavi through a small, authored character story rather than a static product mockup. The opening image is a computer screen with stream-like static. Tavi is inside it, panicking and trying to start the stream. Once it starts, she settles; the camera pulls back to reveal “Tavi” as the stream title and “Your stream companion” in the chat. The stream scene should feel active, with Tavi doing small idle activities inside a fictional stream environment.
+
+As the visitor scrolls, Tavi notices them, climbs out of the screen, and follows along the page. She can hold onto the screen edge if the visitor scrolls ahead, with a short “Wait for me” bubble, then naturally reach an artificial ledge and sit beside the content. Her pose and expression can react to the section passing by. At the bottom, she jumps down and explores around the final content in a way that suggests the page components. Scrolling back up brings her back to the ledge; she does not climb back into the screen.
+
+Motion should be authored for Tavi's rig in Rive, with readable full-body weight, anticipation, contact, balance, and follow-through. The scroll choreography should remain legible at different viewport sizes and scroll speeds, and should coordinate character gaze, body orientation, expressions, and the page elements she is reacting to. The current implementation is an early, reviewable choreography pass; it establishes the stream opening, climb/brace, ledge, and scroll-driven transitions for continued art and motion refinement.
 
 In OBS, add a Browser Source with URL `http://127.0.0.1:5173/overlay`, width 1280 and height 720. Keep the local service running. The overlay contains only the character with a transparent background. The studio's webcam/chat panels are placement guides, not OBS source detection. Peeking currently happens at the canvas edge.
 
@@ -23,7 +39,7 @@ npm run build
 npm start
 ```
 
-Studio: http://127.0.0.1:4318. OBS overlay: http://127.0.0.1:4318/overlay.
+Landing page: http://127.0.0.1:4318. Studio: http://127.0.0.1:4318/studio. OBS overlay: http://127.0.0.1:4318/overlay.
 
 ## What works now
 

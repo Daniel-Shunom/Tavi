@@ -70,6 +70,7 @@ const app = await createApp(
 );
 if (existsSync(resolve('dist/index.html'))) {
   await app.register(staticFiles, { root: resolve('dist') });
+  app.get('/studio', async (_, reply) => reply.sendFile('index.html'));
   app.get('/overlay', async (_, reply) => reply.sendFile('index.html'));
 }
 try {

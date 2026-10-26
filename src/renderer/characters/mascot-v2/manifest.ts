@@ -49,6 +49,18 @@ export const mascotV2PoseTracks = {
   'fx.zzz': 'zzz',
 };
 
+/** Rive authored performances for the cinematic landing sequence. */
+export const mascotV2LandingTracks = {
+  'landing.panic': 'tavi/landing/panic',
+  'landing.relief': 'tavi/landing/relief',
+  'landing.brace': 'tavi/landing/brace',
+  'landing.climb': 'tavi/landing/climb',
+  'landing.sit': 'tavi/landing/sit',
+  'landing.sit-life': 'tavi/landing/sit-life',
+  'landing.jump-down': 'tavi/landing/jump-down',
+  'landing.jump-up': 'tavi/landing/jump-up',
+};
+
 export const mascotV2: ManifestInput = {
   ...mascot,
   id: 'mascot-v2',
@@ -60,6 +72,7 @@ export const mascotV2: ManifestInput = {
     ...mascotV2ControlTracks,
     ...mascotV2GaitTracks,
     ...mascotV2PoseTracks,
+    ...mascotV2LandingTracks,
   },
   nodes: {
     ...mascot.nodes,
@@ -72,6 +85,7 @@ export const mascotV2: ManifestInput = {
     ...Object.keys(mascotV2ControlTracks),
     ...Object.keys(mascotV2GaitTracks),
     ...Object.keys(mascotV2PoseTracks),
+    ...Object.keys(mascotV2LandingTracks),
   ],
   face: mascotV2Face,
   // Turns use the authored turnaround tracks (head leads body), never a mirror.

@@ -47,7 +47,18 @@ async function main() {
     },
   );
   rig.resize(size, size, 1);
-  let state: ViewState = {};
+  const sample = params.get('clip');
+  let state: ViewState = sample
+    ? {
+        clips: [
+          {
+            name: sample,
+            time: Number(params.get('time') ?? 0.5),
+            mix: Number(params.get('mix') ?? 1),
+          },
+        ],
+      }
+    : {};
   const render = () => {
     rig.frame(
       1 / 60,
