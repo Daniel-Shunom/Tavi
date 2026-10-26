@@ -19,6 +19,7 @@ import {
   withChanges,
 } from './variants.js';
 import { bodyCueSchema, defaultScene, requestableStates, sceneSchema } from './states.js';
+import { defaultSupportSettings, supportPreviewSchema, supportSettingsSchema } from './support.js';
 
 export const CONFIG_VERSION = 2;
 /** Used when a saved character id is unknown. Characters themselves live in manifests. */
@@ -50,6 +51,8 @@ export const configObjectSchema = z
     scene: sceneSchema,
     /** Character variant (skin, build, face, hair, features). Added after v2; defaulted on load. */
     variant: variantSchema,
+    /** Donation reaction thresholds and automatic support-event preference. */
+    supportReactions: supportSettingsSchema,
   })
   .strict();
 export type Config = z.infer<typeof configObjectSchema>;
@@ -72,6 +75,7 @@ export const defaults: Config = {
   wardrobe: defaultWardrobe,
   scene: defaultScene,
   variant: defaultVariant,
+  supportReactions: defaultSupportSettings,
 };
 const legacyAppearance = {
   riveHair: 'hair',
@@ -207,6 +211,8 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('say'), text }).strict(),
   /** Clearly-labelled simulated chat for testing without Twitch. */
   z.object({ type: z.literal('simulate'), source: z.literal('chat'), text }).strict(),
+  /** A test event, never a claim that a donation or subscription was received. */
+  z.object({ type: z.literal('preview-support-event'), event: supportPreviewSchema }).strict(),
 ]);
 export type Command = z.infer<typeof commandSchema>;
 export const serverMessageSchema = z.discriminatedUnion('type', [

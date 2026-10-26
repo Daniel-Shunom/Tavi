@@ -25,12 +25,28 @@ const CROSS = { browTiltL: 0.8, browTiltR: 0.8 };
 const body: Partial<Record<ExpressionId, Extra>> = {
   point: { pose: { handR: 3 }, strong: { handR: 3 } },
   shrug: {
-    pose: { handL: 1, handR: 1, elbowL: 0.45, elbowR: 0.45, browTiltL: -0.4, browTiltR: -0.4 },
-    strong: { handL: 1, handR: 1, elbowL: 0.7, elbowR: 0.7, browTiltL: -0.6, browTiltR: -0.6 },
+    pose: { handL: 1, handR: 1, elbowL: -0.45, elbowR: 0.45, browTiltL: -0.4, browTiltR: -0.4 },
+    strong: { handL: 1, handR: 1, elbowL: -0.7, elbowR: 0.7, browTiltL: -0.6, browTiltR: -0.6 },
   },
   excited: {
-    pose: { handL: 2, handR: 2, armsFront: 1 },
-    strong: { handL: 2, handR: 2, armsFront: 1 },
+    pose: { handL: 2, handR: 2, armsFront: 1, elbowL: -0.65, elbowR: 0.65 },
+    strong: { handL: 2, handR: 2, armsFront: 1, elbowL: -0.85, elbowR: 0.85 },
+    keys: {
+      elbowL: [
+        [0, 0],
+        [0.3, -0.18],
+        [0.65, 0],
+        [1, -0.12],
+        [1.6, 0],
+      ],
+      elbowR: [
+        [0, 0],
+        [0.5, 0.18],
+        [0.85, 0],
+        [1.2, 0.12],
+        [1.6, 0],
+      ],
+    },
   },
   impressed: {
     pose: { handR: 4, armR: 0.6, elbowR: 1.4, armsFront: 1 },
@@ -38,6 +54,44 @@ const body: Partial<Record<ExpressionId, Extra>> = {
   },
   celebrate: { pose: { handL: 2, handR: 2 }, strong: { handL: 2, handR: 2 } },
   wave: { pose: { handR: 1 }, strong: { handR: 1 } },
+  'thank-you': {
+    pose: { handR: 1, elbowR: 1.05, armsFront: 1 },
+    strong: { handR: 1, elbowR: 1.2, armsFront: 1 },
+  },
+  'happy-dance': {
+    pose: { handL: 2, handR: 2, elbowL: -0.9, elbowR: 0.9, armsFront: 1 },
+    strong: { handL: 2, handR: 2, elbowL: -1.05, elbowR: 1.05, armsFront: 1 },
+    keys: {
+      elbowL: [
+        [0, 0],
+        [0.4, -0.18],
+        [0.8, 0],
+        [1.28, -0.12],
+        [1.65, 0],
+        [2.5, 0],
+      ],
+      elbowR: [
+        [0, 0],
+        [0.84, 0.18],
+        [1.2, 0],
+        [1.72, 0.12],
+        [2.1, 0],
+        [2.5, 0],
+      ],
+    },
+  },
+  'perch-hesitate': {
+    pose: { elbowL: -0.35, elbowR: 0.35, handL: 1, handR: 1 },
+    keys: {
+      pupilY: [
+        [0, 0],
+        [0.25, -0.45],
+        [0.72, -0.45],
+        [1.2, -0.1],
+        [1.6, 0],
+      ],
+    },
+  },
   // Hands to the cheeks.
   shocked: {
     pose: { armL: 2.2, armR: 2.2, armsFront: 1, handL: 1, handR: 1 },
@@ -114,6 +168,9 @@ const mouths: Partial<Record<ExpressionId, Extra>> = {
   celebrate: mouth(M.laugh, 0.85, {}, { shape: M.dGrin, open: 1 }),
   wave: mouth(M.smileOpen, 0.5, {}, { shape: M.grinTeeth }),
   point: mouth(M.smileOpen, 0.35),
+  'thank-you': mouth(M.smileOpen, 0.3, {}, { open: 0.45 }),
+  'happy-dance': mouth(M.dGrin, 0.55, {}, { open: 0.8 }),
+  'perch-hesitate': mouth(M.flat, 0.3),
   // Surprise.
   impressed: mouth(M.oSmall, 0.55, {}, { shape: M.oBig, open: 0.45 }),
   startled: mouth(M.gasp, 0.7, {}, { shape: M.oBig, open: 0.9 }),
@@ -192,8 +249,8 @@ export const mascotV2Face: Face = {
   ...mascotFace,
   channels: {
     ...mascotFace.channels,
-    elbowL: { min: -2.2, max: 2.2 },
-    elbowR: { min: -2.2, max: 2.2 },
+    elbowL: { min: -2.2, max: 2.2, mirrorSign: -1 },
+    elbowR: { min: -2.2, max: 2.2, mirrorSign: -1 },
     handL: { min: 0, max: 4 },
     handR: { min: 0, max: 4 },
     armsFront: { min: 0, max: 1 },

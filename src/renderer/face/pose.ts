@@ -80,7 +80,17 @@ export type FacePose = z.infer<typeof facePoseSchema>;
 export const faceSchema = z
   .object({
     /** Safe range of every channel this rig supports. Other channels are never written. */
-    channels: z.partialRecord(channel, z.object({ min: z.number(), max: z.number() }).strict()),
+    channels: z.partialRecord(
+      channel,
+      z
+        .object({
+          min: z.number(),
+          max: z.number(),
+          /** Native-axis correction when an expression swaps this channel toward a left target. */
+          mirrorSign: z.union([z.literal(-1), z.literal(1)]).optional(),
+        })
+        .strict(),
+    ),
     /** Seconds the mouth trails the brows and eyes (overlapping action). */
     mouthLag: z.number().min(0).max(0.3).default(0.07),
     /** Seconds the body trails the face and head. */

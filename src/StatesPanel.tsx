@@ -12,6 +12,7 @@ import {
   Columns2,
 } from 'lucide-react';
 import type { Command, Config, State } from '../shared/protocol';
+import { ObsWebcamPanel } from './ObsWebcamPanel';
 import {
   bodyStates,
   atSpotApproach,
@@ -63,11 +64,19 @@ export function BodyStateDock({
           <button
             key={entry.state}
             aria-pressed={pressed}
-            disabled={!connected || state.retracted || !possible || pressed || alreadyThere}
+            disabled={
+              !connected ||
+              state.retracted ||
+              (!possible && entry.state !== 'perch') ||
+              pressed ||
+              alreadyThere
+            }
             title={
               possible
                 ? `${definition.label}: ${definition.meaning}`
-                : `${definition.label}: no place for this in the scene layout.`
+                : entry.state === 'perch'
+                  ? 'No webcam perch is available. Tavi will prepare, then stop.'
+                  : `${definition.label}: no place for this in the scene layout.`
             }
             onClick={() => {
               send({ type: 'state', state: entry.state });
@@ -111,6 +120,7 @@ export function SceneEditor({
   position: { x: number; y: number };
 }) {
   const [draft, setDraft] = useState<Scene>(config.scene);
+  const [followingObs, setFollowingObs] = useState(false);
   const drag = useRef<Drag | null>(null);
   const suppressFrameClick = useRef(false);
   const box = useRef<HTMLDivElement>(null);
@@ -120,6 +130,7 @@ export function SceneEditor({
   }, [config.scene]);
   const commit = (scene: Scene) => {
     const unchanged =
+      scene.webcamSource === config.scene.webcamSource &&
       scene.floor === config.scene.floor &&
       sceneRectIds.every((id) => {
         const before = config.scene[id];
@@ -137,12 +148,16 @@ export function SceneEditor({
     send({ type: 'configure', patch: { scene } });
   };
   const update = (id: SceneRectId, rect: SceneRect, save: boolean) => {
-    const next = { ...draft, [id]: clampRect(rect) };
+    const next = {
+      ...draft,
+      [id]: clampRect(rect),
+      ...(id === 'webcam' ? { webcamSource: 'manual' as const } : {}),
+    };
     if (save) commit(next);
     else setDraft(next);
   };
   function down(event: PointerEvent<HTMLElement>, id: SceneRectId, mode: Drag['mode']) {
-    if (!connected) return;
+    if (!connected || (id === 'webcam' && followingObs)) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { id, mode, x: event.clientX, y: event.clientY, start: draft[id], moved: false };
@@ -178,6 +193,10 @@ export function SceneEditor({
     }
     const target = frameDestination[id];
     const spot = resolveSpot(target, { scene: draft, home: { x: config.x, y: config.y } });
+    if (!spot && target === 'perch') {
+      send({ type: 'state', state: 'perch' });
+      return;
+    }
     if (
       !spot ||
       (body !== null && sameSpot(body.spot, spot)) ||
@@ -187,6 +206,7 @@ export function SceneEditor({
     send({ type: 'state', state: target });
   }
   function key(event: KeyboardEvent<HTMLElement>, id: SceneRectId) {
+    if (id === 'webcam' && followingObs) return;
     const step = 0.01;
     const deltas: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],
@@ -210,6 +230,11 @@ export function SceneEditor({
   const spot = body?.spot;
   return (
     <div className="scene-editor">
+      <ObsWebcamPanel
+        config={config}
+        serviceConnected={connected}
+        onFollowingChange={setFollowingObs}
+      />
       <div
         className="scene-canvas"
         ref={box}
@@ -282,7 +307,7 @@ export function SceneEditor({
                   <input
                     type="checkbox"
                     checked={rect.enabled}
-                    disabled={!connected}
+                    disabled={!connected || (id === 'webcam' && followingObs)}
                     onChange={(event) => {
                       update(id, { ...rect, enabled: event.target.checked }, true);
                     }}
@@ -299,7 +324,7 @@ export function SceneEditor({
                     max={100}
                     step={1}
                     value={Math.round(rect[field] * 100)}
-                    disabled={!connected || !rect.enabled}
+                    disabled={!connected || !rect.enabled || (id === 'webcam' && followingObs)}
                     onChange={(event) => {
                       const value = Number(event.target.value);
                       if (Number.isFinite(value))

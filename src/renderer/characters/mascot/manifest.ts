@@ -321,6 +321,9 @@ export const mascot: ManifestInput = {
       tracks: [{ track: 'celebration', play: { from: 0, to: 1 }, mix: 0.95 }],
       anticipation: 0.2,
     },
+    'thank-you': { composed: true, tracks: [], anticipation: 0.12, recovery: 0.55 },
+    'happy-dance': { composed: true, tracks: [], anticipation: 0.18, recovery: 0.6 },
+    'perch-hesitate': { composed: true, tracks: [], anticipation: 0.05, recovery: 0.45 },
     agreeing: {
       composed: true,
       motion: 'nod',

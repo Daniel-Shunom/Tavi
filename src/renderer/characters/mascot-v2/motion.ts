@@ -39,7 +39,8 @@ export const mascotV2Motion: CharacterMotionRig = {
       ],
       nodes: {
         ...base.nodes,
-        // Same sign convention as the shoulders: positive bends outward on both sides.
+        // Calibrated native axes: left and right forearms bend in opposite semantic directions.
+        // The face channel metadata handles the sign when target-aware gestures swap arms.
         'arm-l-fore': { rotation: p.elbowL },
         'arm-r-fore': { rotation: -p.elbowR },
         // Pupils: follow part of the gaze (the face plane turns too) plus their own channel. The

@@ -44,6 +44,8 @@ import type { AiManager, DecisionResult } from './ai/manager.js';
 import type { ContextEvent, ProviderInfo, StreamerUtterance } from './ai/types.js';
 import { chatGate } from './twitch/reactions.js';
 import { StateDirector, type Engagement, type StateAction } from './behavior/states.js';
+import { supportEventSchema, supportTier, type SupportEvent } from '../shared/support.js';
+import { supportBeats } from './behavior/support.js';
 import {
   atSpotApproach,
   bodyStates,
@@ -84,6 +86,8 @@ export class Companion {
   private readonly context = new ConversationContext();
   private pending: Pending | null = null;
   private lastChatReaction = -Infinity;
+  private lastSupportReaction = -Infinity;
+  private readonly seenSupport = new Set<string>();
   private lastAiMove = -Infinity;
   private sequence = 0;
   private readonly now: () => number;
@@ -250,7 +254,12 @@ export class Companion {
   // Commands -------------------------------------------------------------------------
   async handle(command: Command): Promise<void> {
     const manual: DecidedBy = { kind: 'manual', label: 'Studio' };
-    if (command.type !== 'quiet' && command.type !== 'say' && command.type !== 'simulate')
+    if (
+      command.type !== 'quiet' &&
+      command.type !== 'say' &&
+      command.type !== 'simulate' &&
+      command.type !== 'preview-support-event'
+    )
       this.engage('studio', command.type === 'perform');
     switch (command.type) {
       case 'configure': {
@@ -362,6 +371,26 @@ export class Companion {
           this.perform({ note: 'Tucked away. Bring the companion back first.' });
           return;
         }
+        if (
+          command.state === 'perch' &&
+          !resolveSpot('perch', { scene: this.current.config.scene, home: this.home() })
+        ) {
+          this.abortPending('Replaced by a studio cue.');
+          const { script } = this.script({
+            source: 'manual',
+            sourceEventId: this.id('blocked-perch'),
+            decidedBy: manual,
+            priority: priorities.manual,
+            beats: [beat('perch-hesitate', { target: 'neutral', intensity: 0.7, hold: 1.2 })],
+            settle: true,
+          });
+          this.schedule(
+            script,
+            'reacting',
+            'No reachable webcam ledge with enough room. Staying safely on the ground.',
+          );
+          return;
+        }
         this.setBody(command.state, {
           source: 'manual',
           decidedBy: manual,
@@ -423,7 +452,68 @@ export class Companion {
           true,
         );
         return;
+      case 'preview-support-event':
+        this.supportEvent(
+          {
+            ...command.event,
+            id: this.id('support-preview'),
+            provider: 'studio-preview',
+            receivedAt: this.now(),
+          },
+          true,
+        );
+        return;
     }
+  }
+
+  /** Trusted adapter boundary. No live donation/subscription connector is installed yet. */
+  supportEvent(input: SupportEvent, simulated = false): { accepted: boolean; reason: string } {
+    const parsed = supportEventSchema.safeParse(input);
+    const skip = (reason: string) => {
+      if (simulated) this.perform({ note: `Simulated support event skipped: ${reason}` });
+      return { accepted: false, reason };
+    };
+    if (!parsed.success) return skip('the event is invalid.');
+    const event = parsed.data;
+    const key = `${event.provider}:${event.id}`;
+    if (this.seenSupport.has(key)) return skip('this event was already handled.');
+    // Remember suppressed events too: ending quiet mode must not replay old donations.
+    this.seenSupport.add(key);
+    if (this.seenSupport.size > 256) {
+      const oldest = this.seenSupport.values().next().value;
+      if (oldest !== undefined) this.seenSupport.delete(oldest);
+    }
+    const now = this.now();
+    if (now - event.receivedAt > 15_000 || event.receivedAt - now > 5_000)
+      return skip('the event is stale or its clock is out of sync.');
+    const settings = this.current.config.supportReactions;
+    if (!settings.enabled) return skip('support reactions are switched off.');
+    if (this.current.quiet || this.current.retracted)
+      return skip('quiet mode or tuck away is active.');
+    if (this.pending || (this.activeScript()?.priority ?? -1) >= priorities.chat)
+      return skip('another reaction has the floor. The streamer comes first.');
+    if (now - this.lastSupportReaction < 8000) return skip('support reactions are cooling down.');
+    const tier = supportTier(event, settings);
+    if (!tier)
+      return skip(`the currency does not match ${settings.currency}; no conversion is assumed.`);
+    const { script } = this.script({
+      source: 'event',
+      sourceEventId: event.id,
+      decidedBy: { kind: 'rules', label: 'Support event rules (not AI)' },
+      priority: priorities.chat,
+      beats: supportBeats(tier, event.kind, this.current.performance.body === null),
+      settle: true,
+    });
+    const accepted = this.schedule(
+      script,
+      'reacting',
+      `${simulated ? 'Simulated' : 'Received'} ${event.kind}: ${tier} reaction, looking toward chat.`,
+    );
+    if (accepted) {
+      this.lastSupportReaction = now;
+      this.engage('addressed', false);
+    }
+    return { accepted, reason: accepted ? `${tier} reaction` : 'A higher priority cue is active.' };
   }
 
   private retract(value: boolean, override?: ChoreographyPreference) {

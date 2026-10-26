@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { TwitchPanel } from './TwitchPanel';
 import { AiPanel } from './AiPanel';
+import { EventReactionsPanel } from './EventReactionsPanel';
 import { WardrobePanel } from './WardrobePanel';
 import { CharacterCreator } from './CharacterCreator';
 import { BodyStateDock, SceneEditor } from './StatesPanel';
@@ -965,6 +966,7 @@ export function Studio({
                   Typed lines go through the decision provider shown in Brain. Simulated chat is
                   labelled as a test. The microphone is not connected yet.
                 </p>
+                <EventReactionsPanel config={c} connected={connected} send={send} />
               </section>
               <section className="tool-section" id="setup">
                 <div className="section-heading">

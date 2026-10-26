@@ -52,7 +52,7 @@ export const scriptSchema = z
   .object({
     id: z.string().max(64),
     sourceEventId: z.string().max(64),
-    source: z.enum(['manual', 'streamer', 'chat', 'idle']),
+    source: z.enum(['manual', 'streamer', 'chat', 'event', 'idle']),
     decidedBy: decidedBySchema,
     priority: z.number().int().min(0).max(4),
     startAt: z.number(),

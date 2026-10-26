@@ -1,0 +1,172 @@
+import { useEffect, useState } from 'react';
+import { obsStatusSchema, type ObsStatus } from '../shared/obs';
+import type { Config } from '../shared/protocol';
+import { webcamPerchStatus } from '../shared/states';
+import './obs.css';
+
+export function ObsWebcamPanel({
+  config,
+  serviceConnected,
+  onFollowingChange,
+}: {
+  config: Config;
+  serviceConnected: boolean;
+  onFollowingChange: (following: boolean) => void;
+}) {
+  const [status, setStatus] = useState<ObsStatus | null>(null);
+  const [port, setPort] = useState('4455');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    onFollowingChange(serviceConnected && status?.phase === 'connected');
+  }, [serviceConnected, status?.phase, onFollowingChange]);
+  useEffect(() => {
+    if (!serviceConnected) return;
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    async function read() {
+      try {
+        const response = await fetch('/api/obs', { cache: 'no-store' });
+        if (!response.ok) throw new Error('OBS status unavailable.');
+        const next = obsStatusSchema.parse(await response.json());
+        if (!disposed) setStatus(next);
+      } catch {
+        if (!disposed) setError('Could not read OBS status. Check the local Tavi service.');
+      } finally {
+        if (!disposed)
+          timer = setTimeout(() => {
+            void read();
+          }, 2000);
+      }
+    }
+    void read();
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+    };
+  }, [serviceConnected]);
+
+  async function action(name: 'connect' | 'disconnect' | 'select', data: object = {}) {
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/obs/${name}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-tavi-request': 'studio' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Could not apply OBS connection settings.');
+      setStatus(obsStatusSchema.parse(await response.json()));
+    } catch {
+      setError(
+        'Could not apply OBS settings. Check that Tavi and OBS are running on this computer.',
+      );
+    } finally {
+      setPassword('');
+      setBusy(false);
+    }
+  }
+  const following = status?.phase === 'connected';
+  const perch = webcamPerchStatus({ scene: config.scene, home: { x: config.x, y: config.y } });
+  return (
+    <details className="obs-webcam">
+      <summary>Locate webcam in OBS</summary>
+      <p>
+        In OBS, open Tools → WebSocket Server Settings and enable the server. Tavi reads the active
+        scene on this computer.
+      </p>
+      <fieldset className="obs-controls" disabled={!serviceConnected || busy}>
+        {!following ? (
+          <>
+            <div className="obs-credentials">
+              <label className="field">
+                OBS port
+                <input
+                  type="number"
+                  min="1"
+                  max="65535"
+                  value={port}
+                  onChange={(event) => {
+                    setPort(event.target.value);
+                  }}
+                />
+              </label>
+              <label className="field">
+                WebSocket password
+                <input
+                  type="password"
+                  value={password}
+                  autoComplete="off"
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                  }}
+                  placeholder="From OBS settings"
+                />
+              </label>
+            </div>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={!Number.isInteger(Number(port)) || Number(port) < 1 || Number(port) > 65535}
+              onClick={() => {
+                void action('connect', { port: Number(port), password });
+              }}
+            >
+              {busy ? 'Connecting…' : 'Connect OBS'}
+            </button>
+          </>
+        ) : (
+          <>
+            <label className="field">
+              Webcam source in {status.scene}
+              <select
+                value={status.selection ?? ''}
+                onChange={(event) => {
+                  void action('select', { source: event.target.value || null });
+                }}
+              >
+                <option value="">Auto-detect one named webcam</option>
+                {status.sources.map((source) => (
+                  <option key={source.id} value={source.id} disabled={!source.rect}>
+                    {source.name}
+                    {source.rect ? '' : ' (place manually)'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => {
+                void action('disconnect');
+              }}
+            >
+              Disconnect OBS
+            </button>
+          </>
+        )}
+      </fieldset>
+      <p role="status">{busy ? 'Reading OBS…' : (status?.message ?? 'Checking OBS connection…')}</p>
+      {following ? (
+        <>
+          <p className="obs-perch">
+            {status.webcam
+              ? perch.reason
+              : 'No confirmed webcam region. Tavi will hesitate instead of perching.'}
+          </p>
+          <p>
+            Webcam bounds follow OBS while connected. Tavi’s browser source should fill the OBS
+            canvas. Disconnect to place the region manually.
+          </p>
+        </>
+      ) : (
+        <p>
+          The password is used for this connection only and is not saved. Manual scene placement
+          remains available.
+        </p>
+      )}
+      {error ? <p role="alert">{error}</p> : null}
+    </details>
+  );
+}

@@ -220,6 +220,49 @@ describe('locomotion', () => {
     expect(last?.facing).toBe(-1);
   });
 
+  it('authored turnaround plants the body instead of squeezing through a full mirror rotation', () => {
+    const loco = new Locomotion(7);
+    loco.place(0.45, 0.9);
+    loco.moveTo({ x: 0.2, at: 0, gait: 'walk' });
+    let turning = 0;
+    let stepped = false;
+    for (let i = 0; i <= 60; i++) {
+      const frame = loco.update(i ? 1 / 60 : 0, i / 60, profile, stage, {
+        feet: true,
+        turnStyle: 'authored',
+      });
+      if (frame.state !== 'turning') continue;
+      turning++;
+      expect(Math.abs(frame.facing)).toBe(1);
+      expect(frame.lift).toBe(0);
+      expect(frame.x).toBeCloseTo(0.45, 6);
+      if ((frame.pose.footLY ?? 0) > 0 || (frame.pose.footRY ?? 0) > 0) stepped = true;
+    }
+    expect(turning).toBeGreaterThan(10);
+    expect(stepped).toBe(true);
+  });
+
+  it('walks back through the route after a mid-stride reversal instead of snapping to the target', () => {
+    const loco = new Locomotion(7);
+    const caps = { feet: true, turnStyle: 'authored' as const, authored: ['walk'] as const };
+    loco.place(0.3, 0.9);
+    loco.moveTo({ x: 0.8, at: 0, gait: 'walk', beats: 'none' });
+    let previousX = 0.3;
+    let reverseX = 0.3;
+    let travelledBack = false;
+    for (let i = 0; i <= 60 * 5; i++) {
+      if (i === 60) {
+        reverseX = previousX;
+        loco.moveTo({ x: 0.2, at: 1, gait: 'walk', beats: 'none' });
+      }
+      const frame = loco.update(i ? 1 / 60 : 0, i / 60, profile, stage, caps);
+      expect(Math.abs(frame.x - previousX)).toBeLessThan(0.01);
+      if (i > 60 && frame.x < reverseX - 0.005 && frame.x > 0.205) travelledBack = true;
+      previousX = frame.x;
+    }
+    expect(travelledBack).toBe(true);
+  });
+
   it('chooses gait from distance and personality', () => {
     const shy = motionProfile({ ...settings, personality: 'shy' });
     const playful = motionProfile({ ...settings, personality: 'playful' });

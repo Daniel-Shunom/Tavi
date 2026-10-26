@@ -374,7 +374,16 @@ export class MotionLayer {
       pose[key] = Math.max(min, Math.min(max, pose[key]));
     // Smooth every channel except blinks (which must stay crisp): critical springs, no ringing.
     for (const key of Object.keys(pose) as Channel[]) {
-      if (key === 'blinkL' || key === 'blinkR' || key.startsWith('foot') || discrete.has(key))
+      // Locomotion smooths turns in stage coordinates before converting to local handedness.
+      // Smoothing them again here would lag that conversion and briefly reverse the turn.
+      if (
+        key === 'blinkL' ||
+        key === 'blinkR' ||
+        key === 'turnHead' ||
+        key === 'turnBody' ||
+        key.startsWith('foot') ||
+        discrete.has(key)
+      )
         continue;
       let spring = this.smoothers.get(key);
       if (!spring) {

@@ -38,8 +38,8 @@ export type GaitDef = GaitSpec;
  *                 direction (default).
  *  mirror-hidden  asymmetric character: mirror, but swap facing within a frame at the apex of a
  *                 tiny step-pivot hop so the flip is hidden in the action.
- *  authored       the rig has a three-quarter turnaround (turnHead/turnBody channels): turn the
- *                 whole character at the pivot, mirror it to face travel, and reset on arrival.
+ *  authored       the rig has three-quarter head/body controls: shift weight through the front
+ *                 pose, step the free foot around, and face the travel direction without a spin.
  */
 export type TurnStyle = 'cheat' | 'mirror-hidden' | 'authored';
 
@@ -135,6 +135,8 @@ const TURN_TAIL = 0.06;
 /** Authored turnaround: hold while walking, and the body's lag behind the head. */
 const TURN_HOLD = 0.6;
 const TURN_BODY_LAG = 0.1;
+/** Authored turns keep a supporting foot on the floor throughout the weight transfer. */
+const AUTHORED_TURN = 0.46;
 
 export class Locomotion {
   private rng: Rng;
@@ -203,11 +205,14 @@ export class Locomotion {
   }
 
   private moveAfterTurn = false;
+  private authoredTurn = false;
+  private turnFacingSwapped = false;
 
   private beginTurn(direction: number, now: number, thenMove: boolean) {
     this.facingFrom = this.facingTo;
     this.facingTo = direction;
     this.turnStart = now + TURN_LEAD;
+    this.turnFacingSwapped = false;
     this.moveAfterTurn = thenMove;
     this.needsReplant = true;
     this.enter('turning', now);
@@ -221,7 +226,10 @@ export class Locomotion {
   /** Turn progress 0..1 while turning (0 otherwise), for renderers and debugging. */
   turnProgress(now: number) {
     return this.state === 'turning'
-      ? clamp01((now - this.stateStart) / (TURN_LEAD + TURN + TURN_TAIL))
+      ? clamp01(
+          (now - this.stateStart) /
+            (this.authoredTurn ? AUTHORED_TURN : TURN_LEAD + TURN + TURN_TAIL),
+        )
       : 0;
   }
 
@@ -267,6 +275,8 @@ export class Locomotion {
     stage: Stage,
     caps: LocomotionCaps,
   ): LocomotionFrame {
+    const style = caps.turnStyle ?? 'cheat';
+    this.authoredTurn = style === 'authored';
     const bh = stage.bodyHeight;
     const toStage = (xNorm: number) => xNorm * stage.aspect;
     if (this.needsReplant) {
@@ -310,7 +320,11 @@ export class Locomotion {
         this.facingOnArrival =
           command.faceOnArrival ?? ((caps.turnStyle ?? 'cheat') === 'authored' ? 1 : direction);
         // Reversing always plays a readable turn first, never a mid-stride flip.
-        if (direction !== this.facingTo) this.beginTurn(direction, now, true);
+        if (
+          direction !== this.facingTo ||
+          (style === 'authored' && this.state !== 'moving' && this.state !== 'pausing')
+        )
+          this.beginTurn(direction, now, true);
         else if (this.state !== 'moving') this.enter('anticipate', now);
       }
     }
@@ -342,7 +356,6 @@ export class Locomotion {
     const vmax = authored
       ? (authored.stride / authored.seconds) * 1.6 * bh * tempo * this.speedScale
       : def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
-    const style = caps.turnStyle ?? 'cheat';
     // Authored rigs flip the complete body at the turn pivot so legs and gait face travel.
     const cheat = style === 'cheat';
     const facing =
@@ -363,6 +376,27 @@ export class Locomotion {
         pose.gazeX = 0.75 * snap;
         pose.headTilt = 0.07 * snap;
         pose.hairSwing = -0.2 * snap;
+        if (style === 'authored') {
+          // A step turn, not a spin: weight goes over one planted foot while the other heel
+          // describes a small arc. The authored head/torso controls perform the actual turn.
+          const step = clamp01((t - TURN_LEAD) / (AUTHORED_TURN - TURN_LEAD));
+          const transfer = Math.sin(Math.PI * step);
+          pose.shift = -0.025 * transfer;
+          pose.bob = 0.003 * transfer;
+          pose.footRX = 0.035 * transfer;
+          pose.footRY = 0.018 * transfer;
+          pose.lean = 0.015 * transfer;
+          if (t >= AUTHORED_TURN) {
+            this.needsReplant = true;
+            // The supporting foot held the body still during the pivot. Start the new stride
+            // from rest rather than carrying a hidden remnant of the old travel velocity.
+            this.velocity.reset(0);
+            this.lastVelocity = 0;
+            if (this.moveAfterTurn) this.enter('anticipate', now);
+            else this.enter('idle', now);
+          }
+          break;
+        }
         const hop = t - TURN_LEAD;
         if (hop > 0 && hop < TURN) {
           lift = hopHeight(hop, TURN) * bh;
@@ -407,7 +441,9 @@ export class Locomotion {
         break;
       }
       case 'arriving': {
-        if (!def.stop || runBeat(def.stop, now - this.stateStart)) this.finishArrival(now, toStage);
+        const elapsed = now - this.stateStart;
+        const beatDone = !def.stop || this.beats !== 'all' || runBeat(def.stop, elapsed);
+        if (beatDone && (style !== 'authored' || elapsed >= 0.42)) this.finishArrival(now, toStage);
         break;
       }
       case 'moving': {
@@ -459,6 +495,7 @@ export class Locomotion {
 
     // Velocity and travel.
     const previousX = toStage(this.x);
+    const previousRemaining = toStage(this.target.x) - previousX;
     const v = this.velocity.update(dt, desired);
     const accel = dt > 0 ? (v - this.lastVelocity) / dt : 0;
     this.lastVelocity = v;
@@ -482,7 +519,7 @@ export class Locomotion {
       if (
         this.state === 'moving' &&
         Math.abs(v) > 1e-6 &&
-        (Math.abs(left) < 1e-6 || Math.sign(left) !== Math.sign(v))
+        (Math.abs(left) < 1e-6 || Math.sign(left) !== Math.sign(previousRemaining))
       ) {
         this.x = this.target.x;
         this.velocity.reset(0);
@@ -590,7 +627,7 @@ export class Locomotion {
           foot.from = 0;
           foot.planted = true;
         }
-        if (def.stop && this.beats === 'all') this.enter('arriving', now);
+        if (style === 'authored' || (def.stop && this.beats === 'all')) this.enter('arriving', now);
         else this.finishArrival(now, toStage);
       }
     }
@@ -646,17 +683,16 @@ export class Locomotion {
         this.state !== 'fadeOut' &&
         this.state !== 'fadeIn';
       const turnSide = facing < 0 ? -1 : 1;
-      const headTarget = travelling3q ? TURN_HOLD * forward * turnSide : 0;
+      // Spring the authored turn in stage coordinates, then convert once to local. Changing
+      // the sprite's handedness at the front pose must not make the head turn back again.
+      const headTarget = travelling3q ? TURN_HOLD * forward : 0;
       if (headTarget !== this.turnHeadTarget) {
         this.turnHeadTarget = headTarget;
         this.turnHeadChangedAt = now;
       }
-      const bodyMayFollow = this.state !== 'turning' || turnSide === forward;
-      if (!bodyMayFollow) this.turnBodyTarget = 0;
-      else if (now - this.turnHeadChangedAt >= TURN_BODY_LAG)
-        this.turnBodyTarget = this.turnHeadTarget;
-      out.turnHead = this.turnHead.update(dt, this.turnHeadTarget);
-      out.turnBody = this.turnBody.update(dt, this.turnBodyTarget);
+      if (now - this.turnHeadChangedAt >= TURN_BODY_LAG) this.turnBodyTarget = this.turnHeadTarget;
+      out.turnHead = this.turnHead.update(dt, this.turnHeadTarget) * turnSide;
+      out.turnBody = this.turnBody.update(dt, this.turnBodyTarget) * turnSide;
     }
     return {
       x: this.x,
@@ -724,16 +760,20 @@ export class Locomotion {
     this.enter('idle', now);
   }
 
-  /** Smoothly collapse through the side view while turning, then ease back to the idle facing. */
+  /** Swap handedness at the authored front pose; never rotate the whole sprite through zero. */
   private authoredFacing(now: number) {
     if (this.state === 'turning') {
-      const duration = TURN_LEAD + TURN + TURN_TAIL;
-      const progress = smootherstep(clamp01((now - this.stateStart) / duration));
-      return this.facingFrom + (this.facingTo - this.facingFrom) * progress;
+      if (
+        now - this.stateStart >= TURN_LEAD &&
+        (Math.abs(this.turnBody.value) < 0.12 || Math.sign(this.turnBody.value) === this.facingTo)
+      )
+        this.turnFacingSwapped = true;
+      return this.turnFacingSwapped ? this.facingTo : this.facingFrom;
     }
     if (this.state === 'arriving') {
-      const progress = smootherstep((now - this.stateStart) / 0.32);
-      return this.facingTo + (this.facingOnArrival - this.facingTo) * progress;
+      return now - this.stateStart >= 0.3 && Math.abs(this.turnBody.value) < 0.06
+        ? this.facingOnArrival
+        : this.facingTo;
     }
     return this.facingTo;
   }

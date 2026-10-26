@@ -1,0 +1,32 @@
+.obs-webcam {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.obs-webcam summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.obs-webcam p {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.obs-controls {
+  border: 0;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.obs-controls > button {
+  justify-self: start;
+}
+.obs-credentials {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) minmax(0, 2fr);
+  gap: 12px;
+}
+.obs-perch {
+  font-weight: 600;
+}

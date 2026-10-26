@@ -12,6 +12,7 @@ import type { z } from 'zod';
 import type { faceSchema } from '../../face/pose';
 import { corePoses } from './acting/core';
 import { facePoses } from './acting/faces';
+import { customPoses } from './acting/custom';
 
 export const mascotFace: z.input<typeof faceSchema> = {
   channels: {
@@ -43,5 +44,5 @@ export const mascotFace: z.input<typeof faceSchema> = {
   bodyLag: 0.06,
   blink: { rate: 17, hold: 0.04 },
   // Expressions acted with face, head and body (acting/core.ts), then face-led ones.
-  poses: { ...facePoses, ...corePoses },
+  poses: { ...facePoses, ...corePoses, ...customPoses },
 };

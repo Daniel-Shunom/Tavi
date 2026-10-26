@@ -10,6 +10,9 @@ import { itemCatalogFrom } from '../shared/wardrobe.js';
 import { TwitchIntegration, type TwitchOptions } from './twitch/integration.js';
 import { Companion } from './companion.js';
 import { AiManager, selectionSchema, type Selection } from './ai/manager.js';
+import { z } from 'zod';
+import { obsConnectSchema } from '../shared/obs.js';
+import { ObsWebcam } from './obs/webcam.js';
 
 export interface AppOptions {
   ai?: AiManager;
@@ -39,8 +42,15 @@ export async function createApp(
   const app = Fastify({ logger: false, bodyLimit: 16384 });
   await app.register(websocket, { options: { maxPayload: 16384 } });
   const ai = options.ai ?? new AiManager();
+  const initial = config ?? defaults;
   const companion = new Companion({
-    config: config ?? defaults,
+    config:
+      initial.scene.webcamSource === 'obs'
+        ? {
+            ...initial,
+            scene: { ...initial.scene, webcam: { ...initial.scene.webcam, enabled: false } },
+          }
+        : initial,
     catalog: options.catalog ?? characterCatalog,
     items: itemCatalogFrom(attachmentCatalog),
     ai,
@@ -78,6 +88,52 @@ export async function createApp(
       request.headers['x-tavi-request'] === 'studio'
     );
   }
+  const obs = new ObsWebcam(async (webcam) => {
+    const change = mutations.then(async () => {
+      const scene = companion.state.config.scene;
+      const next = webcam ?? { ...scene.webcam, enabled: false };
+      if (scene.webcamSource === 'obs' && JSON.stringify(scene.webcam) === JSON.stringify(next))
+        return;
+      await companion.handle({
+        type: 'configure',
+        patch: { scene: { ...scene, webcam: next, webcamSource: 'obs' } },
+      });
+    });
+    mutations = change.catch(() => undefined);
+    await change;
+  });
+  app.get('/api/obs', (_, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return Promise.resolve(obs.status());
+  });
+  app.post('/api/obs/:action', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!studioOnly(request))
+      return reply.code(403).send({ error: 'Open this action from Tavi Studio.' });
+    const action = (request.params as { action: string }).action;
+    if (action === 'connect') {
+      const parsed = obsConnectSchema.safeParse(request.body);
+      if (!parsed.success)
+        return reply.code(400).send({ error: 'Enter a valid OBS port and password.' });
+      return obs.connect(parsed.data.port, parsed.data.password);
+    }
+    if (action === 'disconnect') return obs.disconnect();
+    if (action === 'select') {
+      const parsed = z
+        .object({ source: z.string().max(2048).nullable() })
+        .strict()
+        .safeParse(request.body);
+      if (!parsed.success) return reply.code(400).send({ error: 'Choose a valid webcam source.' });
+      try {
+        return await obs.select(parsed.data.source);
+      } catch {
+        return reply
+          .code(400)
+          .send({ error: 'Connect OBS and choose a source from its active scene.' });
+      }
+    }
+    return reply.code(404).send({ error: 'Unknown OBS action.' });
+  });
   app.get('/api/twitch', (_, reply) => {
     reply.header('Cache-Control', 'no-store');
     return Promise.resolve(twitch.snapshot());
@@ -109,6 +165,7 @@ export async function createApp(
     return status;
   });
   app.addHook('onClose', () => {
+    obs.close();
     twitch.close();
     companion.close();
     return Promise.resolve();

@@ -185,7 +185,8 @@ export class FaceLayer {
           }
           continue;
         }
-        const signed = flip && sidedChannels.has(name) ? -value : value;
+        const nativeMirror = flip ? (this.face.channels[name]?.mirrorSign ?? 1) : 1;
+        const signed = (flip && sidedChannels.has(name) ? -value : value) * nativeMirror;
         values[name] = (values[name] ?? 0) + signed * cue.weight;
       }
       drift = Math.max(drift, (def.living?.drift ?? 0.5) * cue.weight);

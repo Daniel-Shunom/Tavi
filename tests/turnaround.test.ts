@@ -220,4 +220,40 @@ describe('Lyla v2 turnaround', () => {
     expect(Math.abs(frame.pose.turnBody)).toBeLessThan(0.05);
     expect(frame.placement.facing).toBe(1);
   });
+
+  it('keeps world head and body rotation continuous across a mid-stride handedness change', () => {
+    const layer = new MotionLayer(
+      7,
+      {
+        personality: 'cozy',
+        attitude: 'gentle',
+        energy: 40,
+        reducedMotion: false,
+        quiet: false,
+      },
+      { aspect: 16 / 9, bodyHeight: 0.3, margin: 0.02 },
+      { feet: true, turnStyle: 'authored', authored: ['walk'] },
+    );
+    layer.place(0.3, 0.9);
+    layer.moveTo({ x: 0.8, at: 0, gait: 'walk', beats: 'none' });
+    let head = 0;
+    let body = 0;
+    let previousFacing = 1;
+    let changedHandedness = false;
+    for (let i = 0; i <= 180; i++) {
+      if (i === 60) layer.moveTo({ x: 0.2, at: 1, gait: 'walk', beats: 'none' });
+      const frame = layer.update(i / 60);
+      const worldHead = frame.pose.turnHead * frame.placement.facing;
+      const worldBody = frame.pose.turnBody * frame.placement.facing;
+      // The 60 ms head spring can move ~0.17 per 60 Hz frame over the full reversal.
+      expect(Math.abs(worldHead - head)).toBeLessThan(0.2);
+      expect(Math.abs(worldBody - body)).toBeLessThan(0.12);
+      expect(Math.abs(frame.placement.facing)).toBe(1);
+      if (previousFacing !== frame.placement.facing) changedHandedness = true;
+      head = worldHead;
+      body = worldBody;
+      previousFacing = frame.placement.facing;
+    }
+    expect(changedHandedness).toBe(true);
+  });
 });

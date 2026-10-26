@@ -7,6 +7,33 @@ expression sheet (`tools/expression-sheet/`) at overlay size (220 px tall) and l
 Each entry gives what reads and what was cut or is limited by the rig. Limits that apply to every
 expression are listed once at the end.
 
+## Current remix polish (October 26)
+
+The original rig notes below describe the original mascot's limitations. The current Lyla v2
+remix also has forearm bends, hand poses, pupils, brow tilt and an open-mouth library. Those
+controls stay attached to the same skeleton and face rather than being screen overlays.
+
+The expression review found **excited** reading as a stiff, nearly straight-arm T pose at stream
+size. Its v2 elbows now bend and follow the arm accents at staggered times. **Celebrate** keeps
+its broader authored motion so excitement and a full celebration remain distinct.
+The measured forearm axes run in opposite semantic directions, so the v2 face metadata now
+negates elbow bends when a target-aware gesture swaps arms. This keeps acknowledgement and
+shrug poses anatomically consistent while preserving the calibrated body-state hand solver.
+
+Three short custom gestures use the existing cue timing, springs, reduced-motion handling and
+body-state channel ownership:
+
+- **Thank you** (`thank-you`): open-handed acknowledgement, warm face and a single slow nod;
+  mirrors its active arm and gaze toward the selected attention target.
+- **Happy dance** (`happy-dance`): alternating heel lifts and shoulder/hip follow-through;
+  deliberately short and grounded, for special celebrations.
+- **No perch** (`perch-hesitate`): crouch and look up, notice no usable ledge, then unload onto
+  the same feet. It never lifts a foot or jumps, and is excluded from autonomous AI selection.
+
+The expression sheet at `/tools/expression-sheet/?character=mascot-v2` renders these gestures
+through the actual face layer at stream size and enlarged. OBS and installed-app verification
+remain separate from this browser review.
+
 ## Emotes
 
 - **content**: open-eyed warm smile, soft head tilt and sway. Cut: closed eyes (that is

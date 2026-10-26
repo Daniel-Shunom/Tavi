@@ -1983,3 +1983,33 @@ input[type='range'] {
   width: auto;
   flex: none;
 }
+
+.support-reactions {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.support-reactions summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.support-controls {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.support-controls > button {
+  justify-self: start;
+}
+.support-controls .checkbox-field input {
+  width: auto;
+  flex: none;
+}
+.support-amounts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}

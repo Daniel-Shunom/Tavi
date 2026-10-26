@@ -37,6 +37,8 @@ export const sceneSchema = z
     webcam: rectSchema,
     game: rectSchema,
     chat: rectSchema,
+    /** OBS geometry must be revalidated after a service restart; manual placement is user-declared. */
+    webcamSource: z.enum(['manual', 'obs']).optional(),
     /** Floor line (normalized y). null: the floor is wherever home is (the feet line). */
     floor: z.number().min(bounds.minY).max(bounds.maxY).nullable(),
   })
@@ -267,6 +269,23 @@ function ledgeSpot(
     side: x < 0.5 ? 1 : -1,
   };
 }
+
+/** Webcam perches require a real enabled region, reachable height, room above and a wide edge. */
+export function webcamPerchStatus(context: SpotContext): { spot: Spot | null; reason: string } {
+  const { scene, home } = context;
+  const webcam = scene.webcam;
+  if (!webcam.enabled) return { spot: null, reason: 'No webcam region is available.' };
+  if (webcam.y < bhY(reach.standHeadroom))
+    return { spot: null, reason: 'There is not enough room above the webcam.' };
+  const gap = (floorOf(scene, home) - webcam.y) / nominalStage.bodyHeight;
+  if (gap < reach.minJump || gap > reach.maxJump)
+    return { spot: null, reason: 'The webcam top is outside Tavi’s jump reach.' };
+  const top = ledgeCandidates(scene, home).find(
+    (candidate) => candidate.rect === 'webcam' && candidate.edge === 'top',
+  );
+  if (!top) return { spot: null, reason: 'The webcam top is too narrow for a perch.' };
+  return { spot: ledgeSpot(top, scene, home, 'top'), reason: 'The webcam has room for a perch.' };
+}
 /** Where a state happens, or null when it cannot happen in this scene. Pure. */
 export function resolveSpot(state: BodyStateId, context: SpotContext): Spot | null {
   const { scene, home } = context;
@@ -294,11 +313,7 @@ export function resolveSpot(state: BodyStateId, context: SpotContext): Spot | nu
       return floorSpot(scene, home, Math.min(bounds.maxX - 0.1, Math.max(bounds.minX + 0.1, x)));
     }
     case 'perch': {
-      const tops = ledgeCandidates(scene, home).filter(
-        (c) => c.edge === 'top' && c.y >= bhY(reach.standHeadroom),
-      );
-      const best = tops.find((c) => c.rect === 'webcam') ?? tops[0];
-      return best ? ledgeSpot(best, scene, home, 'top') : null;
+      return webcamPerchStatus(context).spot;
     }
     case 'peek': {
       const chat = scene.chat;
