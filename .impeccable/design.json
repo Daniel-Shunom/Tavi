@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 2,
+  "source": "DESIGN.md",
+  "colorMeta": {
+    "night-ink": { "displayName": "Night Ink", "role": "app canvas" },
+    "deep-indigo-stage": { "displayName": "Deep Indigo Stage", "role": "character preview" },
+    "tool-deck": { "displayName": "Tool Deck", "role": "settings surface" },
+    "raised-surface": { "displayName": "Raised Surface", "role": "panels and popovers" },
+    "field-surface": { "displayName": "Field Surface", "role": "inputs" },
+    "soft-white": { "displayName": "Soft White", "role": "primary text" },
+    "muted-lavender-grey": { "displayName": "Muted Lavender Grey", "role": "secondary text" },
+    "quiet-divider": { "displayName": "Quiet Divider", "role": "separators" },
+    "soft-lavender": { "displayName": "Soft Lavender", "role": "selection and focus" },
+    "lavender-action": { "displayName": "Lavender Action", "role": "primary action" }
+  },
+  "typographyMeta": {
+    "body": { "displayName": "DM Sans", "role": "interface copy and controls" },
+    "heading": { "displayName": "Georgia", "role": "stage and settings headings" },
+    "label": { "displayName": "DM Sans", "role": "control labels" },
+    "wordmark": { "displayName": "Manrope", "role": "brand wordmark" }
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "category": "button",
+      "refersTo": "button-primary",
+      "description": "Main local action with a soft lavender fill.",
+      "html": "<button class=\"ds-button-primary\">Open overlay</button>",
+      "css": ".ds-button-primary { background: #d2bdf4; color: #2c203e; padding: 11px 16px; border: 1px solid #e8d9ff38; border-radius: 9px; font: 600 11px 'DM Sans', sans-serif; transition: background-color .18s, box-shadow .18s; } .ds-button-primary:hover { background: #e4d3ff; box-shadow: 0 3px 17px #b795e522; } .ds-button-primary:focus-visible { outline: 2px solid #d5c3ff; outline-offset: 4px; } .ds-button-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Text field",
+      "category": "input",
+      "refersTo": "field",
+      "description": "Inset editable value with quiet violet boundaries.",
+      "html": "<label class=\"ds-field\">Character name<input value=\"Tavi\" /></label>",
+      "css": ".ds-field { color: #bdb1c9; font: 11px 'DM Sans', sans-serif; } .ds-field input { display: block; width: 100%; margin-top: 9px; padding: 10px 12px; color: #e3d7ec; background: #1d1d2a; border: 1px solid #43374e; border-radius: 8px; font: 12px 'DM Sans', sans-serif; } .ds-field input:hover { border-color: #7d628f; } .ds-field input:focus-visible { outline: 2px solid #d5c3ff; outline-offset: 3px; }"
+    },
+    {
+      "name": "Current tool navigation",
+      "category": "nav",
+      "refersTo": "tool-navigation-active",
+      "description": "Marks the active settings section without overpowering the content.",
+      "html": "<a class=\"ds-nav-item\" href=\"#appearance\" aria-current=\"location\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><circle cx=\"12\" cy=\"12\" r=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>Appearance</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 11px; padding: 11px 12px; color: #a49bad; border-radius: 8px; font: 11px 'DM Sans', sans-serif; text-decoration: none; transition: background-color .18s, color .18s; } .ds-nav-item:hover, .ds-nav-item[aria-current] { color: #e0c9f7; background: #c2a5e914; } .ds-nav-item:focus-visible { outline: 2px solid #d5c3ff; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "A little stage for a little personality",
+    "overview": "Tavi Studio pairs a calm, dark workspace with a lively character stage. The companion is the emotional center of the interface; controls should make it easy to shape and direct that personality without competing with it. The design voice is playful, warm, and character-led, with a soft lavender glow as its recurring accent. Keep the interface simple and stylish, with Georgia headings for warmth, DM Sans controls for clarity, and familiar interactions. Favor a human, expressive feel over a corporate geometric-font look.",
+    "keyCharacteristics": [
+      "A character stage sits above a compact, organized tool deck.",
+      "Dark indigo surfaces create a quiet backdrop; lavender signals action and selection.",
+      "Warmth comes from the character, soft lighting, and tactile details—not decorative UI chrome."
+    ],
+    "rules": [
+      {
+        "name": "The Lavender Signal Rule",
+        "body": "Reserve lavender for actions, selection, focus, and a few character-led accents; do not use it as general decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Warm Clarity Rule",
+        "body": "Prefer sentence case and plain language. Let the type feel conversational; avoid corporate all-caps labels, exaggerated tracking, and overly compressed text.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do keep the character as the most distinctive and visually prominent part of the studio.",
+      "Do use plain, reassuring language for connection, placement, and error states.",
+      "Do keep settings grouped by what the streamer is trying to do, with consistent controls across panels.",
+      "Do preserve keyboard focus visibility, reduced-motion support, and responsive behavior.",
+      "Do use the soft lavender glow to show a meaningful action or selected state."
+    ],
+    "donts": [
+      "Don't make the interface resemble a generic corporate dashboard.",
+      "Don't add decorative gradients, badges, or cards where they do not explain hierarchy or state.",
+      "Don't make essential labels or instructions depend on tiny microcopy.",
+      "Don't use motion only for decoration; transitions should answer an interaction or clarify a state change."
+    ]
+  }
+}

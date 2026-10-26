@@ -203,9 +203,8 @@ export function Studio({
             <span>{connected ? 'Local service connected' : 'Reconnecting to service'}</span>
           </span>
           <button className="primary-button" onClick={() => void copy()}>
-            {copied ? <Check size={15} /> : <Monitor size={15} />}
-            <span>{copied ? 'Overlay URL copied' : 'Add to OBS'}</span>
-            <ArrowUpRight size={14} />
+            {copied ? <Check size={15} /> : <Copy size={15} />}
+            <span>{copied ? 'Copied' : 'Copy overlay URL'}</span>
           </button>
         </div>
       </header>
@@ -218,15 +217,9 @@ export function Studio({
             tools.current?.scrollBy({ top: event.deltaY, behavior: 'instant' });
           }}
         >
-          <div className="stage-grain" aria-hidden="true" />
           <div className="stage-orbit orbit-one" aria-hidden="true" />
-          <div className="stage-orbit orbit-two" aria-hidden="true" />
           <div className="stage-floor" aria-hidden="true" />
           <div className="stage-intro">
-            <span className="stage-eyebrow">
-              <span className="status-dot" />
-              Your little corner of the internet
-            </span>
             <h1>
               Good company.
               <br />
@@ -259,9 +252,6 @@ export function Studio({
               </button>
             ))}
           </div>
-          <span className="stage-name" aria-hidden="true">
-            {c.name}
-          </span>
           <div className="portrait-space">
             <div className="portrait-halo" aria-hidden="true" />
             <Avatar
@@ -303,8 +293,14 @@ export function Studio({
           </div>
           <div className="stage-session">
             <span className="session-label">
-              <span className="status-dot" />
-              {state.retracted ? 'Tucked away' : state.quiet ? 'Quiet mode' : 'Hanging out'}
+              <span className={`status-dot ${connected ? '' : 'paused'}`} />
+              {!connected
+                ? 'Controls paused'
+                : state.retracted
+                  ? 'Tucked away'
+                  : state.quiet
+                    ? 'Quiet mode'
+                    : 'Hanging out'}
             </span>
             <div>
               <button
@@ -458,9 +454,6 @@ export function Studio({
               <section className="tool-section" id="appearance">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <Palette size={14} /> Character studio
-                    </span>
                     <h2>Make a little you.</h2>
                     <p>A familiar face, a favorite color, a finishing touch.</p>
                   </div>
@@ -670,9 +663,6 @@ export function Studio({
               <section className="tool-section" id="creator">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <UserRound size={14} /> Character
-                    </span>
                     <h2>Make them look like you, or not.</h2>
                     <p>Skin, face, build, hair and features are separate choices. Mix freely.</p>
                   </div>
@@ -692,9 +682,6 @@ export function Studio({
               <section className="tool-section" id="wardrobe">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <Shirt size={14} /> Wardrobe
-                    </span>
                     <h2>Dress them up.</h2>
                     <p>One item per slot. Colours apply when you let go of the picker.</p>
                   </div>
@@ -711,9 +698,6 @@ export function Studio({
               <section className="tool-section" id="personality">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <Heart size={14} /> A mind of their own
-                    </span>
                     <h2>Set the energy.</h2>
                     <p>How they show up is just as personal as how they look.</p>
                   </div>
@@ -799,9 +783,6 @@ export function Studio({
               <section className="tool-section" id="expressions">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <Smile size={14} /> Expression library
-                    </span>
                     <h2>Everything they can show.</h2>
                     <p>Only what {character?.name ?? 'this character'} can perform is enabled.</p>
                   </div>
@@ -893,9 +874,6 @@ export function Studio({
               <section className="tool-section" id="brain">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <Brain size={14} /> Who decides
-                    </span>
                     <h2>Pick their brain.</h2>
                     <p>
                       Built-in rules, or any OpenAI-compatible or Anthropic model you configure.
@@ -912,9 +890,6 @@ export function Studio({
               <section className="tool-section" id="connections">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <Radio size={14} /> Stay in the loop
-                    </span>
                     <h2>A little closer to chat.</h2>
                     <p>Let your companion keep an ear on the room.</p>
                   </div>
@@ -924,9 +899,6 @@ export function Studio({
               <section className="tool-section" id="playground">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <FlaskConical size={14} /> Try a moment
-                    </span>
                     <h2>Talk to them.</h2>
                     <p>Say something and watch the reaction. Same words, different personality.</p>
                   </div>
@@ -985,9 +957,6 @@ export function Studio({
               <section className="tool-section" id="setup">
                 <div className="section-heading">
                   <div>
-                    <span className="section-kicker">
-                      <Monitor size={14} /> Take them with you
-                    </span>
                     <h2>A home in your stream.</h2>
                     <p>Add a Browser Source in OBS at 1280 x 720.</p>
                   </div>

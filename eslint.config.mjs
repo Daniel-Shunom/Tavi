@@ -5,8 +5,12 @@ export default tseslint.config(
     ignores: [
       'node_modules/**',
       '.claude/**',
+      '.codex/**',
       'dist/**',
       '.agents/**',
+      '.github/agents/**',
+      '.github/hooks/**',
+      '.github/skills/**',
       'desktop/**',
       'experiments/**',
       'test-results/**',
