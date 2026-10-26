@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-// @ts-expect-error -- plain authoring pipeline module.
-import { addEyeTargets } from '../tools/mascot-remix/steps/eyes.mjs';
+// @ts-expect-error -- plain authoring pipeline module without declarations.
+import * as eyeStep from '../tools/mascot-remix/steps/eyes.mjs';
+
+const { addEyeTargets } = eyeStep as { addEyeTargets: (source: string) => string };
 
 const source = readFileSync('art/mascot-remix/scene.rml', 'utf8');
 describe('eye-local pupil targets', () => {

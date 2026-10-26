@@ -48,5 +48,5 @@ export function clearSceneLanding(
     const db = (b.x - target.x) ** 2 + (b.y - target.y) ** 2;
     return da - db || a.x - b.x || a.y - b.y;
   });
-  return clear[0]!;
+  return clear[0] ?? clampPoint(target);
 }
