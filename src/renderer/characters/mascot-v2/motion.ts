@@ -10,6 +10,8 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 export const mascotV2Motion: CharacterMotionRig = {
   patch: { artboard: 'lyla animation' },
+  // Same skeleton and art as the mascot, so the body-state key poses and contacts carry over.
+  ...(mascotMotion.states ? { states: mascotMotion.states } : {}),
   bind(frame: MotionFrame) {
     const base = mascotMotion.bind(frame);
     const p = frame.pose;
