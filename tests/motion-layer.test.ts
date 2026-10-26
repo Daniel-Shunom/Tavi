@@ -14,11 +14,36 @@ function scenario(personality: MotionSettings['personality']) {
   layer.place(0.3, 0.92);
   const frames: MotionFrame[] = [];
   const cues: [number, () => void][] = [
-    [0.5, () => layer.express('approve', { at: 0.5 })],
-    [2.0, () => layer.express('skeptical', { at: 2.0 })], // interrupts the nod
-    [3.0, () => layer.express('caught', { at: 3.0 })], // interrupts skeptical
-    [6.0, () => layer.moveTo({ x: 0.7, at: 6.0 })],
-    [14, () => layer.moveTo({ x: 0.1, at: 14, gait: 'hop' })],
+    [
+      0.5,
+      () => {
+        layer.express('approve', { at: 0.5 });
+      },
+    ],
+    [
+      2.0,
+      () => {
+        layer.express('skeptical', { at: 2.0 });
+      },
+    ], // interrupts the nod
+    [
+      3.0,
+      () => {
+        layer.express('caught', { at: 3.0 });
+      },
+    ], // interrupts skeptical
+    [
+      6.0,
+      () => {
+        layer.moveTo({ x: 0.7, at: 6.0 });
+      },
+    ],
+    [
+      14,
+      () => {
+        layer.moveTo({ x: 0.1, at: 14, gait: 'hop' });
+      },
+    ],
     [20, () => layer.exit({ at: 20, cue: 'a', id: 'hopOff' })],
     [22, () => layer.enter({ at: 22, cue: 'b', anchor: { x: 0.5, y: 0.92 }, id: 'drop' })],
   ];
