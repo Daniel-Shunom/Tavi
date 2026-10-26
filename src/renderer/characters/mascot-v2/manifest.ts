@@ -20,19 +20,32 @@ export const mascotV2ControlTracks = {
   'ctl.arms-front': 'tavi/armsFront',
 };
 
+/**
+ * Authored in-place gait cycles (handles from motion/systems/gaits/library.ts authoredGaitClips):
+ * walk 42 frames, trudge 80 frames, each two steps at 60 fps, looping.
+ */
+export const mascotV2GaitTracks = {
+  'walk-cycle': 'tavi/gait/walk',
+  'trudge-cycle': 'tavi/gait/trudge',
+};
+
 export const mascotV2: ManifestInput = {
   ...mascot,
   id: 'mascot-v2',
   name: 'Lyla v2 (remix preview)',
   credit: 'Mascot / Avatar Customization by alisketch (CC BY 4.0), remixed for Tavi',
   asset: 'mascot-v2.riv',
-  tracks: { ...mascot.tracks, ...mascotV2ControlTracks },
+  tracks: { ...mascot.tracks, ...mascotV2ControlTracks, ...mascotV2GaitTracks },
   nodes: {
     ...mascot.nodes,
     'arm-l-fore': 'tavi/armL.fore',
     'arm-r-fore': 'tavi/armR.fore',
     eyes: 'tavi/eyes',
   },
-  motionTracks: [...(mascot.motionTracks ?? []), ...Object.keys(mascotV2ControlTracks)],
+  motionTracks: [
+    ...(mascot.motionTracks ?? []),
+    ...Object.keys(mascotV2ControlTracks),
+    ...Object.keys(mascotV2GaitTracks),
+  ],
   face: mascotV2Face,
 };
