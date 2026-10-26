@@ -39,6 +39,16 @@ export const faceChannels = [
   'armR',
   'footLY',
   'footRY',
+  // Extended rig controls (only rigs that author them render these; see motion/types.ts):
+  'elbowL',
+  'elbowR',
+  'handL',
+  'handR',
+  'armsFront',
+  'mouthOpen',
+  'viseme',
+  'browTiltL',
+  'browTiltR',
 ] as const;
 export type FaceChannel = (typeof faceChannels)[number];
 export type FaceValues = Partial<Record<FaceChannel, number>>;
@@ -70,7 +80,24 @@ export const channelGroup: Record<FaceChannel, ChannelGroup> = {
   armR: 'body',
   footLY: 'body',
   footRY: 'body',
+  elbowL: 'body',
+  elbowR: 'body',
+  handL: 'body',
+  handR: 'body',
+  armsFront: 'body',
+  mouthOpen: 'mouth',
+  viseme: 'mouth',
+  browTiltL: 'brows',
+  browTiltR: 'brows',
 };
+
+/** Pose indices and switches: taken from the dominant cue, never blended or sprung. */
+export const discreteChannels: ReadonlySet<FaceChannel> = new Set([
+  'handL',
+  'handR',
+  'armsFront',
+  'viseme',
+]);
 
 /** Channels mirrored when a pose turns toward the attention target on the other side. */
 export const sidedChannels: ReadonlySet<FaceChannel> = new Set([
@@ -79,6 +106,16 @@ export const sidedChannels: ReadonlySet<FaceChannel> = new Set([
   'lean',
   'shift',
 ]);
+
+/** Left/right channel pairs swapped when a pose mirrors toward a target on the left. */
+export const mirroredPairs: Readonly<Partial<Record<FaceChannel, FaceChannel>>> = {
+  armL: 'armR',
+  armR: 'armL',
+  elbowL: 'elbowR',
+  elbowR: 'elbowL',
+  handL: 'handR',
+  handR: 'handL',
+};
 
 export function isFaceChannel(value: string): value is FaceChannel {
   return (faceChannels as readonly string[]).includes(value);

@@ -2,7 +2,7 @@
 // keyed by abstract expression id; nothing here names an expression or a rig part.
 import { z } from 'zod';
 import { expressionIds } from '../../../shared/expressions';
-import { faceChannels, type FaceChannel, type FaceValues } from './channels';
+import { discreteChannels, faceChannels, type FaceChannel, type FaceValues } from './channels';
 
 const channel = z.enum(faceChannels);
 export const faceValuesSchema = z.partialRecord(channel, z.number());
@@ -125,6 +125,19 @@ export function accentGain(intensity: number) {
 /** The held look for an intensity: 0 -> nothing, subtle at 0.25, pose at 0.6, strong at 1. */
 export function poseAtIntensity(def: FacePose, intensity: number): FaceValues {
   const i = Math.max(0, Math.min(1, intensity));
+  const blended = blendedPose(def, i);
+  // Pose indices and switches are chosen, not scaled: strong's choice from 0.8, else the pose's.
+  const out: FaceValues = {};
+  for (const [name, value] of Object.entries(blended) as [FaceChannel, number][])
+    if (!discreteChannels.has(name)) out[name] = value;
+  for (const name of discreteChannels) {
+    const chosen = i >= 0.8 ? (def.strong?.[name] ?? def.pose[name]) : def.pose[name];
+    if (chosen !== undefined) out[name] = chosen;
+  }
+  return out;
+}
+
+function blendedPose(def: FacePose, i: number): FaceValues {
   const subtle = def.subtle ?? scaled(def.pose, 0.5);
   const strong = def.strong ?? scaled(def.pose, 1.35);
   const { subtle: s, base: b } = intensityStops;
