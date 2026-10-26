@@ -15,101 +15,38 @@ import { clamp01, smootherstep } from '../core/curves';
 import { range, rngFor, type Rng } from '../core/random';
 import { apexFor, impactSpeed } from '../core/physics';
 import { CriticalSpring, SecondOrder } from '../core/spring';
+import {
+  gaitLibrary,
+  resolveGait,
+  type GaitBeat,
+  type GaitId,
+  type GaitSpec,
+  type MoodId,
+} from './gaits/library';
 import type { MotionProfile } from '../profile';
 import type { Pose, Stage } from '../types';
 
-export type Gait = 'step' | 'amble' | 'scoot' | 'tired' | 'hop';
-
-export interface GaitDef {
-  /** Step (or hop) length in body heights. */
-  stride: number;
-  /** Steps (or hops) per second at full speed. */
-  cadence: number;
-  /** Swing-foot lift, BH. */
-  lift: number;
-  /** Vertical body bob per step, BH (+ = down). */
-  bob: number;
-  /** Hop apex as a fraction of BH (0 = walking gait). */
-  hop: number;
-  /** Constant forward lean while travelling, radians (negative = held back). */
-  lean: number;
-  armSwing: number;
-  /** Landing squash for hops (placement scale). */
-  land: number;
-  /** Head posture while travelling. */
-  gazeY: number;
-}
-
-// Chibi legs are short: the rig's foot IK reaches roughly +-0.08 BH, so planted steps are small
-// and quick. Long trips use hops (flight phase), as small characters do.
-export const gaits: Readonly<Record<Gait, GaitDef>> = {
-  step: {
-    stride: 0.12,
-    cadence: 2.8,
-    lift: 0.035,
-    bob: 0.01,
-    hop: 0,
-    lean: 0.035,
-    armSwing: 0.2,
-    land: 0,
-    gazeY: 0,
-  },
-  amble: {
-    stride: 0.11,
-    cadence: 2.2,
-    lift: 0.03,
-    bob: 0.012,
-    hop: 0,
-    lean: 0.015,
-    armSwing: 0.12,
-    land: 0,
-    gazeY: 0.05,
-  },
-  scoot: {
-    stride: 0.07,
-    cadence: 2.6,
-    lift: 0.016,
-    bob: 0.005,
-    hop: 0,
-    lean: -0.012,
-    armSwing: 0.04,
-    land: 0,
-    gazeY: 0.25,
-  },
-  tired: {
-    stride: 0.09,
-    cadence: 1.7,
-    lift: 0.02,
-    bob: 0.02,
-    hop: 0,
-    lean: 0.075,
-    armSwing: 0.05,
-    land: 0,
-    gazeY: 0.35,
-  },
-  hop: {
-    stride: 0.3,
-    cadence: 2.2,
-    lift: 0.025,
-    bob: 0,
-    hop: 0.12,
-    lean: 0.05,
-    armSwing: 0.25,
-    land: 0.2,
-    gazeY: -0.05,
-  },
-};
+export type Gait = GaitId;
+/** The gait library (kept under this name for existing imports). */
+export const gaits = gaitLibrary;
+export type GaitDef = GaitSpec;
 
 export interface LocomotionCaps {
-  /** Rig has foot IK targets (planted steps); otherwise walking falls back to hops/step-bob. */
+  /** Rig has foot IK targets (planted steps); otherwise travel uses flight cycles. */
   feet: boolean;
 }
 
-export function chooseGait(distanceBH: number, profile: MotionProfile, caps: LocomotionCaps): Gait {
+/**
+ * Fallback gait when neither the cue nor the selection rules (gaits/select.ts) chose one.
+ * Never an automatic hop: long trips speed the gait up instead.
+ */
+export function chooseGait(
+  _distanceBH: number,
+  profile: MotionProfile,
+  caps: LocomotionCaps,
+): Gait {
   if (!caps.feet) return 'hop';
-  if (distanceBH > 2.2) return profile.gait === 'scoot' && distanceBH < 3.5 ? 'scoot' : 'hop';
-  if (distanceBH < 0.25) return profile.gait === 'scoot' ? 'scoot' : 'step';
-  return profile.gait === 'hop' ? (distanceBH > 1 ? 'hop' : 'step') : profile.gait;
+  return profile.gait === 'amble' ? 'amble' : profile.gait === 'scoot' ? 'scurry' : 'walk';
 }
 
 export interface MoveCommand {
@@ -118,8 +55,13 @@ export interface MoveCommand {
   /** Target ground line as a fraction of canvas height (default: current). */
   y?: number;
   at: number;
-  gait?: Gait;
-  /** Speed multiplier (default 1). */
+  /** Gait id from the library (legacy cue names like 'stroll' are accepted). */
+  gait?: string;
+  /** Which gait beats to play: all (default), only the start beat, or none (choreography). */
+  beats?: 'all' | 'start' | 'none';
+  /** Mood override (face pose id); default: the gait's own mood. */
+  mood?: MoodId;
+  /** Speed multiplier (default 1; long trips speed up a little). */
   speed?: number;
   /** Allow targets outside the safe bounds (walking on/off stage). */
   unbounded?: boolean;
@@ -140,9 +82,22 @@ export interface LocomotionFrame {
   moving: boolean;
   gait: Gait | null;
   state: State;
+  /** Current gait/arrival beat name (diagnostics). */
+  beat: string | null;
+  /** Mood to perform while travelling (face pose id), with an envelope weight. */
+  mood: { id: MoodId; weight: number; elapsed: number } | null;
 }
 
-type State = 'idle' | 'turning' | 'anticipate' | 'moving' | 'settling' | 'fadeOut' | 'fadeIn';
+type State =
+  | 'idle'
+  | 'turning'
+  | 'anticipate'
+  | 'moving'
+  | 'pausing'
+  | 'settling'
+  | 'arriving'
+  | 'fadeOut'
+  | 'fadeIn';
 
 interface Foot {
   /** Ground x in stage units while planted. */
@@ -255,7 +210,7 @@ export class Locomotion {
   }
 
   get busy() {
-    return this.state !== 'idle' || this.command !== null;
+    return (this.state !== 'idle' && this.state !== 'arriving') || this.command !== null;
   }
 
   private enter(state: State, now: number) {
@@ -309,9 +264,16 @@ export class Locomotion {
       } else if (!profile.travel) {
         this.enter('fadeOut', now);
       } else {
-        this.gait = command.gait ?? chooseGait(distanceBH, profile, caps);
-        if (!caps.feet && this.gait !== 'hop') this.gait = 'hop';
-        this.speedScale = command.speed ?? 1;
+        let gait = resolveGait(command.gait) ?? chooseGait(distanceBH, profile, caps);
+        if (!caps.feet && gaitLibrary[gait].cycle === 'step') gait = 'hop';
+        this.gait = gait;
+        this.mood = command.mood ?? null;
+        this.beats = command.beats ?? 'all';
+        this.moveStart = now;
+        this.sincePause = 0;
+        // Long trips: the same gait a little quicker (never an automatic hop).
+        this.speedScale =
+          command.speed ?? Math.min(1.35, Math.max(1, 1 + (distanceBH - 1.5) * 0.12));
         const direction = Math.sign(this.target.x - this.x) || this.facingTo;
         // Reversing always plays a readable turn first, never a mid-stride flip.
         if (direction !== this.facingTo) this.beginTurn(direction, now, true);
@@ -319,8 +281,22 @@ export class Locomotion {
       }
     }
 
-    const def = this.gait ? gaits[this.gait] : gaits.step;
     const tempo = Math.max(0.5, profile.tempo);
+    const def = this.gait ? gaitLibrary[this.gait] : gaitLibrary.walk;
+    const flying = def.cycle !== 'step';
+    const contactEdge = (1 - def.flight) / 2;
+    let beat: string | null = null;
+    let beatMood: MoodId | undefined;
+    let facingScale = 1;
+    const runBeat = (b: GaitBeat, t: number) => {
+      const length = b.duration / tempo;
+      const k = clamp01(t / length);
+      Object.assign(pose, b.pose(Math.min(t, length) * tempo, k));
+      beat = b.name;
+      beatMood = b.mood;
+      if (b.facing) facingScale = b.facing(k);
+      return t >= length;
+    };
     const vmax = def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
     const facing = this.facingAt(now);
     const forward = Math.sign(this.facingTo) || 1;
@@ -345,21 +321,54 @@ export class Locomotion {
         break;
       }
       case 'anticipate': {
+        if (def.start && this.beats !== 'none') {
+          if (runBeat(def.start, now - this.stateStart)) this.enter('moving', now);
+          break;
+        }
         const length = (0.16 * Math.max(0.3, profile.anticipation)) / tempo;
         const k = Math.sin(clamp01((now - this.stateStart) / length) * Math.PI);
         pose.lean = -0.05 * k * profile.amplitude;
         pose.bob = 0.008 * k;
-        if (def.hop) {
+        if (flying) {
           scaleY = 1 - 0.08 * k * profile.maxSquash;
           scaleX = 1 / scaleY;
         }
         if (now - this.stateStart >= length) this.enter('moving', now);
         break;
       }
+      case 'pausing': {
+        const pause = def.pause;
+        this.holdFeet(toStage, bh, pose);
+        if (!pause || runBeat(pause.beat, now - this.stateStart)) {
+          this.sincePause = 0;
+          this.enter('moving', now);
+        }
+        break;
+      }
+      case 'arriving': {
+        if (!def.stop || runBeat(def.stop, now - this.stateStart)) this.finishArrival(now, toStage);
+        break;
+      }
       case 'moving': {
         const remaining = toStage(this.target.x - this.x);
         const slow = Math.max(0.25 * bh, vmax * 0.45);
-        desired = Math.sign(remaining) * Math.min(vmax, (vmax * Math.abs(remaining)) / slow);
+        // Arrive with a minimum approach speed (no long exponential creep at the end).
+        desired =
+          Math.sign(remaining) *
+          Math.max(0.25 * vmax, Math.min(vmax, (vmax * Math.abs(remaining)) / slow));
+        // Mid-route stop-and-sigh (trudge) on long trips, at a step boundary with feet planted.
+        if (
+          def.pause &&
+          this.beats === 'all' &&
+          !flying &&
+          this.sincePause > def.pause.every * bh &&
+          Math.abs(remaining) > 0.8 * bh
+        ) {
+          this.plantFeet(toStage, bh);
+          this.enter('pausing', now);
+          this.holdFeet(toStage, bh, pose);
+          desired = 0;
+        }
         if (
           Math.abs(remaining) < 0.002 * bh &&
           Math.abs(this.velocity.value) < 0.05 * vmax + 1e-4
@@ -395,15 +404,28 @@ export class Locomotion {
     const travelling = this.state === 'moving' || (this.state === 'settling' && Math.abs(v) > 1e-5);
     if (travelling && dt > 0) {
       const distance = Math.abs(v) * dt;
-      if (def.hop) {
+      this.sincePause += distance;
+      if (flying) {
         // Spend the distance in the air: weight w(s) is 0 on the ground, normalised to mean 1.
         const s = this.phase % 1;
-        const w = s < 0.15 || s > 0.85 ? 0 : 1 / 0.7;
+        const w = s < contactEdge || s > 1 - contactEdge ? 0 : 1 / def.flight;
         this.phase += distance / (def.stride * bh);
         this.x = (previousX + Math.sign(v) * distance * w) / stage.aspect;
       } else {
         this.phase += distance / (def.stride * bh);
         this.x = (previousX + v * dt) / stage.aspect;
+      }
+      // Reached (or passed) the target this frame: stop exactly on it and settle the feet.
+      const left = toStage(this.target.x - this.x);
+      if (
+        this.state === 'moving' &&
+        Math.abs(v) > 1e-6 &&
+        (Math.abs(left) < 1e-6 || Math.sign(left) !== Math.sign(v))
+      ) {
+        this.x = this.target.x;
+        this.velocity.reset(0);
+        this.enter('settling', now);
+        this.settleFrom = [this.lastFeet[0], this.lastFeet[1]];
       }
       const progress = clamp01(1 - Math.abs(this.target.x - this.x) / this.totalDistance);
       this.y = this.startY + (this.target.y - this.startY) * smootherstep(progress);
@@ -413,40 +435,72 @@ export class Locomotion {
     const speedFraction = vmax > 0 ? Math.min(1, Math.abs(v) / vmax) : 0;
     const s = this.phase % 1;
     if (this.gait && (travelling || this.state === 'settling')) {
-      if (def.hop) {
-        const airborne = s >= 0.15 && s <= 0.85;
-        const x = (s - 0.15) / 0.7;
+      if (flying) {
+        const airborne = s >= contactEdge && s <= 1 - contactEdge;
+        const x = (s - contactEdge) / def.flight;
         const flight = airborne ? 4 * x * (1 - x) : 0;
         // Ballistic under the shared gravity: the apex follows from the time spent in the air at
-        // the current speed (capped by the gait's personality height).
-        const hopTime = (def.stride * bh) / Math.max(1e-4, Math.abs(v));
-        const apex = Math.min(def.hop * Math.max(0.4, profile.amplitude), apexFor(0.7 * hopTime));
+        // the current speed (capped by the gait's height and personality).
+        const cycleTime = (def.stride * bh) / Math.max(1e-4, Math.abs(v));
+        const apex = Math.min(
+          def.apex * Math.max(0.4, profile.amplitude),
+          apexFor(def.flight * cycleTime),
+        );
         lift = flight * apex * bh;
-        // Takeoff stretch, landing squash (volume preserving), scaled by the profile's limit.
-        const contact = s < 0.15 ? 1 - s / 0.15 : s > 0.85 ? (s - 0.85) / 0.15 : 0;
-        const stretch = airborne
-          ? 0.08 * Math.sin(((s - 0.15) / 0.35) * Math.PI) * (s < 0.5 ? 1 : 0)
-          : 0;
-        // Landing compression in proportion to the impact speed (sqrt(2 g h)).
+        // Takeoff stretch, landing squash in proportion to the impact speed (sqrt(2 g h)).
+        const contact =
+          s < contactEdge
+            ? 1 - s / contactEdge
+            : s > 1 - contactEdge
+              ? (s - 1 + contactEdge) / contactEdge
+              : 0;
+        const stretch = airborne && x < 0.5 ? 0.08 * Math.sin(x * 2 * Math.PI) : 0;
         const impact = Math.min(1, impactSpeed(apex) / 1.5);
         const squash = def.land * contact * impact;
         scaleY = Math.max(0.75, 1 - squash * profile.maxSquash + stretch * profile.maxSquash);
         scaleX = 1 / scaleY;
-        pose.footLY = def.lift * flight;
-        pose.footRY = def.lift * flight * 0.9;
-        pose.armL = def.armSwing * flight;
-        pose.armR = def.armSwing * flight;
-        if (this.state === 'settling' && !airborne && s > 0.85) this.phase = Math.ceil(this.phase);
+        const lead = Math.floor(this.phase) % 2; // skip/run alternate the leading knee
+        if (def.cycle === 'hop') {
+          pose.footLY = def.lift * flight;
+          pose.footRY = def.lift * flight * 0.9;
+          pose.armL = def.armSwing * flight;
+          pose.armR = def.armSwing * flight;
+        } else {
+          // Skip: the lead knee comes up high in the air; the double step is a quick tap of the
+          // other foot during contact. Run: alternating smaller knee lifts.
+          const high = def.lift * flight;
+          const low = def.cycle === 'skip' ? 0.25 * high : 0.45 * high;
+          const tap =
+            def.cycle === 'skip' && s < contactEdge
+              ? 0.02 * Math.sin((s / contactEdge) * Math.PI)
+              : 0;
+          pose.footLY = lead === 0 ? high : low + tap;
+          pose.footRY = lead === 1 ? high : low + tap;
+          const swing = def.armSwing * (0.3 + 0.7 * flight);
+          pose.armL = def.armHang + (lead === 1 ? swing : 0.15 * swing);
+          pose.armR = def.armHang + (lead === 0 ? swing : 0.15 * swing);
+          pose.headTilt = def.headTilt * (lead === 0 ? 1 : -1) * flight;
+        }
+        if (this.state === 'settling' && !airborne && s > 1 - contactEdge)
+          this.phase = Math.ceil(this.phase);
       } else if (caps.feet) {
         this.stepFeet(s, def, speedFraction, toStage, bh, forward, pose);
-        // Lowest just after contact (~25% into the step), highest at passing (~75%).
-        pose.bob = def.bob * (0.5 + 0.5 * Math.cos(2 * Math.PI * (s - 0.25))) * speedFraction;
+        // Hips: lowest just after contact (~25% into the step), highest at passing (~75%),
+        // swaying over the stance foot; a constant crouch for sneaking.
+        pose.bob =
+          def.bob * (0.5 + 0.5 * Math.cos(2 * Math.PI * (s - 0.25))) * speedFraction +
+          def.crouch * this.travelWeight;
+        pose.shift = def.hipShift * Math.sin(this.phase * Math.PI) * speedFraction;
         const swing = Math.sin(this.phase * Math.PI) * def.armSwing * speedFraction;
-        pose.armL = swing;
-        pose.armR = -swing;
-        pose.squash = 0.15 * Math.cos(2 * Math.PI * (s - 0.25)) * speedFraction;
+        pose.armL = def.armHang * this.travelWeight + swing;
+        pose.armR = def.armHang * this.travelWeight - swing;
+        pose.headTilt = def.headTilt * Math.sin(this.phase * Math.PI) * speedFraction;
+        // Heavy contact (stomp, trudge): squash right after each heel strike.
+        const strike = Math.max(0, Math.cos(2 * Math.PI * Math.min(s, 0.5)));
+        pose.squash =
+          (0.15 * Math.cos(2 * Math.PI * (s - 0.25)) + def.contactSquash * strike) * speedFraction;
       }
-      pose.gazeY = def.gazeY * speedFraction;
+      pose.gazeY = def.gazeY * Math.max(speedFraction, this.travelWeight);
       pose.gazeX = 0.45 * forward * speedFraction;
       pose.hairSwing = -0.15 * forward * speedFraction;
     }
@@ -454,7 +508,7 @@ export class Locomotion {
     if (this.state === 'settling') {
       // Feet together: swing each foot back under the body, one after the other.
       const t = now - this.stateStart;
-      if (caps.feet && !def.hop) {
+      if (caps.feet && !flying) {
         for (const index of [0, 1] as const) {
           const k = clamp01((t - index * 0.16) / 0.16);
           const from = this.settleFrom[index];
@@ -470,11 +524,8 @@ export class Locomotion {
           foot.from = 0;
           foot.planted = true;
         }
-        this.gait = null;
-        this.phase = 0;
-        this.landing = 0;
-        this.swingTarget = 0;
-        this.enter('idle', now);
+        if (def.stop && this.beats === 'all') this.enter('arriving', now);
+        else this.finishArrival(now, toStage);
       }
     }
 
@@ -483,26 +534,93 @@ export class Locomotion {
     let leanTarget = 0.5 * Math.atan2(accelBH, G) + def.lean * speedFraction;
     leanTarget = Math.max(-0.16, Math.min(0.16, leanTarget)) * profile.amplitude;
     this.lean.set(profile.body);
-    const leanValue = this.lean.update(dt, this.state === 'idle' ? 0 : leanTarget);
+    const leanValue = this.lean.update(
+      dt,
+      this.state === 'idle' || this.state === 'arriving' ? 0 : leanTarget,
+    );
+    // Travel posture weight: in while setting off, held while travelling, out on arrival.
+    const weightTarget =
+      this.state === 'moving' || this.state === 'pausing' || this.state === 'anticipate' ? 1 : 0;
+    this.travelWeight += (weightTarget - this.travelWeight) * (1 - Math.exp(-dt * 6));
     pose.lean = (pose.lean ?? 0) + leanValue;
     pose.hairSwoop = -0.6 * leanValue;
 
+    this.lastFeet = [pose.footLX ?? 0, pose.footRX ?? 0];
     return {
       x: this.x,
       y: this.y,
       lift: lift,
-      facing,
+      facing: facing * facingScale,
       opacity,
       scaleX,
       scaleY,
       pose,
-      moving: this.state !== 'idle',
+      // The arrival beat is cosmetic and interruptible: report arrival as soon as feet settle.
+      moving: this.state !== 'idle' && this.state !== 'arriving',
       gait: this.gait,
       state: this.state,
+      beat,
+      mood: this.moodFrame(now, def, beatMood),
     };
   }
 
   private speedScale = 1;
+  private beats: 'all' | 'start' | 'none' = 'all';
+  private mood: MoodId | null = null;
+  private moveStart = 0;
+  private sincePause = 0;
+  private travelWeight = 0;
+
+  private moodFrame(now: number, def: GaitSpec, beatMood: MoodId | undefined) {
+    if (
+      this.state === 'idle' ||
+      this.state === 'turning' ||
+      this.state === 'fadeOut' ||
+      this.state === 'fadeIn'
+    )
+      return null;
+    const id = beatMood ?? this.mood ?? def.mood?.id;
+    if (!id) return null;
+    let weight = def.mood?.intensity ?? 0.7;
+    if (this.state === 'arriving' && def.stop)
+      weight *= 1 - smootherstep((now - this.stateStart) / (def.stop.duration * 1.2));
+    if (this.state === 'anticipate') weight *= smootherstep((now - this.stateStart) / 0.3);
+    return { id, weight, elapsed: now - this.moveStart };
+  }
+
+  private finishArrival(now: number, toStage: (x: number) => number) {
+    for (const foot of this.feet) {
+      foot.world = toStage(this.x);
+      foot.from = 0;
+      foot.planted = true;
+    }
+    this.gait = null;
+    this.mood = null;
+    this.phase = 0;
+    this.landing = 0;
+    this.swingTarget = 0;
+    this.enter('idle', now);
+  }
+
+  /** Plant both feet exactly where they were last drawn (mid-route pause): continuous. */
+  private plantFeet(toStage: (x: number) => number, bh: number) {
+    const forward = Math.sign(this.facingTo) || 1;
+    this.feet[0].world = toStage(this.x) + forward * this.lastFeet[0] * bh;
+    this.feet[1].world = toStage(this.x) + forward * this.lastFeet[1] * bh;
+    for (const foot of this.feet) foot.planted = true;
+    const swingIndex = (Math.floor(this.phase) % 2) as 0 | 1;
+    this.feet[swingIndex].from = this.lastFeet[swingIndex];
+  }
+
+  private lastFeet: [number, number] = [0, 0];
+
+  /** Both feet planted at their ground positions (pausing). */
+  private holdFeet(toStage: (x: number) => number, bh: number, pose: Partial<Pose>) {
+    pose.footLX = this.footOffset(0, toStage, bh);
+    pose.footRX = this.footOffset(1, toStage, bh);
+    pose.footLY = 0;
+    pose.footRY = 0;
+  }
 
   private footOffset(index: 0 | 1, toStage: (x: number) => number, bh: number) {
     const foot = this.feet[index];
