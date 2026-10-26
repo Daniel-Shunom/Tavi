@@ -20,6 +20,7 @@ import { assetUrl } from '../characters/assets';
 import { motionRigs } from '../characters/motionRigs';
 import { patchRiv } from '../motion/rive/patch';
 import type { CharacterManifest } from '../characters/manifest';
+import { drawFrame } from '../placement';
 RuntimeLoader.setWasmUrl(wasmURL);
 RuntimeLoader.setWasmFallbackUrl(null);
 
@@ -286,12 +287,8 @@ export async function createRiveRenderer(
         if (canvas.style.transformOrigin !== origin) canvas.style.transformOrigin = origin;
         const transform = degrees ? `rotate(${String(degrees)}deg)` : '';
         if (canvas.style.transform !== transform) canvas.style.transform = transform;
-        const frame = {
-          minX: (placement.x - placement.width / 2) * ratio,
-          maxX: (placement.x + placement.width / 2) * ratio,
-          minY: (placement.y - placement.height) * ratio,
-          maxY: placement.y * ratio,
-        };
+        // Soles on placement.y; attachments use the same frame, so they follow.
+        const frame = drawFrame(placement, ratio, characterBounds, manifest.soleOffset);
         activeRenderer.align(
           runtime.Fit.contain,
           runtime.Alignment.bottomCenter,
