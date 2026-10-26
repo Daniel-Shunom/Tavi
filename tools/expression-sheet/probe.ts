@@ -19,15 +19,18 @@ async function main(target: HTMLCanvasElement) {
   ]);
   const rig = await createSheetRig(runtime, target, bytes, size, size);
   let pose: SheetPose = {};
+  let clips: { role: string; time: number; mix: number }[] = [];
   let zoom = 1.6;
   let focus = 0.3;
   const render = () => {
-    rig.draw(pose, { zoom, focus });
+    rig.draw(pose, { zoom, focus, clips });
   };
   Object.assign(window, {
     probe: {
-      set(next: SheetPose, nextZoom = 1.6, nextFocus = 0.3) {
-        pose = next;
+      set(next: SheetPose & { clip?: string; t?: number }, nextZoom = 1.6, nextFocus = 0.3) {
+        const { clip, t, ...rest } = next;
+        pose = rest;
+        clips = clip ? [{ role: clip, time: t ?? 0, mix: 1 }] : [];
         zoom = nextZoom;
         focus = nextFocus;
         render();
