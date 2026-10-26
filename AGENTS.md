@@ -14,6 +14,7 @@ Project skills are vendored under `.agents/skills/`. Use these copies instead of
 - Domain terminology: `.agents/skills/domain-modeling/SKILL.md`.
 - Test-first work: `.agents/skills/tdd/SKILL.md`.
 - Bug diagnosis: `.agents/skills/diagnosing-bugs/SKILL.md`.
+- Rive (official, discovery only: runtime docs and CLI pointers): `.agents/skills/rive/SKILL.md`. Ask before installing the Rive CLI.
 - Matt Pocock orchestration skills and setup are installed alongside these. Run setup before invoking workflows that require issue tracker configuration; no tracker is configured yet.
 
 ## Ownership and integration

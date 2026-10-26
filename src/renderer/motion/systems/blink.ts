@@ -41,13 +41,18 @@ export class BlinkSystem {
     this.starts.push(now);
   }
 
-  update(now: number, profile: MotionProfile, attentive = false) {
+  /**
+   * `rateScale` scales the spontaneous blink rate (a face pose's own rate / the resting rate);
+   * 0 suppresses spontaneous blinks (a shocked stare). Triggered blinks still play.
+   */
+  update(now: number, profile: MotionProfile, attentive = false, rateScale = 1) {
     if (!this.initialised) {
       this.initialised = true;
       this.next = exponential(this.rng, profile.blinkMean, 0.6, profile.blinkMean * 3);
     }
     // Attending lowers the blink rate (reading/listening ~4.5-17/min vs 17-26 in conversation).
-    const mean = profile.blinkMean * (attentive ? 1.4 : 1);
+    const mean = (profile.blinkMean * (attentive ? 1.4 : 1)) / Math.max(0.05, rateScale);
+    if (rateScale <= 0.01) while (this.next <= now) this.next += 0.25;
     while (this.next <= now) {
       this.starts.push(this.next);
       if (this.rng() < profile.doubleBlinkChance) this.starts.push(this.next + BLINK_LENGTH + 0.06);

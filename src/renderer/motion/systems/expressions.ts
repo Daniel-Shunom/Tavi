@@ -415,14 +415,25 @@ export class ExpressionSystem {
     return this.instances.some((i) => i.releasedAt === null || now - i.releasedAt < 1);
   }
 
-  evaluate(now: number, profile: MotionProfile): ExpressionOutput {
+  /**
+   * `faceOwned`: expressions whose facial features (brows, lids, mouth, gaze) come from the
+   * character's face poses (src/renderer/face/). Their performance then supplies only the head
+   * and body, so the face is not driven twice.
+   */
+  evaluate(
+    now: number,
+    profile: MotionProfile,
+    faceOwned: ReadonlySet<string> = new Set(),
+  ): ExpressionOutput {
     this.lastProfile = profile;
     const pose: Partial<Pose> = {};
     const clips: ClipRequest[] = [];
     let gaze: ExpressionOutput['gaze'] = null;
     let attentive = false;
     const active: string[] = [];
+    let owned = false;
     const add = (channel: Channel, value: number) => {
+      if (owned && faceFeatures.has(channel)) return;
       pose[channel] = (pose[channel] ?? 0) + value;
     };
     this.instances = this.instances.filter((instance) => {
@@ -438,6 +449,7 @@ export class ExpressionSystem {
     for (const instance of this.instances) {
       const def = expressionLibrary[instance.id];
       if (!def) continue;
+      owned = faceOwned.has(instance.id);
       const env = this.envelope(instance, def, profile, now);
       const t = Math.max(0, now - instance.start - profile.reactionLatency);
       const gain = instance.intensity * profile.amplitude;
@@ -475,12 +487,28 @@ export class ExpressionSystem {
           owns: def.clip.owns,
         });
       }
-      if (def.gaze && weight > 0.01) {
+      if (def.gaze && weight > 0.01 && !owned) {
         const w = def.gaze.weight * clamp01(env);
         if (!gaze || w > gaze.weight) gaze = { x: def.gaze.x, y: def.gaze.y, weight: w };
       }
       if (def.attentive && weight > 0.3) attentive = true;
     }
+    owned = false;
     return { pose, clips, gaze, attentive, active };
   }
 }
+
+/** Facial feature channels a face pose takes over from a performance (head and body stay). */
+const faceFeatures: ReadonlySet<Channel> = new Set([
+  'gazeX',
+  'gazeY',
+  'browL',
+  'browR',
+  'squintL',
+  'squintR',
+  'blinkL',
+  'blinkR',
+  'smile',
+  'mouthX',
+  'mouthY',
+]);

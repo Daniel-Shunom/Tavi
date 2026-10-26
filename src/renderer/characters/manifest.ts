@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { expressionIds, targets } from '../../../shared/expressions';
 import { choreographyIds } from '../../../shared/presence';
 import type { CharacterCapabilities } from '../../../shared/capabilities';
+import { faceSchema, poseAtIntensity } from '../face/pose';
 
 const handle = z.string().regex(/^[a-z0-9.-]{1,48}$/, 'Use lower-case handles like "hair.pink"');
 const unit = z.number().min(0).max(1);
@@ -134,6 +135,11 @@ export const manifestSchema = z
       })
       .strict()
       .default({ enter: {}, exit: {} }),
+    /**
+     * Facial rig: supported face channels with safe ranges, and per-expression face poses that
+     * the face layer (src/renderer/face/) blends additively over body bindings and motion.
+     */
+    face: faceSchema.optional(),
     appearance: z.record(
       z.string().regex(/^[a-z][a-z0-9-]{0,23}$/),
       z
@@ -194,6 +200,33 @@ export const manifestSchema = z
           message: 'Unknown default option',
           path: ['appearance', slot],
         });
+    }
+    if (manifest.face) {
+      const face = manifest.face;
+      for (const [id, pose] of Object.entries(face.poses)) {
+        if (!Object.hasOwn(manifest.expressions, id))
+          context.addIssue({
+            code: 'custom',
+            message: `Face pose for ${id}, which has no binding`,
+            path: ['face', 'poses', id],
+          });
+        const looks = {
+          pose: pose.pose,
+          strong: poseAtIntensity(pose, 1),
+          subtle: poseAtIntensity(pose, 0.25),
+          ...(pose.onset ? { onset: pose.onset.pose } : {}),
+        };
+        for (const [look, values] of Object.entries(looks))
+          for (const [channel, value] of Object.entries(values)) {
+            const range = face.channels[channel as keyof typeof face.channels];
+            if (!range || value < range.min || value > range.max)
+              context.addIssue({
+                code: 'custom',
+                message: `${id}.${look}.${channel}=${String(value)} is outside the rig's safe range`,
+                path: ['face', 'poses', id, look, channel],
+              });
+          }
+      }
     }
     for (const [from, to] of Object.entries(manifest.fallbacks)) {
       if (to && !Object.hasOwn(manifest.expressions, to))

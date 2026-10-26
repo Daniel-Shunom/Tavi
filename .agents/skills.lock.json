@@ -205,6 +205,15 @@
         "SKILL.md": "f148858ffb7f63c03c06fca06e6fdb1d91a35c6b293244b8fdfacd5f4cc028c4",
         "triage-labels.md": "ae512af838c78b8750471c42cd2b20fa32319553e61d84c9a23d171b40ce14aa"
       }
+    },
+    {
+      "name": "rive",
+      "repository": "rive-app/skills",
+      "commit": "0516522e5216400fdd630732d143bafb12528f50",
+      "path": "skills/rive",
+      "files": {
+        "SKILL.md": "83d2bd3ebdca3dbabb5852a0ff00c1896ea279a39649744c1c74d45ce055ceb1"
+      }
     }
   ],
   "notices": [
@@ -235,6 +244,20 @@
       "path": "README.md",
       "destination": ".agents/licenses/mattpocock--skills-README.md",
       "sha256": "345041d56cf1411b6b3ca1cc54014d26c563890f817f4cb9e2cb193dcd771a3e"
+    },
+    {
+      "repository": "rive-app/skills",
+      "commit": "0516522e5216400fdd630732d143bafb12528f50",
+      "path": "LICENSE",
+      "destination": ".agents/licenses/rive-app--skills-LICENSE",
+      "sha256": "3ba012388cd4f3dce5cc525694ab5c6bf9339fdf7eb47911807fbf891aba9441"
+    },
+    {
+      "repository": "rive-app/skills",
+      "commit": "0516522e5216400fdd630732d143bafb12528f50",
+      "path": "README.md",
+      "destination": ".agents/licenses/rive-app--skills-README.md",
+      "sha256": "131daa64410ef10b1c9ed35a20979f41c5291e9d1345b673296c9b24c39509e1"
     }
   ]
 }

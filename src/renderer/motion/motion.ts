@@ -25,11 +25,13 @@ const ranges: Partial<Record<Channel, [number, number]>> = {
   gazeY: [-1, 1],
   blinkL: [0, 1],
   blinkR: [0, 1],
-  browL: [-1.1, 1],
-  browR: [-1.1, 1],
+  // Brows and smile reach a little past 1: the mascot's face poses (characters/mascot/face.ts)
+  // were probed up to these values.
+  browL: [-1.25, 1],
+  browR: [-1.25, 1],
   squintL: [0, 1],
   squintR: [0, 1],
-  smile: [-1, 1],
+  smile: [-1.25, 1.25],
   mouthX: [-1, 1],
   mouthY: [-1, 1],
   squash: [-1, 1],
@@ -177,7 +179,18 @@ export class MotionLayer {
     return known;
   }
 
-  update(now: number): MotionFrame {
+  /**
+   * `face`: additive facial pose from the face layer (src/renderer/face/), the expressions whose
+   * features it owns, and its blink rate relative to rest (0 = stare).
+   */
+  update(
+    now: number,
+    face?: {
+      values: Partial<Pose>;
+      owned: ReadonlySet<string>;
+      blinkScale: number;
+    },
+  ): MotionFrame {
     const dt = this.lastTime === null ? 0 : Math.min(0.1, Math.max(0, now - this.lastTime));
     this.lastTime = now;
     const profile = this.profile;
@@ -195,7 +208,7 @@ export class MotionLayer {
       this.expressions.play(id, hold === undefined ? { at: now } : { at: now, hold });
     }
     for (const id of choreo.releases) this.expressions.release(id, now);
-    const expr = this.expressions.evaluate(now, profile);
+    const expr = this.expressions.evaluate(now, profile, face?.owned);
     const busy = this.expressions.isBusy(now) || loco.moving || choreo.choreography !== null;
     const fidget = this.fidget.update(now, profile, busy);
     const idle = idleLayer(now, this.seed, profile);
@@ -211,9 +224,12 @@ export class MotionLayer {
     if (look.saccade > 0.45 && random(this.seed, 'saccade-blink', Math.floor(now * 10)) < 0.45)
       this.blink.trigger(now);
 
-    const blink = this.blink.update(now, profile, expr.attentive);
-    pose.blinkL = blink.left;
-    pose.blinkR = blink.right;
+    const blink = this.blink.update(now, profile, expr.attentive, face?.blinkScale ?? 1);
+    // Held lid closure from a face pose (happy or sleepy eyes); spontaneous blinks close the rest.
+    const heldL = Math.max(0, Math.min(1, face?.values.blinkL ?? 0)),
+      heldR = Math.max(0, Math.min(1, face?.values.blinkR ?? 0));
+    pose.blinkL = heldL + (1 - heldL) * blink.left;
+    pose.blinkR = heldR + (1 - heldR) * blink.right;
 
     // Idle life (always on; scaled down by the profile in quiet/reduced modes).
     pose.squash += idle.squash;
@@ -227,6 +243,9 @@ export class MotionLayer {
 
     add(fidget.pose, profile.amplitude);
     add(expr.pose);
+    if (face)
+      for (const [key, value] of Object.entries(face.values) as [Channel, number][])
+        if (key !== 'blinkL' && key !== 'blinkR') pose[key] += value;
     add(loco.pose);
     add(choreo.pose);
 
