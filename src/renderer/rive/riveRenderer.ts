@@ -11,7 +11,11 @@ import type {
   Node,
 } from '@rive-app/webgl2/rive_advanced.mjs';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
-import type { CharacterRenderer, Placement, RenderFrame } from '../adapter';
+import type { CharacterRenderer, Decorator, Look, Placement, RenderFrame } from '../adapter';
+import { patchForAttachments, riveTransformSource, viewMatrix } from '../attachments/rive';
+import { hide, recolor } from '../attachments/recolor';
+import type { TransformSource } from '../attachments/layer';
+import type { CharacterAttachments } from '../characters/attachmentRigs';
 import { assetUrl } from '../characters/assets';
 import { motionRigs } from '../characters/motionRigs';
 import { patchRiv } from '../motion/rive/patch';
@@ -62,6 +66,7 @@ const clamp = (value: number, min = 0, max = 1) => Math.max(min, Math.min(max, v
 export async function createRiveRenderer(
   canvas: HTMLCanvasElement,
   manifest: CharacterManifest,
+  options: { look?: Look; attachments?: CharacterAttachments | undefined } = {},
 ): Promise<
   CharacterRenderer & {
     debugClips(): string[];
@@ -91,6 +96,10 @@ export async function createRiveRenderer(
     { node: Node; base: { x: number; y: number; rotation: number; scaleX: number; scaleY: number } }
   >();
   let appearance: Record<string, string> = {};
+  // Appearance options whose animation was rewritten in memory (custom colour, hidden glasses).
+  const forced: Record<string, string> = {};
+  let decorator: Decorator | null = null;
+  let world: TransformSource | null = null;
   let disposed = false;
   function dispose() {
     if (disposed) return;
@@ -105,8 +114,36 @@ export async function createRiveRenderer(
   }
   try {
     // Motion rig extension (runtime names + control tracks), applied in memory; the .riv is unchanged.
+    // One load path: motion rig names, attachment slot names, then recolour/hide, all in memory.
     const rig = motionRigs[manifest.id];
-    file = await runtime.load(rig ? patchRiv(data, rig.patch) : data, undefined, false);
+    let patched = rig ? patchRiv(data, rig.patch) : data;
+    const attachments = options.attachments;
+    if (attachments) {
+      patched = patchForAttachments(patched, attachments.rig);
+      const { artboard, hair, outfit, glasses } = attachments.recolor;
+      const force = (animation: string) => {
+        for (const [slot, definition] of Object.entries(manifest.appearance)) {
+          const option = definition.options.find(
+            (candidate) => manifest.tracks[candidate.track] === animation,
+          );
+          if (option) forced[slot] = option.id;
+        }
+      };
+      const look = options.look ?? {};
+      if (hair && look.hairColor) {
+        patched = recolor(patched, artboard, hair, look.hairColor);
+        force(hair.animation);
+      }
+      if (outfit && look.outfitColor) {
+        patched = recolor(patched, artboard, outfit, look.outfitColor);
+        force(outfit.animation);
+      }
+      if (glasses && look.hideGlasses) {
+        patched = hide(patched, artboard, glasses);
+        force(glasses.animation);
+      }
+    }
+    file = await runtime.load(patched, undefined, false);
     renderer = runtime.makeRenderer(canvas, true);
     board = file.artboardByName(manifest.artboard);
     const clipsByName = new Map<string, number>();
@@ -163,6 +200,7 @@ export async function createRiveRenderer(
     }
     const activeBoard = board,
       activeRenderer = renderer;
+    if (attachments) world = riveTransformSource(activeBoard);
     const characterBounds = bounds(activeBoard);
     function apply(handle: string, position: number, mix: number) {
       const clip = tracks.get(handle);
@@ -177,7 +215,7 @@ export async function createRiveRenderer(
     }
     function applyAppearance() {
       for (const [slot, definition] of Object.entries(manifest.appearance)) {
-        const chosen = appearance[slot] ?? definition.default;
+        const chosen = forced[slot] ?? appearance[slot] ?? definition.default;
         const option =
           definition.options.find((candidate) => candidate.id === chosen) ??
           definition.options.find((candidate) => candidate.id === definition.default);
@@ -188,6 +226,9 @@ export async function createRiveRenderer(
       manifest,
       setAppearance(selection) {
         appearance = { ...selection };
+      },
+      setDecorator(next) {
+        decorator = next;
       },
       applyFrame(frame: RenderFrame) {
         if (disposed) return;
@@ -245,17 +286,31 @@ export async function createRiveRenderer(
         if (canvas.style.transformOrigin !== origin) canvas.style.transformOrigin = origin;
         const transform = degrees ? `rotate(${String(degrees)}deg)` : '';
         if (canvas.style.transform !== transform) canvas.style.transform = transform;
+        const frame = {
+          minX: (placement.x - placement.width / 2) * ratio,
+          maxX: (placement.x + placement.width / 2) * ratio,
+          minY: (placement.y - placement.height) * ratio,
+          maxY: placement.y * ratio,
+        };
         activeRenderer.align(
           runtime.Fit.contain,
           runtime.Alignment.bottomCenter,
-          {
-            minX: (placement.x - placement.width / 2) * ratio,
-            maxX: (placement.x + placement.width / 2) * ratio,
-            minY: (placement.y - placement.height) * ratio,
-            maxY: placement.y * ratio,
-          },
+          frame,
           characterBounds,
         );
+        // Attachments use exactly the same alignment, in device pixels.
+        if (decorator && world)
+          decorator(
+            viewMatrix(
+              runtime,
+              runtime.Fit.contain,
+              runtime.Alignment.bottomCenter,
+              frame,
+              characterBounds,
+            ),
+            world,
+            dt,
+          );
         activeBoard.draw(activeRenderer);
         activeRenderer.restore();
         activeRenderer.flush();

@@ -41,7 +41,7 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(base);
   await expect(page.getByText('Local service connected')).toBeVisible();
-  await expect(page.locator('canvas')).toBeVisible();
+  await expect(page.locator('canvas[aria-label]')).toBeVisible();
   const config = await (await page.request.get(base + '/api/state')).json();
   original = config;
   await apply(page, [
@@ -51,7 +51,7 @@ try {
   const overlay = await context.newPage();
   overlay.on('pageerror', (error) => errors.push(error.message));
   await overlay.goto(base + '/overlay');
-  await expect(overlay.locator('canvas')).toBeVisible();
+  await expect(overlay.locator('canvas[aria-label]')).toBeVisible();
   await expect(overlay.locator('header')).toHaveCount(0);
   expect(await overlay.locator('body').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
     'rgba(0, 0, 0, 0)',

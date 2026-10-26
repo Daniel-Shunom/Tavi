@@ -10,7 +10,7 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(process.env.TAVI_TEST_URL ?? 'http://127.0.0.1:5173');
   await expect(page.getByText('Local service connected', { exact: true })).toBeVisible();
-  await expect(page.locator('canvas')).toBeVisible();
+  await expect(page.locator('canvas[aria-label]')).toBeVisible();
   await page.getByRole('button', { name: 'Daydream', exact: true }).click();
   await expect(page.locator('.companion-stage')).toHaveAttribute('data-lighting', 'daydream');
   await page.getByRole('button', { name: 'Moonlight', exact: true }).click();

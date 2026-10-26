@@ -37,6 +37,7 @@ import {
   type State,
 } from '../shared/protocol.js';
 import type { ChatMessage } from '../shared/twitch.js';
+import type { ItemCatalog } from '../shared/wardrobe.js';
 import { ConversationContext } from './ai/context.js';
 import type { AiManager, DecisionResult } from './ai/manager.js';
 import type { ContextEvent, ProviderInfo, StreamerUtterance } from './ai/types.js';
@@ -45,6 +46,8 @@ import { chatGate } from './twitch/reactions.js';
 export interface CompanionOptions {
   config: Config;
   catalog: CharacterCatalog;
+  /** Bundled attachment ids -> slot; unknown or mis-slotted items are dropped. */
+  items?: ItemCatalog | undefined;
   ai: AiManager;
   save?: ((config: Config) => Promise<void>) | undefined;
   now?: () => number;
@@ -70,7 +73,7 @@ export class Companion {
   private readonly now: () => number;
   constructor(private readonly options: CompanionOptions) {
     this.now = options.now ?? Date.now;
-    const config = normalizeConfig(options.config, options.catalog);
+    const config = normalizeConfig(options.config, options.catalog, options.items);
     this.current = {
       config,
       retracted: false,
@@ -220,7 +223,7 @@ export class Companion {
     const manual: DecidedBy = { kind: 'manual', label: 'Studio' };
     switch (command.type) {
       case 'configure': {
-        const next = reduce(this.current, command, this.options.catalog);
+        const next = reduce(this.current, command, this.options.catalog, this.options.items);
         if (this.options.save) await this.options.save(next.config);
         const moved =
           next.config.x !== this.current.config.x || next.config.y !== this.current.config.y;
@@ -361,6 +364,7 @@ export class Companion {
         override ?? this.current.config.presenceStyle,
         seed,
         previous?.choreography,
+        this.current.config.personality,
       ),
       seed,
       startAt: now,

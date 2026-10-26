@@ -5,6 +5,8 @@ import type { CharacterCatalog } from '../shared/capabilities.js';
 import type { WebSocket } from 'ws';
 import { catalog as characterCatalog } from '../src/renderer/characters/registry.js';
 import { decodeFrame } from './decode.js';
+import attachmentCatalog from '../assets/catalog.json' with { type: 'json' };
+import { itemCatalogFrom } from '../shared/wardrobe.js';
 import { TwitchIntegration, type TwitchOptions } from './twitch/integration.js';
 import { Companion } from './companion.js';
 import { AiManager, selectionSchema, type Selection } from './ai/manager.js';
@@ -40,6 +42,7 @@ export async function createApp(
   const companion = new Companion({
     config: config ?? defaults,
     catalog: options.catalog ?? characterCatalog,
+    items: itemCatalogFrom(attachmentCatalog),
     ai,
     save,
     ...(options.now ? { now: options.now } : {}),

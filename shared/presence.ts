@@ -44,14 +44,30 @@ export const presenceTransitionSchema = z
   })
   .strict();
 export type PresenceTransition = z.infer<typeof presenceTransitionSchema>;
-/** Resolves "random" deterministically from the seed, avoiding the previous choice. */
+/**
+ * "Surprise me" leans toward a personality's signature style (weight 3 vs 1); change here.
+ * Matches the motion layer's personality weights.
+ */
+export const personalityStyleWeights: Readonly<Record<string, ChoreographyId>> = {
+  playful: 'drop',
+  shy: 'climb',
+  cozy: 'walk',
+};
+/**
+ * Resolves "random" deterministically from the seed (chosen by the service so every view
+ * agrees), weighted by personality and avoiding the previous choice.
+ */
 export function pickChoreography(
   preference: ChoreographyPreference,
   seed: number,
   previous?: ChoreographyId,
+  personality?: string,
 ): ChoreographyId {
   if (preference !== 'random') return preference;
-  const pool = choreographyIds.filter((id) => id !== previous);
+  const favourite = personality ? personalityStyleWeights[personality] : undefined;
+  const pool = choreographyIds
+    .filter((id) => id !== previous)
+    .flatMap((id) => (id === favourite ? [id, id, id] : [id]));
   return pool[seed % pool.length] ?? 'slide';
 }
 /** 0 = fully visible, 1 = fully hidden, for a transition sampled at service time `now`. */

@@ -3,6 +3,10 @@ import type { State } from '../../shared/protocol';
 import type { Target } from '../../shared/expressions';
 import { anchors, locomotionTarget, type Point } from '../../shared/locomotion';
 import { hiddenAmount } from '../../shared/presence';
+import { wardrobePolicy } from '../../shared/wardrobe';
+import { loadAttachments } from './attachments/bundle';
+import { createAttachmentLayer, type AttachmentLayer } from './attachments/layer';
+import { attachmentRigs } from './characters/attachmentRigs';
 import { createCharacterRenderer, type CharacterRenderer, type RenderFrame } from './adapter';
 import { getCharacter } from './characters/registry';
 import { composePose, phaseLookup, variantFor } from './compose';
@@ -34,12 +38,21 @@ export function Avatar({
 }) {
   const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const back = useRef<HTMLCanvasElement>(null);
+  const front = useRef<HTMLCanvasElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   const latest = useRef({ state, serverNow, captions });
   latest.current = { state, serverNow, captions };
   const [error, setError] = useState('');
   const characterId = state.config.character;
+  // Recolours are baked into the character file, so they reload the renderer (on commit).
+  const wardrobe = state.config.wardrobe;
+  const hideGlasses =
+    wardrobePolicy.eyewearHidesBuiltInGlasses && !!wardrobe.attachments['head.face'];
+  const lookKey = JSON.stringify([wardrobe.hairColor, wardrobe.outfitColor, hideGlasses]);
   useEffect(() => {
+    const look = JSON.parse(lookKey) as [string | null, string | null, boolean];
     const manifest = getCharacter(characterId);
     let cancelled = false,
       view: CharacterRenderer | undefined,
@@ -50,6 +63,15 @@ export function Avatar({
       height = 1;
     let position: Point = { x: latest.current.state.config.x, y: latest.current.state.config.y };
     let pointer: Point | null = null;
+    let facing: -1 | 1 = 1;
+    const rig = attachmentRigs[manifest.id];
+    const layer: AttachmentLayer | null = rig
+      ? createAttachmentLayer({
+          slots: rig.slots,
+          items: loadAttachments().items,
+          path: (d) => new Path2D(d),
+        })
+      : null;
     const performer = new Performer(phaseLookup(manifest));
     const idle = new IdleScheduler({
       supported: Object.keys(manifest.expressions) as (keyof typeof manifest.expressions)[],
@@ -67,6 +89,11 @@ export function Avatar({
       width = element.clientWidth;
       height = element.clientHeight;
       view.resize(width, height);
+      for (const extra of [back.current, front.current])
+        if (extra && canvas.current) {
+          extra.width = canvas.current.width;
+          extra.height = canvas.current.height;
+        }
     }
     const observer = new ResizeObserver(resize);
     function trackPointer(event: PointerEvent) {
@@ -179,8 +206,12 @@ export function Avatar({
               locomotion: manifest.locomotion,
             },
           });
+        const previous = position;
         position =
           output.position ?? fallbackStep(position, goal.to, dt, NOMINAL_SPEED, reducedMotion);
+        // Teleports (anchor jumps, restored views) must not whip attachment springs.
+        if (Math.hypot(position.x - previous.x, position.y - previous.y) > 0.08) layer?.reset();
+        if (output.facing !== undefined) facing = output.facing;
         const handledPresence = output.presence !== undefined;
         if (output.presence) hidden = output.presence.hidden;
         // Build the render frame: ambient loop, expressions, tuck, motion.
@@ -253,8 +284,33 @@ export function Avatar({
           element.dataset['decidedBy'] = current.performance.script?.decidedBy.kind ?? 'none';
           element.dataset['ready'] = 'true';
         }
-        if (canvas.current)
-          canvas.current.style.opacity = String(1 - (handledPresence ? hidden : hidden * hidden));
+        // Rotation, mirroring and the ground-line mask apply to the whole body (Rive canvas plus
+        // attachment canvases) around the character's feet; captions sit outside and never mirror.
+        const wrapper = body.current;
+        if (wrapper) {
+          wrapper.style.opacity = String(1 - (handledPresence ? hidden : hidden * hidden));
+          const origin = `${placement.x.toFixed(1)}px ${placement.y.toFixed(1)}px`;
+          if (wrapper.style.transformOrigin !== origin) wrapper.style.transformOrigin = origin;
+          const degrees = Math.round(placement.rotation * 100) / 100;
+          const transform =
+            (degrees ? `rotate(${String(degrees)}deg)` : '') + (facing < 0 ? ' scaleX(-1)' : '');
+          if (wrapper.style.transform !== transform.trim())
+            wrapper.style.transform = transform.trim();
+          const climbing =
+            transition?.choreography === 'climb' &&
+            (current.retracted || serviceTime - transition.startAt < 4000);
+          const ground =
+            output.clipBelow !== undefined
+              ? output.clipBelow === null
+                ? null
+                : output.clipBelow * height
+              : climbing
+                ? bottomY
+                : null;
+          const clip =
+            ground === null ? '' : `inset(0 0 ${Math.max(0, height - ground - 1).toFixed(1)}px 0)`;
+          if (wrapper.style.clipPath !== clip) wrapper.style.clipPath = clip;
+        }
         const caption = showCaptions && hidden < 0.5 ? pose.caption : '';
         if (bubble.current && bubble.current.textContent !== caption) {
           bubble.current.textContent = caption;
@@ -264,7 +320,7 @@ export function Avatar({
           bubble.current.style.left = `${String(placement.x)}px`;
           bubble.current.style.top = `${String(placement.y - placement.height * 0.92)}px`;
         }
-        view.draw(dt, placement);
+        view.draw(dt, { ...placement, rotation: 0 });
         frame = view.requestFrame(draw);
       } catch (reason) {
         fail(reason);
@@ -279,7 +335,38 @@ export function Avatar({
         const element = host.current,
           target = canvas.current;
         if (!element || !target) return;
-        const loaded = await createCharacterRenderer(target, manifest);
+        const loaded = await createCharacterRenderer(target, manifest, {
+          look: {
+            hairColor: look[0] ?? undefined,
+            outfitColor: look[1] ?? undefined,
+            hideGlasses: look[2],
+          },
+          attachments: rig,
+        });
+        const backContext = back.current?.getContext('2d') ?? null;
+        const frontContext = front.current?.getContext('2d') ?? null;
+        if (layer && frontContext)
+          loaded.setDecorator?.((matrix, world, dt) => {
+            const { state: current } = latest.current;
+            const wardrobe = current.config.wardrobe;
+            for (const context of [backContext, frontContext]) {
+              if (!context) continue;
+              context.setTransform(1, 0, 0, 1, 0, 0);
+              context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+            }
+            layer.draw(backContext, frontContext, {
+              view: matrix,
+              world,
+              dt,
+              equipped: wardrobe.attachments,
+              tints: wardrobe.tints,
+              palette: {
+                ...(wardrobe.hairColor ? { hair: wardrobe.hairColor } : {}),
+                ...(wardrobe.outfitColor ? { outfit: wardrobe.outfitColor } : {}),
+              },
+              still: reduced.matches,
+            });
+          });
         if (cancelled) {
           loaded.dispose();
           return;
@@ -304,10 +391,14 @@ export function Avatar({
       document.removeEventListener('visibilitychange', visibility);
       view?.dispose();
     };
-  }, [presentation, characterId]);
+  }, [presentation, characterId, lookKey]);
   return (
     <div className="avatar-renderer" ref={host} data-renderer={getCharacter(characterId).renderer}>
-      <canvas ref={canvas} aria-label={`${state.config.name}, animated companion`} />
+      <div className="avatar-body" ref={body}>
+        <canvas ref={back} className="avatar-layer" aria-hidden="true" />
+        <canvas ref={canvas} aria-label={`${state.config.name}, animated companion`} />
+        <canvas ref={front} className="avatar-layer" aria-hidden="true" />
+      </div>
       <div className="avatar-caption" ref={bubble} role="status" aria-live="polite" hidden />
       {error ? <p role="alert">{error}</p> : null}
     </div>
