@@ -13,7 +13,7 @@ expression are listed once at the end.
   soft-smile now).
 - **amused**: happy-squint eyes, open smile, head tipped back, palms-out shrug clip, giggle pulses
   shaking the shoulders. Reads at 220 px.
-- **excited**: brows high, big smile, stretch, arms raised outward, hops on the toes. Cut: arms
+- **excited**: brows high, big smile, stretch, arms flung out wide, hops on the toes. Cut: arms
   overhead (past about 2 rad they disappear behind the hair).
 - **proud**: eyes closed in satisfaction, chin up, chest back, hands on hips, a self-approving nod.
   One of the strongest reads.
@@ -35,8 +35,8 @@ expression are listed once at the end.
   wide flat "uh-oh" grimace hold for 0.4 s (onset), then a glance away with a nervous closed smile,
   quick blinks and darting checks back. Cut: teeth in the grimace (no mouth interior).
 - **bored**: slump, heavy lids, flat mouth aside, head lolling with a slow sway, long blinks.
-- **startled**: blink-flinch and crouch, then brows up, jaw drop, stretch, a tiny jump and a
-  shiver. Cut: flared arms (with the rig's bent rest arms they read as hands on hips).
+- **startled**: blink-flinch and crouch, then brows up, jaw drop, stretch, arms flaring out, a
+  tiny jump and a shiver.
 - **soft-smile**: eyes gently closed, small closed smile, fond tilt, hands in.
 - **grin**: biggest smile with wide mouth, bright eyes, lean in, shoulders up.
 - **laugh**: head back, eyes squeezed into arcs, widest mouth, shoulder-shaking pulses.
@@ -61,8 +61,8 @@ expression are listed once at the end.
 - **wince**: eyes squeezed, mouth pulled tight, flinch back and away (onset), shoulders up.
 - **grossed-out**: one side of the face scrunched, mouth pulled down and aside, recoiling with a
   shiver, arms in.
-- **shocked**: brows at maximum, mouth wide, stretched tall, frozen stare with no blinks. Cut:
-  hands to cheeks (the arms cannot reach the face cleanly).
+- **shocked**: brows at maximum, a wide flat stunned mouth, stretched tall, arms out, frozen
+  stare with no blinks. Cut: hands to cheeks (the arms cannot reach the face cleanly).
 - **sleepy**: drooping lids, head lolling, nodding off, a yawn with a stretch every 6 s, long
   blinks.
 - **blush**: shy closed-eye smile, head tucked, hand behind the head, twisting side to side. Cut:

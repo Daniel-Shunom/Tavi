@@ -54,6 +54,12 @@ export interface FaceInput {
    */
   amplitude?: number;
   tempo?: number;
+  /**
+   * Channels a body state currently holds (e.g. sitting owns `bob` and the feet; dozing owns
+   * almost everything). Acting leaves them alone, easing out through the springs, so expressions
+   * layer over sit, perch, lean or peek instead of fighting them.
+   */
+  held?: ReadonlySet<FaceChannel>;
 }
 export interface FaceOutput {
   /** Additive offsets in motion channel units, clamped to the rig's safe ranges. */
@@ -161,6 +167,7 @@ export class FaceLayer {
           flip && authored === 'armL' ? 'armR' : flip && authored === 'armR' ? 'armL' : authored;
         const group = channelGroup[name];
         if (cue.featuresOnly && (group === 'head' || group === 'body')) continue;
+        if (input.held?.has(name)) continue;
         const signed = flip && sidedChannels.has(name) ? -value : value;
         values[name] = (values[name] ?? 0) + signed * cue.weight;
       }
