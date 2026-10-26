@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { scanRiv } from '../src/renderer/motion/rive/rivBinary';
+import { scanRiv } from '../src/renderer/attachments/riv/rivBinary';
 import {
   RiveProperty,
   artboardComponents,

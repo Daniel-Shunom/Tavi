@@ -10,7 +10,7 @@
 //      side effects, and its mix blends it over whatever the performance clips keyed.
 // New animations are appended after the artboard's existing ones, so every existing animation
 // index (joystick xId/yId, state-machine animationId) is unchanged.
-import { RivWriter, scanRiv, splice, type RivObject } from './rivBinary';
+import { RivWriter, scanRiv, splice, type RivObject } from '../../attachments/riv/rivBinary';
 
 const TYPE_ARTBOARD = 1;
 const TYPE_LINEAR_ANIMATION = 31;
