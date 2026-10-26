@@ -190,7 +190,11 @@ export class MotionLayer {
 
     const loco = this.locomotion.update(dt, now, profile, stage, this.caps);
     const choreo = this.choreo.update(now, profile, stage, loco);
-    for (const id of choreo.expressions) this.expressions.play(id, { at: now });
+    for (const id of choreo.expressions) {
+      const hold = choreo.holds[id];
+      this.expressions.play(id, hold === undefined ? { at: now } : { at: now, hold });
+    }
+    for (const id of choreo.releases) this.expressions.release(id, now);
     const expr = this.expressions.evaluate(now, profile);
     const busy = this.expressions.isBusy(now) || loco.moving || choreo.choreography !== null;
     const fidget = this.fidget.update(now, profile, busy);

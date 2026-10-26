@@ -28,6 +28,20 @@ const performances: Readonly<Record<string, string>> = {
   caught: 'caught',
 };
 
+/** Presence style ids (shared/presence.ts) -> motion choreographies. */
+const entranceFor: Readonly<Record<string, string>> = {
+  slide: 'slideUp',
+  drop: 'drop',
+  walk: 'tiredWalk',
+  climb: 'climb',
+};
+const exitFor: Readonly<Record<string, string>> = {
+  slide: 'duck',
+  drop: 'jumpOut',
+  walk: 'walkOff',
+  climb: 'hopOff',
+};
+
 /** Shared seed: studio and overlay make the same idle choices. */
 const SEED = 20261025;
 
@@ -104,20 +118,16 @@ export function createHookLayer(
       if (transition && transition.id !== presenceId) {
         presenceId = transition.id;
         const at = now - Math.max(0, input.presence.elapsed);
-        if (transition.kind === 'enter' && transition.choreography === 'drop') {
-          layer.enter({ at, cue: transition.id, anchor: input.locomotion.home, id: 'drop' });
-          handlingPresence = true;
-        } else if (transition.kind === 'exit') {
-          layer.exit({
+        const style = transition.choreography;
+        if (transition.kind === 'enter')
+          layer.enter({
             at,
             cue: transition.id,
-            id: transition.choreography === 'slide' ? 'duck' : 'hopOff',
+            anchor: input.locomotion.home,
+            id: entranceFor[style] ?? 'drop',
           });
-          handlingPresence = true;
-        } else {
-          layer.reveal();
-          handlingPresence = false;
-        }
+        else layer.exit({ at, cue: transition.id, id: exitFor[style] ?? 'duck' });
+        handlingPresence = true;
       }
 
       const frame = layer.update(now);

@@ -9,7 +9,7 @@ import { clamp01, easeInCubic, smootherstep } from '../core/curves';
 import { pick, rngFor } from '../core/random';
 import type { MotionProfile } from '../profile';
 import type { Pose, Stage } from '../types';
-import type { Locomotion, LocomotionFrame } from './locomotion';
+import type { Gait, Locomotion, LocomotionFrame } from './locomotion';
 
 export type Step =
   | { kind: 'spawnAbove' }
@@ -21,7 +21,14 @@ export type Step =
   | { kind: 'crouch'; duration: number; amount: number }
   | { kind: 'hop'; height: number; duration: number }
   | { kind: 'sink'; duration: number }
-  | { kind: 'fade'; to: 0 | 1; duration: number; rise?: number };
+  | { kind: 'fade'; to: 0 | 1; duration: number; rise?: number }
+  | { kind: 'spawnSide' }
+  | { kind: 'spawnBelow' }
+  | { kind: 'walk'; to: 'anchor' | 'side'; gait: Gait; speed: number }
+  | { kind: 'release'; id: string }
+  | { kind: 'rise'; to: number; duration: number }
+  | { kind: 'popUp'; height: number; duration: number }
+  | { kind: 'launch'; duration: number };
 
 export interface Choreography {
   type: 'entrance' | 'exit';
@@ -45,6 +52,57 @@ export const choreographies: Readonly<Record<string, Choreography>> = {
       { kind: 'pause', duration: 1.7 },
     ],
     calm: calmIn,
+  },
+  tiredWalk: {
+    type: 'entrance',
+    steps: [
+      { kind: 'spawnSide' },
+      { kind: 'expression', id: 'tired', hold: 60 },
+      { kind: 'walk', to: 'anchor', gait: 'tired', speed: 1.8 },
+      { kind: 'release', id: 'tired' },
+      { kind: 'expression', id: 'sigh' },
+      { kind: 'pause', duration: 1.6 },
+    ],
+    calm: calmIn,
+  },
+  climb: {
+    type: 'entrance',
+    steps: [
+      { kind: 'spawnBelow' },
+      { kind: 'expression', id: 'determined', hold: 2.2 },
+      { kind: 'rise', to: -0.55, duration: 0.5 },
+      { kind: 'pause', duration: 0.38 },
+      { kind: 'rise', to: -0.2, duration: 0.42 },
+      { kind: 'pause', duration: 0.22 },
+      { kind: 'popUp', height: 0.14, duration: 0.42 },
+      { kind: 'release', id: 'determined' },
+      { kind: 'impact', squash: 0.14, bounces: [], wobble: 0.25 },
+      { kind: 'expression', id: 'happy' },
+      { kind: 'pause', duration: 0.6 },
+    ],
+    calm: calmIn,
+  },
+  slideUp: {
+    type: 'entrance',
+    steps: [
+      { kind: 'spawnBelow' },
+      { kind: 'rise', to: 0, duration: 0.7 },
+      { kind: 'impact', squash: 0.1, bounces: [], wobble: 0.2 },
+    ],
+    calm: calmIn,
+  },
+  walkOff: {
+    type: 'exit',
+    steps: [{ kind: 'walk', to: 'side', gait: 'step', speed: 2.2 }],
+    calm: calmOut,
+  },
+  jumpOut: {
+    type: 'exit',
+    steps: [
+      { kind: 'crouch', duration: 0.18, amount: 0.14 },
+      { kind: 'launch', duration: 0.5 },
+    ],
+    calm: calmOut,
   },
   hopOff: {
     type: 'exit',
@@ -105,6 +163,10 @@ export interface ChoreographyFrame {
   pose: Partial<Pose>;
   /** Expressions fired this frame (forward to the expression system). */
   expressions: string[];
+  /** Hold overrides (seconds) for fired expressions that last until released. */
+  holds: Record<string, number>;
+  /** Expressions to release this frame. */
+  releases: string[];
   /** Optional overlay impact shake in px (off by default). */
   shake: number;
   done: boolean;
@@ -119,14 +181,24 @@ interface Running {
   fromLift: number;
   fired: Set<number>;
   shake: boolean;
+  locomotion: Locomotion;
+  anchor: { x: number; y: number };
+  /** Durations of locomotion-driven steps, known once they finish. */
+  lengths: Map<number, number>;
+  issued: Set<number>;
 }
 
 function stepLength(step: Step, profile: MotionProfile) {
   const k = 1 / Math.max(0.6, Math.min(1.4, profile.tempo));
   switch (step.kind) {
     case 'spawnAbove':
+    case 'spawnSide':
+    case 'spawnBelow':
     case 'expression':
+    case 'release':
       return 0;
+    case 'walk':
+      return Infinity;
     case 'impact':
       return (
         0.12 + step.bounces.reduce((sum, h) => sum + 2 * Math.sqrt((2 * h) / 9.8), 0) + step.wobble
@@ -176,7 +248,7 @@ export class ChoreographyPlayer {
     if (def.type === 'entrance') {
       locomotion.place(anchor.x, anchor.y);
       this.hidden = false;
-    }
+    } else locomotion.stop(at);
     this.running = {
       id,
       steps: calm ? def.calm : def.steps,
@@ -185,6 +257,10 @@ export class ChoreographyPlayer {
       fromLift: def.type === 'exit' ? this.lastLift : 0,
       fired: new Set(),
       shake: impactShake,
+      locomotion,
+      anchor: { ...anchor },
+      lengths: new Map(),
+      issued: new Set(),
     };
   }
 
@@ -192,8 +268,7 @@ export class ChoreographyPlayer {
     now: number,
     profile: MotionProfile,
     stage: Stage,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- reserved: walk steps read locomotion state
-    _loco: LocomotionFrame,
+    loco: LocomotionFrame,
   ): ChoreographyFrame {
     const frame: ChoreographyFrame = {
       choreography: this.running?.id ?? null,
@@ -204,6 +279,8 @@ export class ChoreographyPlayer {
       clipBelow: null,
       pose: {},
       expressions: [],
+      holds: {},
+      releases: [],
       shake: 0,
       done: this.running === null,
       hidden: this.hidden,
@@ -212,6 +289,20 @@ export class ChoreographyPlayer {
     if (!run) return frame;
     const def = choreographies[run.id];
     const exit = def?.type === 'exit';
+    // A late joiner (reconnect) or a stalled walk jumps to the end state instead of replaying.
+    if (now - run.at > 30) {
+      this.running = null;
+      this.lastLift = 0;
+      if (exit) this.hidden = true;
+      else run.locomotion.place(run.anchor.x, run.anchor.y);
+      return {
+        ...frame,
+        choreography: null,
+        done: true,
+        hidden: this.hidden,
+        opacity: exit ? 0 : 1,
+      };
+    }
     let t = now - run.at;
     let lift = run.fromLift;
     let finished = true;
@@ -219,7 +310,7 @@ export class ChoreographyPlayer {
     for (let index = 0; index < run.steps.length; index++) {
       const step = run.steps[index];
       if (!step) continue;
-      const length = stepLength(step, profile);
+      const length = run.lengths.get(index) ?? stepLength(step, profile);
       const local = t;
       const inside = local < length;
       switch (step.kind) {
@@ -280,6 +371,7 @@ export class ChoreographyPlayer {
           if (!run.fired.has(index)) {
             run.fired.add(index);
             frame.expressions.push(step.id);
+            if (step.hold !== undefined) frame.holds[step.id] = step.hold;
           }
           break;
         case 'pause':
@@ -311,6 +403,76 @@ export class ChoreographyPlayer {
           frame.clipBelow = run.ground;
           frame.pose.armL = 0.7 * k;
           frame.pose.armR = 0.7 * k;
+          break;
+        }
+        case 'spawnSide': {
+          const side = run.anchor.x < 0.5 ? -1 : 1;
+          if (!run.issued.has(index)) {
+            run.issued.add(index);
+            run.locomotion.place(side < 0 ? -0.1 : 1.1, run.anchor.y);
+          }
+          break;
+        }
+        case 'spawnBelow':
+          lift = -1.1;
+          break;
+        case 'walk': {
+          if (!run.issued.has(index)) {
+            run.issued.add(index);
+            const side = run.locomotion.position.x < 0.5 ? -1 : 1;
+            const x = step.to === 'anchor' ? run.anchor.x : side < 0 ? -0.12 : 1.12;
+            run.locomotion.moveTo({
+              x,
+              at: now,
+              gait: step.gait,
+              speed: step.speed,
+              unbounded: true,
+            });
+          } else if (!run.lengths.has(index) && !loco.moving && local > 0.2)
+            run.lengths.set(index, local);
+          lift = 0;
+          break;
+        }
+        case 'release':
+          if (!run.fired.has(index)) {
+            run.fired.add(index);
+            frame.releases.push(step.id);
+          }
+          break;
+        case 'rise': {
+          const k = clamp01(local / length);
+          const from = lift;
+          // Pull: quick start, eased finish (a heave), arms up gripping the edge.
+          lift = from + (step.to - from) * (1 - (1 - k) * (1 - k));
+          frame.clipBelow = run.ground;
+          frame.pose.armL = 0.9;
+          frame.pose.armR = 0.9;
+          frame.pose.squash = inside ? -0.3 * Math.sin(k * Math.PI) : 0;
+          break;
+        }
+        case 'popUp': {
+          const k = clamp01(local / length);
+          const from = lift;
+          lift = from * (1 - k) + 4 * step.height * k * (1 - k);
+          frame.clipBelow = k < 0.5 ? run.ground : null;
+          if (inside) {
+            frame.scaleY = 1 + 0.1 * Math.sin(k * Math.PI) * squash;
+            frame.scaleX = 1 / frame.scaleY;
+            frame.pose.armL = 0.5 * (1 - k);
+            frame.pose.armR = 0.5 * (1 - k);
+          }
+          break;
+        }
+        case 'launch': {
+          const k = clamp01(local / length);
+          const top = (run.ground + 0.05) / stage.bodyHeight + 1.2;
+          lift = top * Math.pow(k, 1.6);
+          if (inside) {
+            frame.scaleY = 1 + 0.14 * (1 - k) * squash;
+            frame.scaleX = 1 / frame.scaleY;
+            frame.pose.armL = 0.8;
+            frame.pose.armR = 0.8;
+          }
           break;
         }
         case 'fade': {

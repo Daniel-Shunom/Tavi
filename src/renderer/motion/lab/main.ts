@@ -8,6 +8,7 @@ import { MotionLayer } from '../motion';
 import { createMotionRig, type MotionRig } from '../rive/motionRig';
 import { lylaPatch, lylaRig } from '../../characters/mascot/motionRig';
 import { bindLyla } from '../../characters/mascot/motionBinding';
+import { choreographies } from '../systems/choreography';
 import { expressionLibrary } from '../systems/expressions';
 import { mascot } from '../../characters/mascot/manifest';
 import type { Attitude, MotionSettings, Personality } from '../types';
@@ -62,7 +63,8 @@ async function main() {
   const legacy = { x: 0.5, target: 0.5, action: '', started: -10, hidden: false };
   let clock = 0,
     last: number | null = null,
-    cue = 0;
+    cue = 0,
+    home = 0.5;
 
   const controls = document.getElementById('controls');
   const status = document.getElementById('status');
@@ -157,7 +159,7 @@ async function main() {
     layer.enter({
       at: clock,
       cue: String(++cue),
-      anchor: layer.locomotion.position,
+      anchor: { x: home, y: 0.92 },
       ...(id ? { id } : {}),
     });
   };
@@ -165,17 +167,17 @@ async function main() {
     legacy.hidden = true;
     layer.exit({ at: clock, cue: String(++cue), ...(id ? { id } : {}) });
   };
-  button('Drop in', () => {
-    show('drop');
-  });
-  button('Hop off', () => {
-    hide('hopOff');
-  });
+  for (const [id, def] of Object.entries(choreographies))
+    button((def.type === 'entrance' ? 'In: ' : 'Out: ') + id, () => {
+      if (def.type === 'entrance') show(id);
+      else hide(id);
+    });
   button('Random hide / show', () => {
     if (layer.hidden) show();
     else hide();
   });
   const moveTo = (x: number) => {
+    home = x;
     legacy.target = x;
     layer.moveTo({ x, at: clock });
   };

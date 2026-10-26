@@ -307,6 +307,21 @@ export const expressionLibrary: Readonly<Record<string, ExpressionDef>> = {
       };
     },
   },
+  sigh: {
+    timing: { anticipation: 0, attack: 0.5, settle: 0.1, hold: 0.9, release: 0.7 },
+    pose: { squintL: 0.35, squintR: 0.35, gazeY: 0.2 },
+    motion: (t) => {
+      const inhale = beat(t, 0, 0.55, 0.15, 0.4);
+      const exhale = beat(t, 0.75, 0.3, 0.5, 0.6);
+      return {
+        squash: -0.5 * inhale + 0.4 * exhale,
+        armL: 0.12 * inhale - 0.05 * exhale,
+        armR: 0.12 * inhale - 0.05 * exhale,
+        bob: 0.006 * exhale,
+        headTilt: 0.04 * exhale,
+      };
+    },
+  },
   determined: {
     timing: { anticipation: 0, attack: 0.2, settle: 0.2, hold: 1, release: 0.4 },
     pose: { browL: 0.6, browR: 0.6, smile: -0.2, squintL: 0.25, squintR: 0.25 },

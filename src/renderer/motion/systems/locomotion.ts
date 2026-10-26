@@ -120,6 +120,8 @@ export interface MoveCommand {
   gait?: Gait;
   /** Speed multiplier (default 1). */
   speed?: number;
+  /** Allow targets outside the safe bounds (walking on/off stage). */
+  unbounded?: boolean;
   /** Facing on arrival (default: keep travel direction). */
   faceOnArrival?: 1 | -1;
 }
@@ -266,7 +268,10 @@ export class Locomotion {
       const command = this.command;
       this.command = null;
       const { min, max } = this.bounds(stage);
-      this.target = { x: Math.min(max, Math.max(min, command.x)), y: command.y ?? this.y };
+      this.target = {
+        x: command.unbounded ? command.x : Math.min(max, Math.max(min, command.x)),
+        y: command.y ?? this.y,
+      };
       const distanceBH = Math.abs(toStage(this.target.x - this.x)) / bh;
       this.startY = this.y;
       this.totalDistance = Math.max(1e-6, Math.abs(this.target.x - this.x));

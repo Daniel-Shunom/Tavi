@@ -51,12 +51,75 @@ describe('choreography', () => {
     expect(frames.every((f) => f.shake === 0)).toBe(true);
   });
 
-  for (const id of ['hopOff', 'duck'])
+  for (const id of ['tiredWalk', 'climb', 'slideUp', 'drop'])
+    it(`${id}: moves every step of the way and ends settled at the anchor`, () => {
+      const { frames, loco } = play(id, { seconds: 30 });
+      const xs: number[] = [];
+      const run = (() => {
+        const l = new Locomotion(1);
+        l.place(anchor.x, anchor.y);
+        const player = new ChoreographyPlayer();
+        player.start(id, { at: 0, anchor }, l, stage);
+        for (let i = 0; i <= 120; i++) {
+          const lf = l.update(i ? 1 / 60 : 0, i / 60, profile, stage, { feet: true });
+          const f = player.update(i / 60, profile, stage, lf);
+          xs.push(lf.x * 1000 + f.liftBH * 1000);
+        }
+        return xs;
+      })();
+      // Frames differ during the opening second (something visibly moves).
+      expect(new Set(run.slice(10, 60).map((v) => v.toFixed(3))).size).toBeGreaterThan(20);
+      const end = frames.at(-1);
+      expect(end?.done).toBe(true);
+      expect(end?.hidden).toBe(false);
+      expect(end?.liftBH).toBe(0);
+      expect(loco.position.x).toBeCloseTo(anchor.x, 2);
+    });
+
+  it('tired walk-in comes from the nearer side, slumped', () => {
+    const { frames } = play('tiredWalk', { seconds: 2 });
+    expect(frames.some((f) => f.expressions.includes('tired'))).toBe(true);
+  });
+
+  it('climb hides the body below the ground line while pulling up', () => {
+    const { frames } = play('climb', { seconds: 1 });
+    expect(
+      frames.filter((f) => f.clipBelow === anchor.y && f.liftBH < -0.3).length,
+    ).toBeGreaterThan(20);
+  });
+
+  it('tucking away mid walk-in cuts straight to an exit', () => {
+    const loco = new Locomotion(1);
+    loco.place(anchor.x, anchor.y);
+    const player = new ChoreographyPlayer();
+    player.start('tiredWalk', { at: 0, anchor }, loco, stage);
+    let f: ChoreographyFrame | null = null;
+    for (let i = 0; i <= 120; i++)
+      f = player.update(
+        i / 60,
+        profile,
+        stage,
+        loco.update(i ? 1 / 60 : 0, i / 60, profile, stage, { feet: true }),
+      );
+    expect(f?.done).toBe(false);
+    player.start('duck', { at: 2, anchor: loco.position }, loco, stage);
+    for (let i = 121; i <= 240; i++)
+      f = player.update(
+        i / 60,
+        profile,
+        stage,
+        loco.update(1 / 60, i / 60, profile, stage, { feet: true }),
+      );
+    expect(f?.hidden).toBe(true);
+  });
+
+  for (const id of ['hopOff', 'duck', 'jumpOut', 'walkOff'])
     it(`${id} exits below the ground line quickly and ends hidden`, () => {
       const { frames } = play(id);
       const doneAt = frames.findIndex((f) => f.done);
-      expect(doneAt / 60).toBeLessThan(1);
-      expect(frames.some((f) => f.clipBelow === anchor.y)).toBe(true);
+      expect(doneAt / 60).toBeLessThan(id === 'walkOff' ? 5 : 1);
+      if (id === 'hopOff' || id === 'duck')
+        expect(frames.some((f) => f.clipBelow === anchor.y)).toBe(true);
       expect(frames.at(-1)?.hidden).toBe(true);
     });
 

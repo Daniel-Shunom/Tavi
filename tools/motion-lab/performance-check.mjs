@@ -42,5 +42,35 @@ for (const id of ['skeptical', 'caught', 'approve']) {
   for (let i = 9; i <= 20; i++) if (Buffer.compare(frames[i], frames[i - 1]) === 0) identical++;
   results[id] = { holdPairsCompared: 12, identicalPairs: identical };
 }
+// Entrances and exits: frames must differ and exits must end hidden.
+const stageClip = { x: box.x, y: box.y, width: box.width, height: box.height };
+for (const [id, kind] of [
+  ['jumpOut', 'hide'],
+  ['drop', 'show'],
+  ['walkOff', 'hide'],
+  ['tiredWalk', 'show'],
+  ['hopOff', 'hide'],
+  ['climb', 'show'],
+  ['duck', 'hide'],
+  ['slideUp', 'show'],
+]) {
+  await page.evaluate(([name, k]) => window.lab[k](name), [id, kind]);
+  const frames = [];
+  for (let i = 0; i < 16; i++) {
+    frames.push(
+      await page.screenshot({
+        clip: stageClip,
+        path: `${out}/presence-${id}-${String(i).padStart(2, '0')}.png`,
+      }),
+    );
+    await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(kind === 'show' ? 6000 : 3000);
+  const opacity = await page.evaluate(
+    () => getComputedStyle(document.querySelector('#after canvas')).opacity,
+  );
+  const distinct = new Set(frames.map((f) => f.toString('base64'))).size;
+  results[id] = { distinctFramesOf16: distinct, opacityAfter: opacity };
+}
 console.log(JSON.stringify({ results, errors }));
 await browser.close();
