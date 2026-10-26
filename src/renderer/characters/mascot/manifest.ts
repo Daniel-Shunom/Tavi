@@ -1,15 +1,12 @@
 // Mascot / Avatar Customization by alisketch (CC BY 4.0), artboard "lyla animation".
-// Grounded in tools/rive-inventory.mjs and tools/rive-clip-sampler.mjs (see README.md):
-// - Face x/y, brows, mouth, lids, squash and hair clips render nothing when sampled raw: they
-//   are joystick channels that only work once the motion rig patch (./motionRig.ts) is applied
-//   in memory. They are exposed as motion control tracks (./motion.ts), not bound here.
-// - "wave testing folio header" permanently rescales the artboard to ~65% and is excluded.
-// - Every expression below is composed from verified full-body clips plus small host offsets;
-//   these clips have no independently controllable brows, mouth or eyes. The face itself is driven
-//   through the joysticks by the face layer (face.ts poses, src/renderer/face/).
+// Body clips below are verified full-body clips plus small host offsets: the fallback when no
+// motion layer runs. With the motion layer, every binding that names `motion: '<id>'` is performed
+// instead: nod/skeptical/caught by the motion library, everything else by the acting poses in
+// face.ts (face, head and body through the joysticks; see docs/character/EXPRESSIONS.md).
+// "wave testing folio header" permanently rescales the artboard to ~65% and is excluded.
 import type { ManifestInput } from '../manifest';
 import { mascotFace } from './face';
-import { mascotControlTracks, mascotMotionNodes } from './motion';
+import { mascotClipTracks, mascotControlTracks, mascotMotionNodes } from './motion';
 
 export const mascot: ManifestInput = {
   id: 'mascot',
@@ -53,6 +50,7 @@ export const mascot: ManifestInput = {
     'sway',
     'subtle-shift',
     'arm-swing',
+    ...mascotClipTracks,
     ...Object.keys(mascotControlTracks),
   ],
   rest: [{ track: 'wave-once', at: 0 }],
@@ -63,6 +61,7 @@ export const mascot: ManifestInput = {
   locomotion: { mode: 'procedural' },
   expressions: {
     content: {
+      motion: 'content',
       composed: true,
       tracks: [{ track: 'happy-shrug', at: 0.08, mix: 0.55 }],
       transform: { y: -2 },
@@ -90,6 +89,7 @@ export const mascot: ManifestInput = {
       transform: { y: -4, scale: 1.03 },
     },
     impressed: {
+      motion: 'impressed',
       composed: true,
       tracks: [{ track: 'happy-shrug', at: 0.12, mix: 0.45 }],
       transform: { rotation: -1.5, scale: 1.02 },
@@ -153,6 +153,7 @@ export const mascot: ManifestInput = {
       transform: { x: -16, rotation: -4 },
     },
     bored: {
+      motion: 'bored',
       composed: true,
       tracks: [{ track: 'sway', loop: 4, mix: 0.6 }],
       transform: { y: 2 },
@@ -169,18 +170,21 @@ export const mascot: ManifestInput = {
     // Facial emotes: the face pose (face.ts) carries the emotion; these add posture and a
     // living body accent so they still read where no face layer runs.
     'soft-smile': {
+      motion: 'soft-smile',
       composed: true,
       tracks: [{ track: 'happy-shrug', at: 0.06, mix: 0.35 }],
       oscillate: { property: 'rotation', amplitude: 0.6, hz: 0.35 },
       transform: { rotation: 1 },
     },
     grin: {
+      motion: 'grin',
       composed: true,
       tracks: [{ track: 'happy-shrug', at: 0.12, mix: 0.7 }],
       oscillate: { property: 'y', amplitude: 1.5, hz: 1.2 },
       transform: { y: -3, scale: 1.02 },
     },
     laugh: {
+      motion: 'laugh',
       composed: true,
       tracks: [{ track: 'happy-shrug', play: { from: 0.1, to: 0.2 }, pingpong: 0.45, mix: 0.8 }],
       oscillate: { property: 'y', amplitude: 3, hz: 5 },
@@ -188,67 +192,79 @@ export const mascot: ManifestInput = {
       anticipation: 0.12,
     },
     smirk: {
+      motion: 'smirk',
       composed: true,
       tracks: [{ track: 'hands-on-hips', at: 0.2, mix: 0.35 }],
       oscillate: { property: 'rotation', amplitude: 0.5, hz: 0.4 },
       transform: { rotation: 2.5 },
     },
     'eye-roll': {
+      motion: 'eye-roll',
       composed: true,
       tracks: [{ track: 'flat-shrug', play: { from: 0.3, to: 0.5 }, pingpong: 1.6, mix: 0.5 }],
       transform: { rotation: -1.5, y: 1 },
     },
     suspicious: {
+      motion: 'suspicious',
       composed: true,
       tracks: [{ track: 'thoughtful', play: { from: 0.4, to: 0.55 }, pingpong: 3, mix: 0.5 }],
       transform: { rotation: 3, x: 4 },
       oscillate: { property: 'x', amplitude: 1.5, hz: 0.25 },
     },
     deadpan: {
+      motion: 'deadpan',
       composed: true,
       tracks: [],
       transform: { y: 1 },
       oscillate: { property: 'scale', amplitude: 0.003, hz: 0.25 },
     },
     focused: {
+      motion: 'focused',
       composed: true,
       tracks: [],
       transform: { scale: 1.02, y: 2 },
       oscillate: { property: 'rotation', amplitude: 0.4, hz: 0.3 },
     },
     determined: {
+      motion: 'determined',
       composed: true,
       tracks: [{ track: 'hands-on-hips', play: { from: 0.4, to: 0.6 }, pingpong: 2.4, mix: 0.6 }],
       transform: { y: -2, scale: 1.02 },
     },
     frown: {
+      motion: 'frown',
       composed: true,
       tracks: [{ track: 'flat-shrug', at: 0.2, mix: 0.3 }],
       transform: { y: 2 },
       oscillate: { property: 'rotation', amplitude: 0.5, hz: 0.3 },
     },
     pout: {
+      motion: 'pout',
       composed: true,
       tracks: [{ track: 'sheepish-wave', play: { from: 0.2, to: 0.3 }, pingpong: 2.2, mix: 0.35 }],
       transform: { rotation: -3, x: -4 },
     },
     annoyed: {
+      motion: 'annoyed',
       composed: true,
       tracks: [{ track: 'hands-on-hips', play: { from: 0.35, to: 0.55 }, pingpong: 2.8, mix: 0.7 }],
       transform: { rotation: 1.5 },
     },
     sad: {
+      motion: 'sad',
       composed: true,
       tracks: [{ track: 'flat-shrug', play: { from: 0.45, to: 0.55 }, pingpong: 3.2, mix: 0.35 }],
       transform: { y: 5, rotation: 2, scale: 0.99 },
     },
     worried: {
+      motion: 'worried',
       composed: true,
       tracks: [{ track: 'sheepish-wave', at: 0.2, mix: 0.3 }],
       transform: { scale: 0.99, y: 2 },
       oscillate: { property: 'x', amplitude: 1.5, hz: 1.1 },
     },
     wince: {
+      motion: 'wince',
       composed: true,
       tracks: [],
       transform: { x: -6, rotation: -3, scale: 0.98 },
@@ -257,6 +273,7 @@ export const mascot: ManifestInput = {
       recovery: 0.5,
     },
     'grossed-out': {
+      motion: 'grossed-out',
       composed: true,
       tracks: [{ track: 'flat-shrug', at: 0.3, mix: 0.4 }],
       transform: { x: -10, rotation: -4 },
@@ -264,19 +281,35 @@ export const mascot: ManifestInput = {
       anticipation: 0.1,
     },
     shocked: {
+      motion: 'shocked',
       composed: true,
       tracks: [{ track: 'celebration', play: { from: 0, to: 0.1 }, mix: 0.35 }],
       transform: { y: -8, scale: 1.03 },
       oscillate: { property: 'scale', amplitude: 0.004, hz: 6 },
       anticipation: 0.08,
     },
+    blush: {
+      motion: 'blush',
+      composed: true,
+      tracks: [{ track: 'sheepish-wave', play: { from: 0.25, to: 0.4 }, pingpong: 2, mix: 0.7 }],
+      transform: { rotation: 3 },
+    },
+    point: {
+      motion: 'point',
+      composed: true,
+      tracks: [],
+      transform: { rotation: 1.5, x: 3 },
+      oscillate: { property: 'rotation', amplitude: 0.4, hz: 0.5 },
+    },
     sleepy: {
+      motion: 'sleepy',
       composed: true,
       tracks: [{ track: 'sway', loop: 6, mix: 0.4 }],
       transform: { y: 4, rotation: 3 },
       anticipation: 0.6,
     },
     wave: {
+      motion: 'wave',
       tracks: [{ track: 'wave-once', play: { from: 0, to: 1 }, mix: 0.95 }],
       anticipation: 0.15,
       variants: {
@@ -316,8 +349,15 @@ export const mascot: ManifestInput = {
       tracks: [{ track: 'sheepish-wave', at: 0.15, mix: 0.4 }],
       transform: { scale: 1.025, rotation: 1.5 },
     },
-    glance: { composed: true, tracks: [], transform: { rotation: 1.5, x: 2 }, anticipation: 0.15 },
+    glance: {
+      motion: 'glance',
+      composed: true,
+      tracks: [],
+      transform: { rotation: 1.5, x: 2 },
+      anticipation: 0.15,
+    },
     'look-away': {
+      motion: 'look-away',
       composed: true,
       tracks: [{ track: 'flat-shrug', at: 0.3, mix: 0.3 }],
       transform: { rotation: -4, x: -6 },
@@ -331,8 +371,8 @@ export const mascot: ManifestInput = {
       recovery: 0.8,
     },
   },
-  // No pointing pose in this rig: look toward the target instead of pretending to point.
-  fallbacks: { point: 'glance' },
+  // Pointing is acted with the arm by the face layer (acting/faces.ts).
+  fallbacks: {},
   attention: {
     streamer: { rotation: 3, x: 6 },
     chat: { rotation: 3, x: 6 },

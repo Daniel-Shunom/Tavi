@@ -63,9 +63,10 @@ describe('face pose library', () => {
       expect(face.poses[id], id).toBeDefined();
     }
   });
-  it('gives every emote on the mascot a face pose, including Oops and embarrassed', () => {
+  it('acts out every emote, gesture and attention expression, including Oops and embarrassed', () => {
     for (const id of expressionIds)
-      if (expressions[id].channel === 'emote') expect(face.poses[id], id).toBeDefined();
+      if (['emote', 'gesture', 'attention'].includes(expressions[id].channel))
+        expect(face.poses[id], id).toBeDefined();
     expect(face.poses.innocent?.onset, 'Oops needs a startle onset').toBeDefined();
     expect(face.poses.embarrassed?.keys, 'embarrassed needs darting glances').toBeDefined();
   });

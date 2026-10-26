@@ -19,7 +19,13 @@ export const facePoseSchema = z
      * Authored at full strength (intensity 1); weaker cues scale it down (accentGain).
      */
     onset: z
-      .object({ pose: faceValuesSchema, seconds: z.number().positive().max(2) })
+      .object({
+        pose: faceValuesSchema,
+        /** Seconds to ease from the accent into the pose. */
+        seconds: z.number().positive().max(2),
+        /** Seconds the accent holds before easing (a readable beat, e.g. Oops's grimace). */
+        hold: z.number().min(0).max(2).optional(),
+      })
       .strict()
       .optional(),
     /**
@@ -150,9 +156,11 @@ function sampleKeys(keys: readonly (readonly [number, number])[], t: number) {
  */
 export function sampleFacePose(def: FacePose, intensity: number, elapsed: number): FaceValues {
   let values = poseAtIntensity(def, intensity);
-  if (def.onset && elapsed < def.onset.seconds) {
+  const onsetEnd = def.onset ? (def.onset.hold ?? 0) + def.onset.seconds : 0;
+  if (def.onset && elapsed < onsetEnd) {
     const accent = scaled(def.onset.pose, accentGain(intensity));
-    values = lerpValues(accent, values, smoothstep(elapsed / def.onset.seconds));
+    const into = elapsed - (def.onset.hold ?? 0);
+    values = lerpValues(accent, values, smoothstep(into / def.onset.seconds));
   }
   if (def.keys) {
     const t = def.keys.every ? elapsed % def.keys.every : elapsed;

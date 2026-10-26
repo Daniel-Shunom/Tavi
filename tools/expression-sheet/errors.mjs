@@ -15,5 +15,12 @@ await page.goto(base + '/tools/expression-sheet/?paused');
 await page.waitForFunction(() => document.body.dataset.ready || document.body.dataset.error, null, {
   timeout: 120000,
 });
+if (process.env.SEEK)
+  console.log(
+    await page.evaluate((args) => {
+      window.sheet.seek(...args);
+      return JSON.stringify(window.sheet.pose());
+    }, JSON.parse(process.env.SEEK)),
+  );
 console.log('status:', await page.evaluate(() => document.body.dataset.error ?? 'ready'));
 await browser.close();
