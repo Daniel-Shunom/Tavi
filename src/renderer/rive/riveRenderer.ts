@@ -94,7 +94,11 @@ export async function createRiveRenderer(
   >();
   const nodes = new Map<
     string,
-    { node: Node; base: { x: number; y: number; rotation: number; scaleX: number; scaleY: number } }
+    {
+      node: Node;
+      positioned: boolean;
+      base: { x: number; y: number; rotation: number; scaleX: number; scaleY: number };
+    }
   >();
   let appearance: Record<string, string> = {};
   // Appearance options whose animation was rewritten in memory (custom colour, hidden glasses).
@@ -187,12 +191,19 @@ export async function createRiveRenderer(
       }
     }
     for (const [handle, name] of Object.entries(manifest.nodes)) {
-      const node = board.node(name);
+      // Nodes first; a name that is not a Node may be a bone (e.g. a forearm), which only takes
+      // rotation and scale (its position comes from its parent bone).
+      // The typings say non-null, but wasm returns null when the name is absent.
+      const found = board.node(name) as Node | null;
+      const bone = found ? null : (board.bone(name) as unknown as Node | null);
+      const node = found ?? bone;
+      if (!node) throw new Error(`${manifest.id}: missing node or bone ${handle}`);
       nodes.set(handle, {
         node,
+        positioned: !bone,
         base: {
-          x: node.x,
-          y: node.y,
+          x: bone ? 0 : node.x,
+          y: bone ? 0 : node.y,
           rotation: node.rotation,
           scaleX: node.scaleX,
           scaleY: node.scaleY,
@@ -236,8 +247,10 @@ export async function createRiveRenderer(
         // Nodes return to their setup pose before clips, so motion offsets add on top of the
         // animated values instead of replacing them (and never accumulate).
         for (const entry of nodes.values()) {
-          entry.node.x = entry.base.x;
-          entry.node.y = entry.base.y;
+          if (entry.positioned) {
+            entry.node.x = entry.base.x;
+            entry.node.y = entry.base.y;
+          }
           entry.node.rotation = entry.base.rotation;
           entry.node.scaleX = entry.base.scaleX;
           entry.node.scaleY = entry.base.scaleY;
@@ -259,8 +272,10 @@ export async function createRiveRenderer(
         }
         for (const [handle, entry] of nodes) {
           const offset = frame.nodes[handle] ?? {};
-          entry.node.x += offset.x ?? 0;
-          entry.node.y += offset.y ?? 0;
+          if (entry.positioned) {
+            entry.node.x += offset.x ?? 0;
+            entry.node.y += offset.y ?? 0;
+          }
           entry.node.rotation += offset.rotation ?? 0;
           entry.node.scaleX *= offset.scaleX ?? 1;
           entry.node.scaleY *= offset.scaleY ?? 1;

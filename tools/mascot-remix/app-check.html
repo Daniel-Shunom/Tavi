@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Character renderer check</title>
+    <style>
+      body {
+        margin: 0;
+        background: #d9dde3;
+      }
+      canvas {
+        display: block;
+        width: 300px;
+        height: 400px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="app" width="300" height="400"></canvas>
+    <script type="module">
+      // Loads a registered character through the app's CharacterRenderer (patch, nodes and bones,
+      // control tracks) and draws one frame with an elbow bend and a hand pose.
+      import { RuntimeLoader } from '@rive-app/webgl2';
+      import wasmURL from '@rive-app/webgl2/rive.wasm?url';
+      import { createCharacterRenderer } from '/src/renderer/adapter.ts';
+      import { characters } from '/src/renderer/characters/registry.ts';
+      RuntimeLoader.setWasmUrl(wasmURL);
+      RuntimeLoader.setWasmFallbackUrl(null);
+      const id = new URLSearchParams(location.search).get('character') ?? 'mascot-v2';
+      try {
+        const manifest = characters.get(id);
+        const renderer = await createCharacterRenderer(document.querySelector('#app'), manifest);
+        renderer.resize(300, 400);
+        const v2 = id === 'mascot-v2';
+        renderer.applyFrame({
+          tracks: v2 ? [{ track: 'ctl.hand-r', time: 35 / 60, mix: 1 }] : [],
+          inputs: {},
+          nodes: v2 ? { 'arm-r': { rotation: -1.1 }, 'arm-r-fore': { rotation: 0 } } : {},
+        });
+        renderer.draw(1 / 60, { x: 150, y: 400, width: 300, height: 380, rotation: 0 });
+        document.body.dataset.ready = 'true';
+      } catch (error) {
+        console.error(error);
+        document.body.dataset.error = String(error);
+      }
+    </script>
+  </body>
+</html>

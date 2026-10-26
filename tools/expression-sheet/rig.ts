@@ -9,14 +9,39 @@ import { neutralPose, type Channel, type MotionFrame } from '../../src/renderer/
 
 export type SheetPose = Partial<Record<string, number>>;
 
+/** Discrete selections are held from frame 10k of the 60-frame (1 s) control tracks. */
+const step = (index: number) => Math.min(0.99, (10 * Math.max(0, Math.round(index)) + 5) / 60);
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
+/**
+ * `v2`: the remixed file (art/mascot-remix), which carries the names and control tracks itself
+ * (no patch) and adds elbows, hands, arms-in-front, brow tilt and the open mouth.
+ */
 export async function createSheetRig(
   runtime: RiveCanvas,
   canvas: HTMLCanvasElement,
   bytes: Uint8Array,
   width: number,
   height: number,
+  v2 = false,
 ) {
-  const rig = await createMotionRig(runtime, canvas, bytes, lylaPatch, lylaRig);
+  const manifest = v2
+    ? {
+        ...lylaRig,
+        nodes: {
+          ...lylaRig.nodes,
+          elbowL: { name: 'tavi/armL.fore', kind: 'bone' as const },
+          elbowR: { name: 'tavi/armR.fore', kind: 'bone' as const },
+        },
+      }
+    : lylaRig;
+  const rig = await createMotionRig(
+    runtime,
+    canvas,
+    bytes,
+    v2 ? { artboard: lylaRig.artboard } : lylaPatch,
+    manifest,
+  );
   rig.resize(width, height, Math.min(devicePixelRatio || 1, 2));
   canvas.style.width = `${String(width)}px`;
   canvas.style.height = `${String(height)}px`;
@@ -49,7 +74,28 @@ export async function createSheetRig(
       { zoom = 1, focus = 0.3, dt = 1 / 60 }: { zoom?: number; focus?: number; dt?: number } = {},
     ) {
       const bodyHeight = zoom === 1 ? height * 0.96 : height * zoom;
-      rig.frame(dt, bindLyla(frame), {
+      // Same rest as the app's renderer (the wave clip at 0 resets the forearm bones, which
+      // otherwise keep the last clip's pose between cards).
+      const rest = { role: 'wave', time: 0, mix: 1 };
+      const input = bindLyla({ ...frame, clips: [rest, ...frame.clips] });
+      if (v2) {
+        const p = frame.pose;
+        input.clips.push(
+          { name: 'tavi/browTiltL', time: clamp01((p.browTiltL + 1) / 2), mix: 1 },
+          { name: 'tavi/browTiltR', time: clamp01((p.browTiltR + 1) / 2), mix: 1 },
+          { name: 'tavi/mouthOpen', time: clamp01(p.mouthOpen), mix: 1 },
+          { name: 'tavi/viseme', time: step(p.viseme), mix: 1 },
+          { name: 'tavi/handL', time: step(p.handL), mix: 1 },
+          { name: 'tavi/handR', time: step(p.handR), mix: 1 },
+          { name: 'tavi/armsFront', time: p.armsFront >= 0.5 ? 0.99 : 0.01, mix: 1 },
+        );
+        input.offsets = {
+          ...input.offsets,
+          elbowL: { rotation: p.elbowL },
+          elbowR: { rotation: -p.elbowR },
+        };
+      }
+      rig.frame(dt, input, {
         x: width / 2,
         y: zoom === 1 ? height * 0.98 : height / 2 + (1 - focus) * bodyHeight,
         height: bodyHeight,

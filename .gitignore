@@ -8,3 +8,6 @@ playwright-report/
 test-results/
 __pycache__/
 .claude/worktrees/
+
+# Generated from art/mascot-remix by tools/mascot-remix/slim.mjs
+art/mascot-v2-export/

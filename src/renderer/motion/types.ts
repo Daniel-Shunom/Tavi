@@ -27,6 +27,11 @@ export interface MotionSettings {
  *  headTilt, lean, armL/armR  radians (armL/armR: positive raises the arm outward)
  *  bob, shift body offset in body heights (+bob = down/crouch); headY head offset (+ = down)
  *  footLX..   foot offsets in body heights (+y = up/lift)
+ *  elbowL/R   radians, forearm bend added to the elbow (same sign convention as armL/armR)
+ *  handL/R    discrete hand pose index: 0 rest, 1 open palm, 2 fist, 3 point, 4 thumbs up
+ *  armsFront  discrete: 1 draws the arms in front of the hair
+ *  mouthOpen  0 closed .. 1 open; viseme discrete: 0 A, 1 O, 2 E, 3 U
+ *  browTilt*  -1 inner end up (sad) .. 1 inner end down (angry)
  *  "L"/"R" are screen-left / screen-right in the unmirrored artboard.
  */
 export const channelNames = [
@@ -56,6 +61,16 @@ export const channelNames = [
   'footLY',
   'footRX',
   'footRY',
+  // Extended rig controls (characters that author them, e.g. mascot-v2; others ignore them):
+  'elbowL',
+  'elbowR',
+  'handL',
+  'handR',
+  'armsFront',
+  'mouthOpen',
+  'viseme',
+  'browTiltL',
+  'browTiltR',
 ] as const;
 
 export type Channel = (typeof channelNames)[number];

@@ -193,6 +193,8 @@ export function createHookLayer(
           dt,
           time: now,
           reducedMotion: input.reducedMotion,
+          amplitude: layer.currentProfile.amplitude,
+          tempo: layer.currentProfile.tempo,
           cues: input.layers.map((cue) => {
             const performance = performed.get(cue.expression);
             const motionId = performance ? performances[performance] : undefined;

@@ -12,7 +12,9 @@
 import type { ExpressionId } from '../../../shared/expressions';
 import {
   channelGroup,
+  discreteChannels,
   faceChannels,
+  mirroredPairs,
   sidedChannels,
   type FaceChannel,
   type FaceValues,
@@ -48,6 +50,18 @@ export interface FaceInput {
   time: number;
   cues: readonly FaceCue[];
   reducedMotion?: boolean;
+  /**
+   * Personality and energy (the motion profile): `amplitude` scales how far each pose goes
+   * (as intensity, capped at strong), `tempo` speeds up or slows down onsets and micro-acting.
+   */
+  amplitude?: number;
+  tempo?: number;
+  /**
+   * Channels a body state currently holds (e.g. sitting owns `bob` and the feet; dozing owns
+   * almost everything). Acting leaves them alone, easing out through the springs, so expressions
+   * layer over sit, perch, lean or peek instead of fighting them.
+   */
+  held?: ReadonlySet<FaceChannel>;
 }
 export interface FaceOutput {
   /** Additive offsets in motion channel units, clamped to the rig's safe ranges. */
@@ -140,6 +154,7 @@ export class FaceLayer {
   /** Raw target before springs: weighted poses plus living drift. */
   target(input: FaceInput): { values: FaceValues; dominant: FaceCue | null } {
     const values: FaceValues = {};
+    const discreteWeight: Partial<Record<FaceChannel, number>> = {};
     let dominant: FaceCue | null = null;
     let drift = 0;
     for (const cue of input.cues) {
@@ -147,13 +162,22 @@ export class FaceLayer {
       if (!def || cue.weight <= 0) continue;
       if (!dominant || cue.weight * cue.intensity > dominant.weight * dominant.intensity)
         dominant = cue;
-      const sample = sampleFacePose(def, cue.intensity, cue.elapsed);
+      const intensity = Math.min(1, cue.intensity * (input.amplitude ?? 1));
+      const sample = sampleFacePose(def, intensity, cue.elapsed * (input.tempo ?? 1));
       const flip = def.towardTarget && cue.side === -1;
       for (const [authored, value] of Object.entries(sample) as [FaceChannel, number][]) {
-        const name =
-          flip && authored === 'armL' ? 'armR' : flip && authored === 'armR' ? 'armL' : authored;
+        const name = flip ? (mirroredPairs[authored] ?? authored) : authored;
         const group = channelGroup[name];
         if (cue.featuresOnly && (group === 'head' || group === 'body')) continue;
+        if (input.held?.has(name)) continue;
+        if (discreteChannels.has(name)) {
+          // Pose indices: the most present cue wins once it is reasonably in.
+          if (cue.weight >= 0.35 && cue.weight > (discreteWeight[name] ?? 0)) {
+            values[name] = Math.round(value);
+            discreteWeight[name] = cue.weight;
+          }
+          continue;
+        }
         const signed = flip && sidedChannels.has(name) ? -value : value;
         values[name] = (values[name] ?? 0) + signed * cue.weight;
       }
@@ -194,6 +218,10 @@ export class FaceLayer {
       const group = channelGroup[name];
       const source = group === 'mouth' ? mouth : group === 'body' ? body : target;
       const goal = source[name] ?? 0;
+      if (discreteChannels.has(name)) {
+        if (goal !== 0) out[name] = goal;
+        continue;
+      }
       const spring = this.springs.get(name);
       if (!spring) continue;
       stepSpring(spring, goal, halfLives[group], dt);
