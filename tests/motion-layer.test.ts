@@ -80,7 +80,8 @@ describe('motion layer output', () => {
       for (const key of ['gazeX', 'gazeY'] as const)
         worstGaze = Math.max(worstGaze, Math.abs(b[key] - a[key]));
     }
-    expect(worst).toBeLessThan(0.2);
+    // Snappy beats (a startle) may move ~0.2 per frame; a pop would be a full-range jump.
+    expect(worst).toBeLessThan(0.25);
     expect(worstGaze).toBeLessThan(0.35);
   });
 });

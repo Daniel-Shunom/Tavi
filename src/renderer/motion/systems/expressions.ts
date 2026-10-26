@@ -52,6 +52,15 @@ function bumpWindow(t: number, start: number, length: number) {
   return x <= 0 || x >= 1 ? 0 : Math.sin(x * Math.PI) ** 2;
 }
 
+/** In, hold, out window (seconds): 0 before `start`, 1 while holding. */
+function beat(t: number, start: number, attack: number, hold: number, release: number) {
+  const x = t - start;
+  if (x <= 0) return 0;
+  if (x < attack) return smootherstep(x / attack);
+  if (x < attack + hold) return 1;
+  return 1 - smootherstep((x - attack - hold) / release);
+}
+
 /** A quick nervous blink (~0.18 s). */
 function blinkPulse(t: number) {
   return bumpWindow(t, 0, 0.18);
@@ -138,40 +147,42 @@ export const expressionLibrary: Readonly<Record<string, ExpressionDef>> = {
     clip: { role: 'hips', owns: ['arms'], mix: 0.75, pingPong: [0.9, 1.5] },
     gaze: { x: 0.5, y: 0.05, weight: 0.7 },
   },
-  // "Oops": startle (squash, brows up, eyes wide), fast look away with a sheepish smile,
-  // shoulders up, lean away, darting glances back, a nervous blink pair, fidgety sway.
+  // "Oops" as five readable beats (snappy start, slower end, holds between beats):
+  //  1 freeze/startle ~0.15 s: brows shoot up, eyes wide, small squash-up (stretch)
+  //  2 "uh-oh": wide flat grimace (mouth curve down, slightly open), worried brows
+  //  3 snap glance away and up, "whistling innocently": head tilted, shoulders raised, small "o"
+  //  4 one or two sheepish glances back with a small nervous smile, nervous blink pair
+  //  5 settle (slow release)
+  // mouthX only slides the whole mouth on this rig, so no "stretch" is attempted.
   caught: {
-    timing: { anticipation: 0.05, attack: 0.16, settle: 0.3, hold: 2.4, release: 0.6 },
-    pose: {
-      browL: -0.7,
-      browR: -0.55,
-      smile: 0.5,
-      mouthX: -0.3,
-      lean: -0.05,
-      headTilt: -0.12,
-      armL: -0.14,
-      armR: -0.14,
-    },
+    timing: { anticipation: 0.03, attack: 0.08, settle: 0.1, hold: 2.7, release: 0.75 },
+    pose: {},
     motion: (t, env) => {
-      const startle = bumpWindow(t, 0, 0.32);
-      const glance = bumpWindow(t, 0.95, 0.3) + 0.8 * bumpWindow(t, 1.8, 0.26);
+      const startle = beat(t, 0, 0.05, 0.14, 0.2);
+      const uhOh = beat(t, 0.22, 0.1, 0.4, 0.14);
+      const away = beat(t, 0.78, 0.09, 10, 0.1);
+      const back = beat(t, 1.55, 0.08, 0.32, 0.14) + 0.85 * beat(t, 2.3, 0.08, 0.22, 0.14);
+      const innocent = away * (1 - back);
       return {
-        squash: 0.7 * startle - 0.15 * glance,
-        browL: -0.4 * startle,
-        browR: -0.4 * startle,
-        bob: 0.006 * startle,
-        gazeX: 1.25 * glance * env,
-        gazeY: 0.4 * glance * env,
-        smile: -0.25 * glance,
-        blinkL: blinkPulse(t - 0.5) + blinkPulse(t - 0.72),
-        blinkR: blinkPulse(t - 0.51) + blinkPulse(t - 0.73),
-        shift: 0.006 * Math.sin(t * 2.4) * env,
-        headTilt: 0.035 * Math.sin(t * 1.9 + 0.5) * env,
-        armL: -0.05 * Math.sin(t * 2.4) * env,
-        armR: 0.05 * Math.sin(t * 2.4) * env,
+        browL: (-1 * startle - 0.6 * uhOh - 0.55 * innocent - 0.35 * back) * env,
+        browR: (-1 * startle - 0.6 * uhOh - 0.3 * innocent - 0.35 * back) * env,
+        squash: (-0.6 * startle + 0.2 * uhOh) * env,
+        bob: (-0.008 * startle - 0.004 * away) * env,
+        smile: (-0.9 * uhOh - 0.45 * innocent + 0.75 * back) * env,
+        mouthY: 0.35 * uhOh * env,
+        mouthX: 0.25 * innocent * env,
+        squintL: 0.25 * back * env,
+        squintR: 0.25 * back * env,
+        gazeX: (-0.8 * innocent + 0.15 * back) * env,
+        gazeY: (-0.55 * innocent + 0.05 * back) * env,
+        headTilt: (-0.15 * away + 0.1 * back + 0.02 * Math.sin(t * 1.7) * away) * env,
+        lean: -0.04 * away * env,
+        armL: -0.2 * away * env,
+        armR: -0.2 * away * env,
+        blinkL: blinkPulse(t - 1.5) + blinkPulse(t - 1.7),
+        blinkR: blinkPulse(t - 1.51) + blinkPulse(t - 1.71),
       };
     },
-    gaze: { x: -0.6, y: -0.35, weight: 0.9 },
   },
   // Nod: 2-3 real head nods (the face drops then lifts so the head reads as pitching), head node
   // in sync, upper body following ~70 ms later, lids half-closing on the downbeat, brows lifting on
@@ -424,6 +435,8 @@ export class ExpressionSystem {
       }
       // Moving hold: a slow, small drift so a held pose never reads as a frozen frame.
       add('headTilt', 0.012 * Math.sin(t * 2.3 + instance.start) * clamp01(env) * gain);
+      add('browL', 0.04 * fbm1(41, t * 0.7 + instance.start) * clamp01(env) * gain);
+      add('lean', 0.004 * Math.sin(t * 1.31 + 1.7) * clamp01(env) * gain);
       if (def.motion)
         for (const [channel, value] of Object.entries(def.motion(t, clamp01(env), profile)) as [
           Channel,
