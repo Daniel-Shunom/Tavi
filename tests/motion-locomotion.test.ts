@@ -142,6 +142,33 @@ describe('locomotion', () => {
     expect(end.opacity).toBeCloseTo(1, 2);
   });
 
+  it('turns readably when walking back: crouch, flip at the narrow point, then walk', () => {
+    const loco = new Locomotion(7);
+    loco.place(0.3, 0.9);
+    loco.moveTo({ x: 0.45, at: 0 });
+    run(loco, 6, 60, profile, 0);
+    loco.moveTo({ x: 0.3, at: 6.05, gait: 'step' }); // reverse mid-way or after arrival
+    const flipStates = new Set<string>();
+    let previous = 1,
+      flips = 0,
+      crouched = false,
+      last: LocomotionFrame | null = null;
+    run(loco, 8, 60, profile, 6, (f) => {
+      if (f.state === 'turning' && (f.pose.bob ?? 0) > 0.004) crouched = true;
+      if (Math.sign(f.facing) !== Math.sign(previous)) {
+        flips++;
+        flipStates.add(f.state);
+        expect(Math.abs(f.facing)).toBeLessThan(0.3);
+      }
+      previous = f.facing;
+      last = f;
+    });
+    expect(flips).toBe(1);
+    expect([...flipStates]).toEqual(['turning']);
+    expect(crouched).toBe(true);
+    expect((last as LocomotionFrame | null)?.facing).toBeCloseTo(-1, 3);
+  });
+
   it('chooses gait from distance and personality', () => {
     const shy = motionProfile({ ...settings, personality: 'shy' });
     const playful = motionProfile({ ...settings, personality: 'playful' });

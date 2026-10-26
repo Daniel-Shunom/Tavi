@@ -183,6 +183,8 @@ export function createHookLayer(
         nodes: bound.nodes,
         position: { x: p.x, y: p.y },
         facing: p.facing < 0 ? -1 : 1,
+        // Not part of MotionOutput yet: renderers that support it draw a soft ellipse here.
+        ...{ shadow: frame.shadow },
       };
       if (handlingPresence) {
         // No clip mask in this renderer: fade as the body sinks below its ground line.
