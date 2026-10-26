@@ -1,0 +1,38 @@
+{
+  "id": "crown",
+  "name": "Tiny crown",
+  "category": "hat",
+  "slot": "head.top",
+  "viewBox": [0, 0, 100, 70],
+  "anchor": [50, 62],
+  "size": 0.42,
+  "offset": [0.04, 0.06],
+  "rotation": 8,
+  "tints": {
+    "primary": { "label": "Gold", "default": "#ffc94a" },
+    "gem": { "label": "Gems", "default": "#ff4f8b" }
+  },
+  "layers": [
+    {
+      "d": "M8 62 L4 18 L28 38 L50 6 L72 38 L96 18 L92 62 C70 66 30 66 8 62 Z",
+      "fill": { "tint": "primary" }
+    },
+    {
+      "d": "M50 6 L72 38 L96 18 L92 62 C84 63 76 64 68 64 L70 44 L50 14 Z",
+      "fill": { "tint": "primary", "shade": -0.18 }
+    },
+    {
+      "d": "M8 52 C30 56 70 56 92 52 L92 62 C70 66 30 66 8 62 Z",
+      "fill": { "tint": "primary", "shade": -0.3 }
+    },
+    {
+      "d": "M44 51 A6 6 0 1 1 56 51 A6 6 0 1 1 44 51 Z M18 50 A4 4 0 1 1 26 50 A4 4 0 1 1 18 50 Z M74 50 A4 4 0 1 1 82 50 A4 4 0 1 1 74 50 Z",
+      "fill": { "tint": "gem" }
+    },
+    {
+      "d": "M46 6 A4 4 0 1 1 54 6 A4 4 0 1 1 46 6 Z M0 18 A4 4 0 1 1 8 18 A4 4 0 1 1 0 18 Z M92 18 A4 4 0 1 1 100 18 A4 4 0 1 1 92 18 Z",
+      "fill": { "tint": "primary", "shade": 0.35 }
+    },
+    { "d": "M14 26 L18 52 L12 52 Z", "fill": { "tint": "primary", "shade": 0.45 } }
+  ]
+}

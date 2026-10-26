@@ -34,6 +34,11 @@ outfits.forEach((equip, index) => {
   ])
     shots.push({ name: `outfit${index}-${clip.replaceAll(' ', '-')}`, equip, clip, t });
 });
+// --raw "name=query&string;name2=..." captures arbitrary preview states (e.g. debug=1).
+for (const entry of (flag('--raw') ?? '').split(';').filter(Boolean)) {
+  const [name, query] = entry.split('=', 2);
+  shots.push({ name, query: entry.slice(name.length + 1) || query });
+}
 
 const browser = await chromium.launch({ headless: true });
 const errors = [];
@@ -42,10 +47,13 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
     if (process.env.DEBUG) console.log(message.type(), message.text());
-    if (message.type() === 'error' && !message.text().startsWith('Blank Script')) errors.push(message.text());
+    if (message.type() === 'error' && !message.text().startsWith('Blank Script'))
+      errors.push(message.text());
   });
   for (const shot of shots) {
-    const url = `${base}/tools/assets/preview.html?shot&equip=${encodeURIComponent(shot.equip)}&clip=${encodeURIComponent(shot.clip)}&t=${String(shot.t)}`;
+    const url = shot.query
+      ? `${base}/tools/assets/preview.html?shot&${shot.query}`
+      : `${base}/tools/assets/preview.html?shot&equip=${encodeURIComponent(shot.equip)}&clip=${encodeURIComponent(shot.clip)}&t=${String(shot.t)}`;
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('body[data-ready="true"]', { timeout: 15000 });
     await page.locator('#stage').screenshot({ path: `${out}/${shot.name}.png` });

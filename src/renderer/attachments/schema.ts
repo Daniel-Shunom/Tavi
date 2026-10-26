@@ -7,6 +7,7 @@ export const slotIds = [
   'head.top',
   'head.face',
   'head.back',
+  'head.hair',
   'head.side',
   'neck',
   'torso',

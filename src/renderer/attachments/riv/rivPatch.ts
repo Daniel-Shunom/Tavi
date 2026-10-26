@@ -37,7 +37,10 @@ export function artboardSection(bytes: Uint8Array, name: string): ArtboardSectio
     if (object.typeKey === TYPE_LINEAR_ANIMATION) {
       mode = 'animation';
       const animationName = object.props.get(PROP_ANIMATION_NAME);
-      animations.push({ name: typeof animationName === 'string' ? animationName : '', objects: [] });
+      animations.push({
+        name: typeof animationName === 'string' ? animationName : '',
+        objects: [],
+      });
       continue;
     }
     if (object.typeKey === TYPE_STATE_MACHINE) mode = 'other';

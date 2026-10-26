@@ -1,0 +1,52 @@
+{
+  "id": "space-buns",
+  "name": "Space buns",
+  "category": "hair",
+  "slot": "head.hair",
+  "viewBox": [0, 0, 100, 60],
+  "anchor": [50, 14],
+  "size": 1.0,
+  "tints": {
+    "primary": {
+      "label": "Hair",
+      "default": "#d80b4c",
+      "follow": "hair"
+    },
+    "tie": {
+      "label": "Scrunchie",
+      "default": "#5ee6d0"
+    }
+  },
+  "layers": [
+    {
+      "d": "M29.5 14 C32.8 16.5 28.8 24.8 24.8 23.8 C24.9 27.9 15.9 30 14.2 26.2 C11 28.8 3.8 23.1 5.7 19.4 C1.7 18.6 1.7 9.4 5.7 8.6 C3.8 4.9 11 -0.8 14.2 1.8 C15.9 -2 24.9 0.1 24.8 4.2 C28.8 3.2 32.8 11.5 29.5 14 Z M94.9 17.7 C97.4 21.1 91.1 27.8 87.6 25.6 C86.4 29.6 77.3 28.9 76.7 24.8 C72.9 26.4 67.7 18.8 70.6 15.9 C67 13.9 69.7 5.1 73.8 5.5 C73.1 1.4 81.7 -1.9 83.9 1.5 C86.7 -1.6 94.7 3 93.3 7 C97.5 7.2 98.8 16.3 94.9 17.7 Z",
+      "fill": {
+        "tint": "primary"
+      },
+      "behind": true
+    },
+    {
+      "d": "M8 22 C12 28 22 30 28 24 C24 26 16 26 8 22 Z M74 24 C80 30 90 28 94 22 C86 26 78 26 74 24 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.25
+      },
+      "behind": true
+    },
+    {
+      "d": "M11 8 C14 4 20 3 23 5 C19 6 15 8 13 12 Z M77 8 C80 4 86 3 89 5 C85 6 81 8 79 12 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.35
+      },
+      "behind": true
+    },
+    {
+      "d": "M8 24 C12 30 22 31 27 25 L26 22 C21 27 13 27 9 21 Z M73 25 C78 31 88 30 92 24 L91 21 C87 27 79 27 74 22 Z",
+      "fill": {
+        "tint": "tie"
+      }
+    }
+  ],
+  "notes": "Buns peek out from behind the head; layered, not rigged."
+}

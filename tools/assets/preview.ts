@@ -5,11 +5,25 @@ import type { Artboard, LinearAnimationInstance } from '@rive-app/webgl2/rive_ad
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
 import avatarURL from '../../src/renderer/assets/mascot.riv?url';
 import { loadAttachments, itemsForSlot } from '../../src/renderer/attachments/catalog';
-import { createAttachmentLayer, type Affine } from '../../src/renderer/attachments/layer';
-import { recolor, lylaRecolor } from '../../src/renderer/attachments/recolor';
-import { patchForAttachments, riveTransformSource, viewMatrix } from '../../src/renderer/attachments/rive';
+import {
+  createAttachmentLayer,
+  multiply,
+  slotFrame,
+  type Affine,
+} from '../../src/renderer/attachments/layer';
+import { hide, recolor, lylaRecolor } from '../../src/renderer/attachments/recolor';
+import {
+  patchForAttachments,
+  riveTransformSource,
+  viewMatrix,
+} from '../../src/renderer/attachments/rive';
 import { lylaAttachmentRig, lylaSlots } from '../../src/renderer/attachments/rigs/lyla';
-import { slotIds, type AttachmentTints, type EquippedAttachments, type SlotId } from '../../src/renderer/attachments/schema';
+import {
+  slotIds,
+  type AttachmentTints,
+  type EquippedAttachments,
+  type SlotId,
+} from '../../src/renderer/attachments/schema';
 
 RuntimeLoader.setWasmUrl(wasmURL);
 RuntimeLoader.setWasmFallbackUrl(null);
@@ -34,9 +48,22 @@ for (const [key, value] of params) {
   const match = /^tint\.([a-z0-9-]+)\.([a-zA-Z0-9]+)$/.exec(key);
   if (match?.[1] && match[2]) (tints[match[1]] ??= {})[match[2]] = value;
 }
-const colours = { hair: params.get('hair') ?? '#d80b4c', outfit: params.get('outfit') ?? '#276065' };
+const colours = {
+  hair: params.get('hair') ?? '#d80b4c',
+  outfit: params.get('outfit') ?? '#276065',
+};
+let builtGlasses = true;
+const wantGlasses = () => !equipped['head.face'] && params.get('glasses') !== 'hide';
 
-const IDLE_CLIPS = ['back and forth', 'wave', 'celebration', 'hands on hips', 'thoughtful', 'testing', 'squash stretch'];
+const IDLE_CLIPS = [
+  'back and forth',
+  'wave',
+  'celebration',
+  'hands on hips',
+  'thoughtful',
+  'testing',
+  'squash stretch',
+];
 
 const runtime = await RuntimeLoader.awaitInstance();
 const source = new Uint8Array(await (await fetch(avatarURL)).arrayBuffer());
@@ -57,6 +84,8 @@ async function build() {
   let bytes = patchForAttachments(source, lylaAttachmentRig);
   bytes = recolor(bytes, lylaRecolor.artboard, lylaRecolor.hair, colours.hair);
   bytes = recolor(bytes, lylaRecolor.artboard, lylaRecolor.outfit, colours.outfit);
+  builtGlasses = wantGlasses();
+  if (!builtGlasses) bytes = hide(bytes, lylaRecolor.artboard, lylaRecolor.glasses);
   const file = await runtime.load(bytes, undefined, false);
   const board = file.artboardByName('lyla animation');
   const clips = new Map<string, { instance: LinearAnimationInstance; duration: number }>();
@@ -174,7 +203,8 @@ function frame(now: number) {
     applyClip('glasses blue', 0);
     board.advance(dt);
     // Stage motion: walking bob across the screen, or a drop-in entrance.
-    const size = Math.min(height * 0.92, width * 1.1);
+    const size = Math.min(height * (shot ? 0.8 : 0.92), width * 1.1);
+    if (builtGlasses !== wantGlasses()) void build();
     let cx = width / 2,
       bottom = height * 0.98;
     if (moveSelect.value === 'walk') {
@@ -192,7 +222,13 @@ function frame(now: number) {
       minY: (bottom - size) * ratio,
       maxY: bottom * ratio,
     };
-    const view: Affine = viewMatrix(runtime, runtime.Fit.contain, runtime.Alignment.bottomCenter, frameBox, bounds);
+    const view: Affine = viewMatrix(
+      runtime,
+      runtime.Fit.contain,
+      runtime.Alignment.bottomCenter,
+      frameBox,
+      bounds,
+    );
     // eslint-disable-next-line @typescript-eslint/no-deprecated
     renderer.clear();
     renderer.save();
@@ -213,6 +249,22 @@ function frame(now: number) {
       dt,
       still: shot,
     });
+    if (params.has('debug')) {
+      const world = riveTransformSource(board);
+      for (const [slot, binding] of Object.entries(lylaSlots)) {
+        const f = slotFrame(binding, world(binding));
+        const m = multiply(view, f.matrix);
+        front!.setTransform(...m);
+        front!.strokeStyle = '#0a0';
+        front!.lineWidth = 0.01;
+        front!.strokeRect(-0.5, -0.5, 1, 1);
+        front!.fillStyle = '#0a0';
+        front!.fillRect(-0.02, -0.02, 0.04, 0.04);
+        front!.setTransform(1, 0, 0, 1, m[4], m[5]);
+        front!.font = '11px sans-serif';
+        front!.fillText(slot, 4, -4);
+      }
+    }
     runtime.resolveAnimationFrame();
     if (++frames === 3) document.body.dataset['ready'] = 'true';
   } catch (error) {

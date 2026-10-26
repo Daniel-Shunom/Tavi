@@ -1,0 +1,67 @@
+{
+  "id": "headphones",
+  "name": "Streamer headphones",
+  "category": "headwear",
+  "slot": "head.top",
+  "viewBox": [0, 0, 100, 70],
+  "anchor": [50, 2],
+  "size": 1.12,
+  "tints": {
+    "primary": {
+      "label": "Shell",
+      "default": "#3d3a5c"
+    },
+    "accent": {
+      "label": "Glow",
+      "default": "#5ee6d0"
+    }
+  },
+  "layers": [
+    {
+      "d": "M9 44 C7 18 27 3 50 3 C73 3 93 18 91 44 L85 44 C86 22 70 9 50 9 C30 9 14 22 15 44 Z",
+      "fill": {
+        "tint": "primary"
+      }
+    },
+    {
+      "d": "M22 18 C30 10 40 7 50 7 C40 9 31 13 25 20 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.35
+      }
+    },
+    {
+      "d": "M2 42 C2 36 6 33 11 33 L14 33 C17 33 18 35 18 38 L18 60 C18 63 17 65 14 65 L11 65 C6 65 2 62 2 56 Z",
+      "fill": {
+        "tint": "primary"
+      }
+    },
+    {
+      "d": "M98 42 C98 36 94 33 89 33 L86 33 C83 33 82 35 82 38 L82 60 C82 63 83 65 86 65 L89 65 C94 65 98 62 98 56 Z",
+      "fill": {
+        "tint": "primary"
+      }
+    },
+    {
+      "d": "M2 52 L2 56 C2 62 6 65 11 65 L14 65 C17 65 18 63 18 60 L18 58 C14 60 6 58 2 52 Z M98 52 L98 56 C98 62 94 65 89 65 L86 65 C83 65 82 63 82 60 L82 58 C86 60 94 58 98 52 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.3
+      }
+    },
+    {
+      "d": "M6 41 C6 38 8 37 10 37 L10 61 C8 61 6 59 6 57 Z M94 41 C94 38 92 37 90 37 L90 61 C92 61 94 59 94 57 Z",
+      "fill": {
+        "tint": "accent"
+      }
+    },
+    {
+      "d": "M15 36 L15 33 C15 31 16 30 18 30 L18 36 Z M85 36 L85 33 C85 31 84 30 82 30 L82 36 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.15
+      }
+    }
+  ],
+  "notes": "Cups sit over the hair at temple height; the band rides just above the hair."
+}

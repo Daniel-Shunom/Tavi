@@ -94,10 +94,6 @@ export function retarget(argb: number, base: string, target: string): number {
     l: clamp01(source.l + (to.l - from.l)),
   });
   return (
-    ((alpha << 24) |
-      (Math.round(rgb.r) << 16) |
-      (Math.round(rgb.g) << 8) |
-      Math.round(rgb.b)) >>>
-    0
+    ((alpha << 24) | (Math.round(rgb.r) << 16) | (Math.round(rgb.g) << 8) | Math.round(rgb.b)) >>> 0
   );
 }

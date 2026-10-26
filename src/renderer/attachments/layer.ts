@@ -190,9 +190,10 @@ const SLOT_ORDER: readonly SlotId[] = [
   'head.back',
   'torso',
   'neck',
-  'head.side',
-  'head.top',
+  'head.hair',
   'head.face',
+  'head.top',
+  'head.side',
   'hand.l',
   'hand.r',
 ];

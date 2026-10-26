@@ -1,8 +1,7 @@
 // Custom appearance colours for characters whose colours are baked into appearance animations.
 // The chosen animation's colour keys are rebuilt around a new main colour in memory, keeping
 // the artist's shadows and highlights; the runtime then plays that animation as usual.
-import { parseHex } from './color';
-import { retarget } from './color';
+import { parseHex, retarget } from './color';
 import { recolorAnimation } from './riv/rivPatch';
 
 export interface RecolorTarget {
@@ -41,4 +40,9 @@ export function recolor(
   return recolorAnimation(bytes, artboard, target.animation, (argb) =>
     keep.has(rgbOf(argb)) ? argb : retarget(argb, target.base, color),
   );
+}
+
+/** Makes every colour key of the target transparent, hiding that part (e.g. built-in glasses). */
+export function hide(bytes: Uint8Array, artboard: string, target: RecolorTarget): Uint8Array {
+  return recolorAnimation(bytes, artboard, target.animation, (argb) => argb & 0xffffff);
 }

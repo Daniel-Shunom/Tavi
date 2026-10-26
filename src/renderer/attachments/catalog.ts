@@ -21,9 +21,14 @@ export function parseCatalog(
   for (const [file, data] of Object.entries(itemData)) {
     const result = AttachmentSpec.safeParse(data);
     if (!result.success)
-      throw new Error(`Invalid attachment ${file}: ${result.error.issues.map((i) => i.path.join('.') + ' ' + i.message).join('; ')}`);
+      throw new Error(
+        `Invalid attachment ${file}: ${result.error.issues.map((i) => i.path.join('.') + ' ' + i.message).join('; ')}`,
+      );
     const spec = result.data;
-    const base = file.split('/').at(-1)?.replace(/\.json$/, '');
+    const base = file
+      .split('/')
+      .at(-1)
+      ?.replace(/\.json$/, '');
     if (base !== spec.id) throw new Error(`Attachment ${file} must be named ${spec.id}.json`);
     items.set(spec.id, spec);
   }

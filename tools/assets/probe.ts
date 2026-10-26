@@ -4,7 +4,11 @@
 // Usage: npx tsx tools/assets/probe.ts <file.riv> <artboard> [animation to apply] [--colors]
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { artboardSection, nameComponents, colorKeys } from '../../src/renderer/attachments/riv/rivPatch';
+import {
+  artboardSection,
+  nameComponents,
+  colorKeys,
+} from '../../src/renderer/attachments/riv/rivPatch';
 
 const require = createRequire(import.meta.url);
 const [file, artboardName, animationName] = process.argv.slice(2);
@@ -51,7 +55,7 @@ for (const [index, name] of Object.entries(names)) {
       if (found) {
         world = found.worldTransform();
         const length = (found as unknown as { length?: number }).length;
-        if (typeof length === "number") console.log("   bone length", index, length.toFixed(1));
+        if (typeof length === 'number') console.log('   bone length', index, length.toFixed(1));
         break;
       }
     } catch {

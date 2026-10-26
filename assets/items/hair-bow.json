@@ -1,0 +1,84 @@
+{
+  "id": "hair-bow",
+  "name": "Big hair bow",
+  "category": "headwear",
+  "slot": "head.side",
+  "viewBox": [0, 0, 100, 90],
+  "anchor": [50, 30],
+  "size": 0.42,
+  "rotation": 18,
+  "tints": {
+    "primary": {
+      "label": "Ribbon",
+      "default": "#ffffff"
+    }
+  },
+  "springs": {
+    "tails": {
+      "pivot": [50, 34],
+      "stiffness": 50,
+      "damping": 4.5,
+      "inertia": 0.004,
+      "maxAngle": 22,
+      "hang": 0.7
+    }
+  },
+  "layers": [
+    {
+      "d": "M46 34 C42 46 34 62 26 80 L36 76 L40 86 C46 68 50 50 52 36 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.18
+      },
+      "spring": "tails"
+    },
+    {
+      "d": "M54 34 C58 46 64 62 72 78 L62 75 L60 86 C54 68 50 50 48 36 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.12
+      },
+      "spring": "tails"
+    },
+    {
+      "d": "M50 30 C40 16 22 4 10 8 C2 12 2 40 8 50 C18 58 38 44 50 30 Z",
+      "fill": {
+        "tint": "primary"
+      }
+    },
+    {
+      "d": "M50 30 C60 16 78 4 90 8 C98 12 98 40 92 50 C82 58 62 44 50 30 Z",
+      "fill": {
+        "tint": "primary"
+      }
+    },
+    {
+      "d": "M50 30 C42 22 30 16 20 18 C30 22 40 28 46 34 Z M50 30 C58 22 70 16 80 18 C70 22 60 28 54 34 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.22
+      }
+    },
+    {
+      "d": "M12 14 C16 11 22 11 26 13 C20 14 16 17 14 22 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.5
+      }
+    },
+    {
+      "d": "M42 31 A8 8 0 1 1 58 31 A8 8 0 1 1 42 31 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.08
+      }
+    },
+    {
+      "d": "M45 28 C47 25 52 25 54 27 C51 27 48 28 46 31 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.5
+      }
+    }
+  ]
+}

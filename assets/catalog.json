@@ -10,6 +10,166 @@
       "license": "CC0-1.0",
       "redistribution": true,
       "modification": true
+    },
+    {
+      "id": "bandana",
+      "origin": "created",
+      "status": "ready",
+      "slot": "neck",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "cap",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.top",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "cat-ears",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.top",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "controller",
+      "origin": "created",
+      "status": "ready",
+      "slot": "hand.l",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "crown",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.top",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "flower-clip",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.side",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "fringe",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.hair",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "gg-sign",
+      "origin": "created",
+      "status": "ready",
+      "slot": "hand.r",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "hair-bow",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.side",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "headphones",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.top",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "heart-shades",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.face",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "mug",
+      "origin": "created",
+      "status": "ready",
+      "slot": "hand.r",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "ponytail",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.hair",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "scarf",
+      "origin": "created",
+      "status": "ready",
+      "slot": "neck",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "space-buns",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.hair",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    },
+    {
+      "id": "witch-hat",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.top",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
     }
   ]
 }
