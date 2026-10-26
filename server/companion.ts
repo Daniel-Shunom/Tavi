@@ -37,6 +37,7 @@ import {
   type State,
 } from '../shared/protocol.js';
 import type { ChatMessage } from '../shared/twitch.js';
+import { anchorPoint, describeLayout } from '../shared/attention.js';
 import type { ItemCatalog } from '../shared/wardrobe.js';
 import { ConversationContext } from './ai/context.js';
 import type { AiManager, DecisionResult } from './ai/manager.js';
@@ -385,7 +386,10 @@ export class Companion {
             ? this.home()
             : command.kind === 'wander'
               ? wanderTarget(this.home(), this.id('wander'))
-              : (command.to ?? (command.anchor ? anchors[command.anchor] : this.home()));
+              : (command.to ??
+                (command.anchor
+                  ? anchorPoint(command.anchor, this.current.config.scene)
+                  : this.home()));
         this.movement({
           kind: command.kind,
           to,
@@ -587,6 +591,11 @@ export class Companion {
           character: this.character(),
           recent: this.context.recent(now),
           trigger: event,
+          layout: describeLayout({
+            scene: this.current.config.scene,
+            position: this.current.performance.movement?.to ?? this.home(),
+            bodyHeight: 220 / 720,
+          }),
           canMove:
             this.current.config.initiative !== 'reserved' &&
             now - this.lastAiMove > MOVE_COOLDOWN_MS,
@@ -879,7 +888,7 @@ export class Companion {
     const to =
       move.kind === 'wander' || !move.anchor
         ? wanderTarget(this.home(), event.id)
-        : anchors[move.anchor];
+        : anchorPoint(move.anchor, this.current.config.scene);
     const accepted = this.movement({
       kind: move.kind,
       to,

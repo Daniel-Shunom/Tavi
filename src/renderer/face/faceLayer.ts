@@ -128,6 +128,9 @@ export function blinkShape(t: number, hold: number) {
   return x >= 1 ? 0 : 1 - x * x * (3 - 2 * x);
 }
 
+/** Seconds for a mouth shape swap (squash, swap at the bottom, spring back). */
+export const MOUTH_SWAP = 0.08;
+
 export class FaceLayer {
   private readonly springs = new Map<FaceChannel, SpringState>();
   // Starts with the rest pose so the mouth trails from the very first cue.
@@ -138,6 +141,10 @@ export class FaceLayer {
   private blinkStart = -10;
   private blinkHold = 0.04;
   private blinkCount = 0;
+  // Mouth shape swaps: the shown shape changes at the bottom of a quick squash ("pop").
+  private mouthShown = 0;
+  private mouthWanted = 0;
+  private swapStart = -10;
   private readonly seed: number;
   private readonly ownBlinks: boolean;
 
@@ -230,6 +237,7 @@ export class FaceLayer {
       else stepSpring(spring, goal, name === 'mouthWide' ? 0.05 : halfLives[group], dt);
       if (Math.abs(spring.value) > 1e-5) out[name] = spring.value;
     }
+    this.swapMouth(input, out);
     const def = dominant ? this.face.poses[dominant.expression] : undefined;
     const rate = def?.living?.blinkRate ?? this.face.blink.rate;
     const hold = def?.living?.blinkHold ?? this.face.blink.hold;
@@ -259,6 +267,29 @@ export class FaceLayer {
       out.push({ role: clip.role, time, mix: clip.mix * Math.min(1, cue.weight) });
     }
     return out;
+  }
+
+  /**
+   * Incompatible mouth shapes swap within ~40 ms: the mouth squashes, the shape changes at the
+   * bottom of the squash, and it springs back (MOUTH_SWAP total). Only one shape is ever shown.
+   */
+  private swapMouth(input: FaceInput, out: FaceValues) {
+    const wanted = Math.round(out.mouthShape ?? 0);
+    if (wanted !== this.mouthWanted) {
+      this.mouthWanted = wanted;
+      this.swapStart = input.time;
+    }
+    const into = input.time - this.swapStart;
+    if (this.mouthShown !== this.mouthWanted && (input.reducedMotion || into >= MOUTH_SWAP / 2))
+      this.mouthShown = this.mouthWanted;
+    if (this.mouthShown) out.mouthShape = this.mouthShown;
+    else delete out.mouthShape;
+    const pop =
+      input.reducedMotion || into < 0 || into > MOUTH_SWAP
+        ? 0
+        : Math.sin((into / MOUTH_SWAP) * Math.PI);
+    if (pop > 1e-4) out.mouthPop = pop;
+    else delete out.mouthPop;
   }
 
   private blink(time: number, rate: number, hold: number, out: FaceValues) {

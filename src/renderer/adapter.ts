@@ -3,12 +3,15 @@
 import type { CharacterManifest } from './characters/manifest';
 import type { Affine, TransformSource } from './attachments/layer';
 import type { CharacterAttachments } from './characters/attachmentRigs';
+import type { Variant } from '../../shared/variants';
 
 /** Colour changes baked into the character file at load (recolour on commit). */
 export interface Look {
   hairColor?: string | undefined;
   outfitColor?: string | undefined;
   hideGlasses?: boolean | undefined;
+  /** Character variant (skin, build, face, hair...), applied for characters with a variant rig. */
+  variant?: Variant | undefined;
 }
 /** Draws extra layers (attachments) each frame with the artboard -> device-pixel matrix. */
 export type Decorator = (view: Affine, world: TransformSource, dt: number) => void;

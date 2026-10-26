@@ -1,21 +1,25 @@
-// Lyla v2's opening mouth: one mouth representation at a time, and continuous opening/closing.
+// Lyla v2's mouth library: exactly one mouth visible at a time, every expression maps to a valid
+// shape, and opening, widening and swapping stay continuous (swaps hide inside a squash pop).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { beat, type ExpressionScript } from '../shared/cue';
-import type { ExpressionId } from '../shared/expressions';
+import { expressionIds, type ExpressionId } from '../shared/expressions';
+import { MOUTH_SHAPE_COUNT, mouthShapeTime } from '../src/renderer/characters/mascot-v2/mouth';
 import { characters } from '../src/renderer/characters/registry';
 import { phaseLookup } from '../src/renderer/compose';
-import { FaceLayer } from '../src/renderer/face/faceLayer';
+import { FaceLayer, MOUTH_SWAP } from '../src/renderer/face/faceLayer';
+import { sampleFacePose } from '../src/renderer/face/pose';
 import { sampleScript } from '../src/renderer/timeline';
 
 const source = readFileSync('art/mascot-remix/scene.rml', 'utf8');
 const LINE = '0:552';
 
-/** Linear keyframes [frame, value] of `property` on `objectId` in the named animation. */
-function keys(animation: string, objectId: string, property: string): [number, number][] {
-  const start = source.search(new RegExp(`<LinearAnimation [^>]*?name="${animation}"`));
-  expect(start, animation).toBeGreaterThanOrEqual(0);
-  const body = source.slice(start, source.indexOf('</LinearAnimation>', start));
+function animation(name: string) {
+  const start = source.search(new RegExp(`<LinearAnimation [^>]*?name="${name}"`));
+  expect(start, name).toBeGreaterThanOrEqual(0);
+  return source.slice(start, source.indexOf('</LinearAnimation>', start));
+}
+function keyedProperty(body: string, objectId: string, property: string) {
   const object = new RegExp(
     `<KeyedObject objectId="${objectId}"[^>]*>([\\s\\S]*?)</KeyedObject>`,
   ).exec(body)?.[1];
@@ -24,64 +28,75 @@ function keys(animation: string, objectId: string, property: string): [number, n
         object,
       )?.[1]
     : undefined;
-  if (!prop) throw new Error(`no ${property} keys on ${objectId} in ${animation}`);
-  return [...prop.matchAll(/<KeyFrameDouble value="([^"]+)"[^>]*?frame="(\d+)"/g)].map(
-    (m) => [Number(m[2]), Number(m[1])] as [number, number],
-  );
+  if (!prop) throw new Error(`no ${property} keys on ${objectId}`);
+  return prop;
 }
-function at(frames: [number, number][], frame: number) {
-  const first = frames[0],
-    last = frames[frames.length - 1];
-  if (!first || !last) return 0;
-  if (frame <= first[0]) return first[1];
-  if (frame >= last[0]) return last[1];
-  for (let i = 1; i < frames.length; i++) {
-    const a = frames[i - 1],
-      b = frames[i];
-    if (a && b && frame <= b[0]) return a[1] + ((b[1] - a[1]) * (frame - a[0])) / (b[0] - a[0]);
-  }
-  return last[1];
+/** Held value at `frame` from hold keys (value at the last key at or before it). */
+function held(keys: [number, string][], frame: number) {
+  let value = keys[0]?.[1];
+  for (const [at, next] of keys) if (at <= frame) value = next;
+  return value;
 }
-const interiorId = /name="tavi\/mouthInterior" id="([^"]+)"/.exec(source)?.[1] ?? '';
-const lowerLipId = /name="lower lip" id="([^"]+)"/.exec(source)?.[1] ?? '';
+const manifest = characters.get('mascot-v2');
+const face = manifest?.face;
+if (!manifest || !face) throw new Error('mascot-v2 face missing');
 
-describe('Lyla v2 mouth', () => {
-  it('never shows the closed line and the open mouth at once', () => {
-    const line = keys('tavi/mouthOpen', LINE, 'opacity');
-    const open = keys('tavi/mouthOpen', interiorId, 'opacity');
-    expect(at(line, 0)).toBe(1);
-    expect(at(open, 0)).toBe(0);
-    for (let o = 0; o <= 1.0001; o += 0.0025) {
-      const frame = o * 60;
-      const both = Math.min(at(line, frame), at(open, frame));
-      expect(both, `open ${o.toFixed(3)}`).toBeLessThanOrEqual(0.5 + 1e-9);
-      if (o >= 0.1) expect(at(line, frame)).toBe(0);
+describe('Lyla v2 mouth library', () => {
+  const body = animation('tavi/mouthShape');
+  const soloId = /name="tavi\/mouth\/shapes" id="([^"]+)"/.exec(source)?.[1] ?? '';
+  const selection = [
+    ...keyedProperty(body, soloId, 'activeComponentId').matchAll(
+      /<KeyFrameId value="([^"]+)" frame="(\d+)"/g,
+    ),
+  ].map((m) => [Number(m[2]), m[1] ?? ''] as [number, string]);
+  const line = [
+    ...keyedProperty(body, LINE, 'opacity').matchAll(
+      /<KeyFrameDouble value="([^"]+)" interpolationType="hold" frame="(\d+)"/g,
+    ),
+  ].map((m) => [Number(m[2]), m[1] ?? ''] as [number, string]);
+  /** Whether the selected shape node draws anything. */
+  const draws = (nodeId: string) => {
+    const open = new RegExp(`<Node name="[^"]*" id="${nodeId}">(</Node>)?`).exec(source);
+    return Boolean(open && !open[1]);
+  };
+
+  it('has the authored shape count, with the closed line as shape 0', () => {
+    expect(selection.length).toBe(MOUTH_SHAPE_COUNT);
+    expect(line.length).toBe(MOUTH_SHAPE_COUNT);
+    expect(draws(selection[0]?.[1] ?? '')).toBe(false);
+  });
+  it('never shows the closed line and an open shape at once', () => {
+    for (let shape = 0; shape < MOUTH_SHAPE_COUNT; shape++) {
+      const frame = mouthShapeTime(shape) * 10 * MOUTH_SHAPE_COUNT;
+      const lineVisible = Number(held(line, frame)) > 0.01;
+      const shapeVisible = draws(held(selection, frame) ?? '');
+      expect(lineVisible && shapeVisible, `shape ${String(shape)}`).toBe(false);
+      expect(lineVisible || shapeVisible, `shape ${String(shape)} shows a mouth`).toBe(true);
     }
   });
-  it('starts the open mouth flat on the line and opens continuously', () => {
-    const lower = keys('tavi/mouthOpen', lowerLipId, 'y');
-    // The upper lip copies the mouth line's middle vertex; the lower lip starts exactly on it.
-    const upperRest = Number(/ y="([^"]+)" name="upper lip"/.exec(source)?.[1]);
-    expect(at(lower, 0)).toBeCloseTo(upperRest, 6);
-    let previous = at(lower, 0);
-    for (let frame = 1; frame <= 60; frame++) {
-      const value = at(lower, frame);
-      expect(Math.abs(value - previous)).toBeLessThan(1);
-      previous = value;
+  it('maps every expression to a valid mouth shape at every intensity and moment', () => {
+    for (const id of expressionIds) {
+      const def = face.poses[id];
+      if (!def) continue;
+      for (const intensity of [0.25, 0.6, 1])
+        for (let t = 0; t < 7; t += 0.1) {
+          const shape = sampleFacePose(def, intensity, t).mouthShape ?? 0;
+          expect(Number.isInteger(shape), `${id} ${String(shape)}`).toBe(true);
+          expect(shape).toBeGreaterThanOrEqual(0);
+          expect(shape).toBeLessThan(MOUTH_SHAPE_COUNT);
+        }
     }
   });
-  it('drives mouthOpen continuously through expressions that open the mouth', () => {
-    const manifest = characters.get('mascot-v2');
-    const face = manifest?.face;
-    if (!manifest || !face) throw new Error('mascot-v2 face missing');
+  it('swaps shapes only at the bottom of a squash pop, and keeps the axes continuous', () => {
     const lookup = phaseLookup(manifest);
     const pairs: [ExpressionId, ExpressionId][] = [
       ['content', 'laugh'],
       ['laugh', 'shocked'],
       ['shocked', 'wave'],
       ['wave', 'startled'],
-      ['excited', 'content'],
-      ['sleepy', 'grin'],
+      ['excited', 'smirk'],
+      ['worried', 'grin'],
+      ['innocent', 'sleepy'],
     ];
     for (const [a, b] of pairs) {
       const script: ExpressionScript = {
@@ -100,17 +115,28 @@ describe('Lyla v2 mouth', () => {
         dropped: [],
       };
       const layer = new FaceLayer(face, { ownBlinks: false });
-      let previous = 0;
-      for (let frame = 0; frame < 60 * 5; frame++) {
+      let previous = { mouthOpen: 0, mouthWide: 0, mouthTilt: 0, mouthShape: 0 };
+      for (let frame = 0; frame < 60 * 8; frame++) {
         const time = frame / 60;
-        const value =
-          layer.update({ dt: 1 / 60, time, cues: sampleScript(script, time * 1000, lookup) }).values
-            .mouthOpen ?? 0;
-        expect(Math.abs(value - previous), `${a}->${b} @${time.toFixed(2)}`).toBeLessThan(0.2);
-        expect(value).toBeGreaterThanOrEqual(0);
-        previous = value;
+        const v = layer.update({
+          dt: 1 / 60,
+          time,
+          cues: sampleScript(script, time * 1000, lookup),
+        }).values;
+        const now = {
+          mouthOpen: v.mouthOpen ?? 0,
+          mouthWide: v.mouthWide ?? 0,
+          mouthTilt: v.mouthTilt ?? 0,
+          mouthShape: v.mouthShape ?? 0,
+        };
+        for (const axis of ['mouthOpen', 'mouthWide', 'mouthTilt'] as const)
+          expect(Math.abs(now[axis] - previous[axis]), `${a}->${b} ${axis}`).toBeLessThan(0.2);
+        if (now.mouthShape !== previous.mouthShape)
+          expect(v.mouthPop ?? 0, `${a}->${b} swap at ${time.toFixed(2)}`).toBeGreaterThan(0.85);
+        previous = now;
       }
-      expect(previous, `${a}->${b} closes back to the line`).toBeLessThan(0.01);
+      expect(previous.mouthShape, `${a}->${b} ends on the closed line`).toBe(0);
     }
+    expect(MOUTH_SWAP).toBeLessThanOrEqual(0.1);
   });
 });

@@ -50,6 +50,11 @@ export const channelSpecs: Readonly<Record<Channel, ChannelSpec>> = {
   browTiltR: { min: -1, max: 1, v2: true },
   pupilX: { min: -1, max: 1, v2: true },
   pupilY: { min: -1, max: 1, v2: true },
+  turnHead: { min: -1, max: 1, v2: true },
+  turnBody: { min: -1, max: 1, v2: true },
+  mouthShape: { min: 0, max: 20, discrete: true, v2: true },
+  mouthTilt: { min: -1, max: 1, v2: true },
+  mouthPop: { min: 0, max: 1, v2: true },
 };
 
 /** Hand pose indices (handL/handR). */

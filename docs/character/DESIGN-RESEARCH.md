@@ -178,6 +178,54 @@ treatment of brows and lids in [Stop Staring][osipa]).
 - **Blinks on big changes.** A blink during a large eye or brow change hides the transition and
   reads as natural (_heuristic_, standard practice).
 
+## 6. Mouths, the Duolingo way
+
+### What Duolingo has published
+
+- Mouths are their own state-machine layer, with states built "just for mouths" that run alongside
+  the pose states. The logic is the same whether a character has 4 mouths or "more than 20
+  shapes" ([visemes]).
+- Each character has its own set of 20+ mouths, drawn to its personality from a shared viseme
+  design guide. The acceptance bar is "believable when animated" ([visemes]).
+- Speech timing data drives the mouth layer in sync with audio. Lily's mouth positions and
+  expressions are blended by the state machine at runtime rather than hand-animated per
+  reaction ([visemes], [lily]).
+- The standard viseme groups apply. Lips pressed (M/B/P), teeth on the lower lip (F/V) and tongue
+  (TH, L) are the shapes that need teeth or tongue drawn ([azure-visemes]; third-party Rive
+  tutorials describe the same grouping for Duolingo-style rigs).
+
+### What the characters show (from their public artwork and app; _observation_, not a spec)
+
+- **A mouth is a filled shape, not an outlined hole.** Open mouths are a single dark fill (deep
+  plum or maroon rather than black) with a tongue and a band of teeth as separate flat fills
+  inside it. There is no lip outline. Closed mouths are a simple short stroke or a tiny filled
+  sliver.
+- **The silhouette carries the emotion.** Each emotion has its own shape rather than one shape
+  stretched: a wide D-shaped grin (flat top, round bottom) for joy, a tall oval for shock, a
+  rounded triangle for a shout, a tiny "o" for surprise, a wobbly or zigzag line for unease, a
+  lopsided curve for a smirk, a teeth-forward rounded rectangle for a grimace.
+- **The shapes are exaggerated.** At the size the characters appear in lessons, a mouth is often
+  as wide as an eye pair and opens to half the face's lower height. Tongues and teeth are big,
+  simple shapes: two or three rounded fills, never individual teeth unless the gag needs it.
+- **They read small because of contrast and silhouette.** The dark interior against skin, plus
+  one bright inner shape (white teeth or a pink tongue), stays legible at a few dozen pixels;
+  fine curves and outlines do not.
+- **Swaps over morphs.** Distinct shapes are swapped (with the head, brows and squash selling
+  the change) rather than morphed point to point. Within a family (open to more open, wider to
+  narrower), the shape scales smoothly.
+
+### What Tavi takes from this (Lyla v2)
+
+1. The closed mouth stays a line. Every open mouth is its own filled shape (dark interior,
+   separate teeth and tongue fills, no outline), selected by `mouthShape`.
+2. Continuous axes (`mouthOpen` for height, `mouthWide` for width, `mouthTilt` for lopsidedness)
+   vary a shape smoothly. Changes between incompatible shapes are a quick swap hidden by a
+   ~40 ms squash pop.
+3. Exactly one mouth is visible at any time. The line shows only for the closed shape, keyed on
+   the same frames as the shape selection.
+4. Speech visemes (A, E, I, O, U, M/B/P, F/V, L, rest) map onto the same library plus axes.
+5. Shapes are judged at 220 px first: big, dark, simple, one bright accent.
+
 ## Sources
 
 [visemes]: https://blog.duolingo.com/world-character-visemes
@@ -199,6 +247,7 @@ treatment of brows and lids in [Stop Staring][osipa]).
 [bollo]: https://www.gdcvault.com/play/1025165/Inertialization
 [dead]: https://theorangeduck.com/page/dead-blending
 [iol]: https://en.wikipedia.org/wiki/The_Illusion_of_Life
+[azure-visemes]: https://learn.microsoft.com/azure/ai-services/speech-service/how-to-speech-synthesis-viseme
 
 - Duolingo: [World Character visemes][visemes], [Shape language][shape],
   [Building character][building], [Lily Video Call (Rive blog)][lily], [Maker (LinkedIn

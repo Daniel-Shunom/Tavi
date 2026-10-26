@@ -24,13 +24,16 @@ export interface MotionSettings {
  *  mouthX/Y   -1..1 mouth offset (sideways smirk, open/drop)
  *  squash     -1 stretch .. 1 squash (volume-preserving, rig-authored)
  *  hair*      -1..1 secondary motion
+ *  turnHead/turnBody  -1..1 three-quarter turnaround toward screen right (+) / left (-), 0 = camera
  *  headTilt, lean, armL/armR  radians (armL/armR: positive raises the arm outward)
  *  bob, shift body offset in body heights (+bob = down/crouch); headY head offset (+ = down)
  *  footLX..   foot offsets in body heights (+y = up/lift)
  *  elbowL/R   radians, forearm bend added to the elbow (same sign convention as armL/armR)
  *  handL/R    discrete hand pose index: 0 rest, 1 open palm, 2 fist, 3 point, 4 thumbs up
  *  armsFront  discrete: 1 draws the arms in front of the hair
- *  mouthOpen  0 closed (the line) .. 1 open; mouthWide -1 round (O/U) .. 1 wide (E)
+ *  mouthShape discrete mouth shape id (0 = the closed line; see the character's mouth library)
+ *  mouthOpen  0 .. 1 height of the open shape; mouthWide -1 round .. 1 wide; mouthTilt -1..1
+ *  mouthPop   0..1 squash that hides a shape swap (computed by the face layer)
  *  browTilt*  -1 inner end up (sad) .. 1 inner end down (angry)
  *  pupilX/Y   -1..1 pupils within the eyes (x: screen right, y: down), on top of the gaze
  *  "L"/"R" are screen-left / screen-right in the unmirrored artboard.
@@ -52,6 +55,8 @@ export const channelNames = [
   'hairSwoop',
   'hairSquash',
   'headTilt',
+  'turnHead',
+  'turnBody',
   'headY',
   'lean',
   'bob',
@@ -70,6 +75,9 @@ export const channelNames = [
   'armsFront',
   'mouthOpen',
   'mouthWide',
+  'mouthShape',
+  'mouthTilt',
+  'mouthPop',
   'browTiltL',
   'browTiltR',
   'pupilX',

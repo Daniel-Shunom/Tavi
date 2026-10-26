@@ -16,6 +16,7 @@ import { poseChannels } from '../../src/renderer/face/pose';
 import { performances } from '../../src/renderer/motion/hook';
 import { MotionLayer } from '../../src/renderer/motion/motion';
 import { sampleScript } from '../../src/renderer/timeline';
+import { mouthShapes } from '../../src/renderer/characters/mascot-v2/mouth';
 import { createSheetRig } from './rig';
 
 RuntimeLoader.setWasmUrl(wasmURL);
@@ -146,6 +147,42 @@ async function main() {
   }
   intensityInput.addEventListener('change', renderGrid);
   renderGrid();
+
+  // Mouth library (v2): every shape at overlay size and large, at a typical opening.
+  if (V2) {
+    element('#mouth-section').hidden = false;
+    const mouths = element('#mouths');
+    for (const [name, shape] of Object.entries(mouthShapes)) {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.dataset['mouth'] = name;
+      const title = document.createElement('h3');
+      title.textContent = name;
+      const meta = document.createElement('small');
+      meta.textContent = `mouthShape ${String(shape)}`;
+      title.append(meta);
+      const make = (width: number, height: number, css: number) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        canvas.style.width = `${String(css)}px`;
+        canvas.style.height = `${String((css * height) / width)}px`;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('2d context');
+        return { canvas, context };
+      };
+      const big = make(LARGE.width, LARGE.height, 150);
+      const little = make(SMALL.width, SMALL.height, SMALL.width * 0.5);
+      little.canvas.className = 'small';
+      card.append(title, big.canvas, little.canvas);
+      mouths.append(card);
+      const pose = { mouthShape: shape, mouthOpen: 0.6 };
+      large.draw(pose, { zoom: 3.6, focus: 0.41 });
+      big.context.drawImage(offscreenLarge, 0, 0, big.canvas.width, big.canvas.height);
+      small.draw(pose, { zoom: 1 });
+      little.context.drawImage(offscreenSmall, 0, 0, little.canvas.width, little.canvas.height);
+    }
+  }
 
   // Transition player -----------------------------------------------------------------------
   const from = element<HTMLSelectElement>('#from'),

@@ -13,6 +13,7 @@ import {
 import { FaceLayer } from '../face/faceLayer';
 import { poseChannels } from '../face/pose';
 import { MotionLayer } from './motion';
+import { authoredGaitClips, gaitIds } from './systems/gaits/library';
 import type { MoveReason } from './systems/gaits/select';
 import type { RigPatch } from './rive/patch';
 import type { MotionFrame } from './types';
@@ -120,7 +121,13 @@ export function createHookLayer(
       };
       const now = input.time;
       if (!layer) {
-        layer = new MotionLayer(SEED, settings, stage, { feet });
+        // Gaits this character ships authored cycles for (manifest track handles).
+        const authored = gaitIds.filter((id) => authoredGaitClips[id].handle in manifest.tracks);
+        layer = new MotionLayer(SEED, settings, stage, {
+          feet,
+          turnStyle: manifest.turnStyle,
+          authored,
+        });
         const start = input.locomotion.position;
         layer.place(start.x, start.y);
         if (input.retracted && !input.presence.transition)
@@ -147,7 +154,10 @@ export function createHookLayer(
       // Attention: look toward the target's side.
       layer.attend(
         input.attention
-          ? { x: 0.55 * input.attention.side * input.attention.weight, y: 0.05 }
+          ? {
+              x: 0.6 * input.attention.gaze.x * input.attention.weight,
+              y: 0.5 * input.attention.gaze.y * input.attention.weight,
+            }
           : null,
       );
 

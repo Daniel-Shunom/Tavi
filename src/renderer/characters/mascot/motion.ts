@@ -3,6 +3,7 @@
 // the manifest exposes the resulting control tracks as `ctl.*` track handles and the named nodes
 // as node handles. This file maps the abstract MotionFrame onto those handles.
 import { controlTime } from '../../motion/rive/patch';
+import { authoredGaitClips, gaitIds } from '../../motion/systems/gaits/library';
 import type { CharacterMotionRig } from '../../motion/hook';
 import type { MotionFrame } from '../../motion/types';
 import { lylaPatch, lylaRig } from './motionRig';
@@ -33,6 +34,16 @@ export const mascotMotionNodes = {
   'arm-l': lylaRig.nodes.armL.name,
   'arm-r': lylaRig.nodes.armR.name,
 };
+
+/** Authored gait cycles (role 'gait:<id>', time = phase 0..1) as manifest track samples. */
+function gaitTracks(frame: MotionFrame) {
+  return frame.clips.flatMap((clip) => {
+    const id = gaitIds.find((gait) => clip.role === 'gait:' + gait);
+    return id && clip.mix > 0.001
+      ? [{ track: authoredGaitClips[id].handle, time: Math.min(0.999, clip.time), mix: clip.mix }]
+      : [];
+  });
+}
 
 function sample(channel: keyof typeof lylaRig.channels, value: number) {
   const spec = lylaRig.channels[channel];
@@ -73,6 +84,7 @@ export function bindMascotBody(frame: MotionFrame): ReturnType<CharacterMotionRi
   });
   return {
     tracks: [
+      ...gaitTracks(frame),
       ...clips,
       sample('faceX', p.gazeX * 0.85),
       sample('faceY', p.gazeY * 0.85),

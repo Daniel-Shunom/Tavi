@@ -3,6 +3,7 @@
 // mascot's own motion binding, so the sheet shows exactly what the overlay renders.
 import type { RiveCanvas } from '@rive-app/webgl2/rive_advanced.mjs';
 import { bindLyla } from '../../src/renderer/characters/mascot/motionBinding';
+import { MOUTH_SHAPE_COUNT, mouthShapeTime } from '../../src/renderer/characters/mascot-v2/mouth';
 import { lylaPatch, lylaRig } from '../../src/renderer/characters/mascot/motionRig';
 import { createMotionRig } from '../../src/renderer/motion/rive/motionRig';
 import { neutralPose, type Channel, type MotionFrame } from '../../src/renderer/motion/types';
@@ -86,6 +87,13 @@ export async function createSheetRig(
           { name: 'tavi/browTiltR', time: clamp01((p.browTiltR + 1) / 2), mix: 1 },
           { name: 'tavi/mouthOpen', time: clamp01(p.mouthOpen), mix: 1 },
           { name: 'tavi/mouthWide', time: clamp01((p.mouthWide + 1) / 2), mix: 1 },
+          { name: 'tavi/mouthTilt', time: clamp01((p.mouthTilt + 1) / 2), mix: 1 },
+          { name: 'tavi/mouthPop', time: clamp01(p.mouthPop), mix: 1 },
+          {
+            name: 'tavi/mouthShape',
+            time: mouthShapeTime(p.mouthShape) * (MOUTH_SHAPE_COUNT / 6),
+            mix: 1,
+          },
           { name: 'tavi/handL', time: step(p.handL), mix: 1 },
           { name: 'tavi/handR', time: step(p.handR), mix: 1 },
           { name: 'tavi/armsFront', time: p.armsFront >= 0.5 ? 0.99 : 0.01, mix: 1 },

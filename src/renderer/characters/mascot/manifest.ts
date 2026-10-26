@@ -376,6 +376,7 @@ export const mascot: ManifestInput = {
   attention: {
     streamer: { rotation: 3, x: 6 },
     chat: { rotation: 3, x: 6 },
+    game: { rotation: 2.5, x: 5 },
     pointer: { rotation: 2.5, x: 5 },
   },
   controls: {
