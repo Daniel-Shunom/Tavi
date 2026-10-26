@@ -1,0 +1,17 @@
+{
+  "name": "tavi-rive-avatar-experiment",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5186 --strictPort",
+    "build": "vite build",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@rive-app/webgl2": "2.45.0"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0"
+  }
+}

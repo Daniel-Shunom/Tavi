@@ -1,0 +1,44 @@
+[
+  {
+    "id": "pixel-avatar",
+    "name": "Pixel avatar ? nasmith",
+    "file": "rive-avatar.riv",
+    "source": "https://rive.app/marketplace/28249-53356-rive-avatar/",
+    "artboard": "AvatarCreationUI",
+    "stateMachine": "State Machine 1",
+    "author": "nasmith"
+  },
+  {
+    "id": "toon-creator",
+    "name": "Avatar Creator",
+    "file": "toon-creator.riv",
+    "source": "https://rive.app/marketplace/6236-12120-avatar-creator/",
+    "artboard": "Avatar",
+    "stateMachine": "State Machine 1",
+    "author": "JcToon",
+    "sha256": "2b2c193514e0aad13e9fd8263df0d247722fed4d20b8971ee61a69bf4dfb62a7",
+    "bytes": 47855
+  },
+  {
+    "id": "character-customizer",
+    "name": "Interactive Character Customizer UI",
+    "file": "character-customizer.riv",
+    "source": "https://rive.app/marketplace/17879-37032-interactive-character-customizer-ui/",
+    "artboard": "Artboard",
+    "stateMachine": "state_Machine_001",
+    "author": "hemantp-B9R83",
+    "sha256": "2dbf8ea168a8f353563be4562f37fb476fddb3a5ada724e6a19c5a997b50f9e6",
+    "bytes": 182361
+  },
+  {
+    "id": "mascot",
+    "name": "Mascot / Avatar Customization",
+    "file": "mascot.riv",
+    "source": "https://rive.app/marketplace/27479-51911-mascot-avatar-customization/",
+    "artboard": "MasterArtboard",
+    "stateMachine": "State Machine 1",
+    "author": "alisketch",
+    "sha256": "0d9dd7a259b3fa40282e2c67e011a5ed2da7ebfefbee5c96050fee989a7c53d7",
+    "bytes": 151116
+  }
+]

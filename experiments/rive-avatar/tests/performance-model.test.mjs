@@ -1,0 +1,8 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {Director,sceneDuration,performancePose} from '../src/performance-model.js';
+test('scene visits listening and skeptical then settles at idle',()=>{const d=new Director();d.runScene(10);assert.equal(d.snapshot(10).action,'idle');assert.equal(d.snapshot(12).action,'listening');assert.equal(d.snapshot(15).action,'skeptical');assert.equal(d.snapshot(10+sceneDuration+.1).action,'idle');assert.equal(d.snapshot(100).scene,false);});
+test('new actions cancel a running scene and do not return later',()=>{const d=new Director();d.runScene(0);d.play('wave',2);assert.equal(d.snapshot(3).action,'wave');assert.equal(d.snapshot(3).scene,false);assert.equal(d.snapshot(8).action,'idle');});
+test('tucking persists until explicitly restored and idle cancels it',()=>{const d=new Director();d.play('tuck',0);assert.equal(d.snapshot(3).hidden,true);assert.equal(d.snapshot(100).hidden,true);d.idle();assert.equal(d.snapshot(101).hidden,false);});
+test('reaction weights are bounded and settle without retaining a pose',()=>{const d=new Director();d.play('skeptical',0);assert.equal(d.snapshot(0).weight,0);assert(d.snapshot(1).weight>.9);assert.equal(d.snapshot(10).weight,0);assert.equal(d.snapshot(10).action,'idle');});
+test('attitude changes the manually triggered caption; reduced motion removes host movement',()=>{const state={action:'skeptical',age:1,duration:3.4,weight:1,hidden:false};assert.match(performancePose(state,{attitude:'spicy'}).caption,/ntm/);const quiet=performancePose(state,{reducedMotion:true});assert.equal(quiet.rotation,0);assert.equal(quiet.x,0);assert.equal(quiet.y,0);});

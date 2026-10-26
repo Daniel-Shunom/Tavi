@@ -1,0 +1,4 @@
+* text=auto
+.agents/** -text
+
+.githooks/* text eol=lf

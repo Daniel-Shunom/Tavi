@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tavi Studio",
+  "version": "0.1.0",
+  "identifier": "app.tavi.studio",
+  "build": {
+    "beforeDevCommand": "node scripts/dev.mjs",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "node scripts/prepare-service.mjs",
+    "frontendDist": "../resources/service/dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:4318 ws://127.0.0.1:4318; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "resources": {
+      "../resources/": "resources/"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

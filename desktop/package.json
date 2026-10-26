@@ -1,0 +1,9 @@
+{
+  "name": "tavi-desktop", "version": "0.1.0", "private": true, "type": "module",
+  "scripts": {
+    "dev": "tauri dev", "build": "tauri build", "check": "tauri info",
+    "prepare:service": "node scripts/prepare-service.mjs",
+    "service:dev": "node --import ../node_modules/tsx/dist/loader.mjs service.ts"
+  },
+  "devDependencies": { "@tauri-apps/cli": "^2.0.0", "esbuild": "^0.25.0" }
+}
