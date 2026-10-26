@@ -23,6 +23,7 @@ import {
 } from './motionHook';
 import { Performer, smooth } from './timeline';
 import { headPoint, resolveAttention, type AttentionVector } from '../../shared/attention';
+import { clearSceneLanding } from '../../shared/scenePlacement';
 import { AttentionSmoother } from './attentionInput';
 import { drawStateEffects } from './motion/states/effects';
 
@@ -203,6 +204,19 @@ export function Avatar({
           ? Math.hypot(movement.to.x - home.x, movement.to.y - home.y) / NOMINAL_SPEED
           : 0;
         const goal = locomotionTarget(movement, home, serviceTime, travel);
+        // Ordinary destinations stop clear of configured overlay panels. Named anchors and
+        // body-state spots have intentional scene-aware placement and keep their exact target.
+        if (
+          goal.movement &&
+          !goal.movement.anchor &&
+          goal.movement.kind !== 'return' &&
+          !current.performance.body
+        ) {
+          goal.to = clearSceneLanding(goal.to, config.scene, {
+            halfWidth: (REFERENCE_BODY * 0.55 * height) / Math.max(width, 1),
+            height: REFERENCE_BODY,
+          });
+        }
         let output: MotionOutput = {};
         if (motion)
           output = motion.update({

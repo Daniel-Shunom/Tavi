@@ -45,6 +45,7 @@ import type { ContextEvent, ProviderInfo, StreamerUtterance } from './ai/types.j
 import { chatGate } from './twitch/reactions.js';
 import { StateDirector, type Engagement, type StateAction } from './behavior/states.js';
 import {
+  atSpotApproach,
   bodyStates,
   hash01,
   resolveSpot,
@@ -803,6 +804,9 @@ export class Companion {
       return false;
     }
     if (state === from && sameSpot(spot, current?.spot)) return false;
+    const currentPosition =
+      current?.spot?.approach ?? this.current.performance.movement?.to ?? this.home();
+    if (state === 'peek' && atSpotApproach(currentPosition, spot)) return false;
     const asleep = sleepingStates.includes(from) && !sleepingStates.includes(state);
     const body: BodyCue = {
       id: this.id('body'),

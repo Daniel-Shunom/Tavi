@@ -14,6 +14,7 @@ import {
 import type { Command, Config, State } from '../shared/protocol';
 import {
   bodyStates,
+  atSpotApproach,
   clampRect,
   resolveSpot,
   sameSpot,
@@ -38,10 +39,12 @@ export function BodyStateDock({
   state,
   send,
   connected,
+  position,
 }: {
   state: State;
   send: (command: Command) => void;
   connected: boolean;
+  position: { x: number; y: number };
 }) {
   const current = state.performance.body?.state ?? 'stand';
   const scene = { scene: state.config.scene, home: { x: state.config.x, y: state.config.y } };
@@ -49,13 +52,18 @@ export function BodyStateDock({
     <div className="state-dock" role="group" aria-label="Body state">
       {dock.map((entry) => {
         const possible = entry.state === 'stand' || resolveSpot(entry.state, scene) !== null;
+        const destination = resolveSpot(entry.state, scene);
         const definition = bodyStates[entry.state];
         const pressed = current === entry.state || (entry.state === 'sit' && current === 'doze');
+        const alreadyThere =
+          !!destination &&
+          (sameSpot(state.performance.body?.spot, destination) ||
+            (entry.state === 'peek' && atSpotApproach(position, destination)));
         return (
           <button
             key={entry.state}
             aria-pressed={pressed}
-            disabled={!connected || state.retracted || !possible || pressed}
+            disabled={!connected || state.retracted || !possible || pressed || alreadyThere}
             title={
               possible
                 ? `${definition.label}: ${definition.meaning}`
@@ -94,11 +102,13 @@ export function SceneEditor({
   send,
   connected,
   body,
+  position,
 }: {
   config: Config;
   send: (command: Command) => void;
   connected: boolean;
   body: State['performance']['body'];
+  position: { x: number; y: number };
 }) {
   const [draft, setDraft] = useState<Scene>(config.scene);
   const drag = useRef<Drag | null>(null);
@@ -168,7 +178,12 @@ export function SceneEditor({
     }
     const target = frameDestination[id];
     const spot = resolveSpot(target, { scene: draft, home: { x: config.x, y: config.y } });
-    if (!spot || (body !== null && sameSpot(body.spot, spot))) return;
+    if (
+      !spot ||
+      (body !== null && sameSpot(body.spot, spot)) ||
+      (target === 'peek' && atSpotApproach(position, spot))
+    )
+      return;
     send({ type: 'state', state: target });
   }
   function key(event: KeyboardEvent<HTMLElement>, id: SceneRectId) {
@@ -232,7 +247,9 @@ export function SceneEditor({
                   visitFrame(id);
                 }
               }}
-              onClick={() => visitFrame(id)}
+              onClick={() => {
+                visitFrame(id);
+              }}
             >
               <span>{sceneRects[id].label}</span>
               <i

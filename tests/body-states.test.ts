@@ -5,6 +5,7 @@ import {
   nominalStage,
   quietSchedule,
   resolveSpot,
+  atSpotApproach,
   type Scene,
 } from '../shared/states';
 import { ChatBurst, StateDirector, type DirectorContext } from '../server/behavior/states';
@@ -57,6 +58,12 @@ describe('scene spots', () => {
     expect(spot?.side).toBe(1);
     expect(spot?.approach.x).toBeLessThan(defaultScene.chat.x);
     expect(spot?.edgeX).toBeCloseTo(defaultScene.chat.x);
+  });
+  it('treats a nearby home location at chat as already at its visit destination', () => {
+    const chatHome = { x: 0.82, y: 0.63 };
+    const spot = resolveSpot('peek', { scene: defaultScene, home: chatHome });
+    expect(atSpotApproach(chatHome, spot)).toBe(true);
+    expect(atSpotApproach(home, spot)).toBe(false);
   });
   it('leans on the nearest reachable vertical frame edge, standing outside the frame', () => {
     const spot = resolveSpot('lean', { scene: defaultScene, home });
@@ -257,6 +264,12 @@ async function burst(c: ReturnType<typeof companion>, count = 14) {
 }
 
 describe('companion body states', () => {
+  it('does not start a redundant chat approach when home is already at chat', async () => {
+    const c = companion({ ...defaults, anchor: 'chat', x: 0.82, y: 0.63 });
+    await c.instance.handle({ type: 'state', state: 'peek' });
+    expect(c.instance.state.performance.body).toBeNull();
+    expect(c.instance.state.performance.movement).toBeNull();
+  });
   it('walks over and peeks at chat on a burst, then returns when chat calms down', async () => {
     const c = companion();
     await burst(c);

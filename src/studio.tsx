@@ -100,6 +100,8 @@ export function Studio({
   serverNow,
 }: ReturnType<typeof useConnection>) {
   const c = state.config;
+  const scenePosition = state.performance.body?.spot?.approach ??
+    state.performance.movement?.to ?? { x: c.x, y: c.y };
   const character = catalog[c.character];
   const script = state.performance.script;
   useEffect(() => {
@@ -339,7 +341,7 @@ export function Studio({
               </select>
             </div>
           </div>
-          <BodyStateDock state={state} send={send} connected={connected} />
+          <BodyStateDock state={state} send={send} connected={connected} position={scenePosition} />
           <div className="gesture-dock" role="group" aria-label="Try an expression">
             {coreCues
               .filter((entry) => supports(character, entry.cue))
@@ -644,6 +646,7 @@ export function Studio({
                         send={send}
                         connected={connected}
                         body={state.performance.body}
+                        position={scenePosition}
                       />
                     </>
                   )}

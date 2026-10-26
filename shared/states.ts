@@ -350,6 +350,19 @@ export function sameSpot(a: Spot | null | undefined, b: Spot | null | undefined)
   );
 }
 
+/** True when a known character position already occupies the destination's approach area. */
+export function atSpotApproach(
+  position: Point,
+  spot: Spot | null | undefined,
+  stage = nominalStage,
+) {
+  if (!spot) return false;
+  const dx = (spot.approach.x - position.x) * stage.aspect;
+  const dy = spot.approach.y - position.y;
+  // One body width plus a little clearance: the avatar is already visibly at this same spot.
+  return Math.hypot(dx, dy) <= stage.bodyHeight * 0.8;
+}
+
 // Timing -------------------------------------------------------------------------------------
 
 /** Nominal seconds for transitions (renderers may add travel time). */
