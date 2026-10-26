@@ -18,6 +18,7 @@ export function ObsWebcamPanel({
   const [status, setStatus] = useState<ObsStatus | null>(null);
   const [port, setPort] = useState('4455');
   const [password, setPassword] = useState('');
+  const [sourceQuery, setSourceQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -70,6 +71,10 @@ export function ObsWebcamPanel({
     }
   }
   const following = status?.phase === 'connected';
+  const selectedSource = status?.sources.find((source) => source.id === status.selection);
+  const sourceMatches = (status?.sources ?? []).filter((source) =>
+    source.name.toLocaleLowerCase().includes(sourceQuery.trim().toLocaleLowerCase()),
+  );
   const perch = webcamPerchStatus({ scene: config.scene, home: { x: config.x, y: config.y } });
   return (
     <section className="obs-awareness">
@@ -144,7 +149,18 @@ export function ObsWebcamPanel({
           ) : (
             <>
               <label className="field">
-                Webcam source in {status.scene}
+                Search OBS sources in {status.scene}
+                <input
+                  type="search"
+                  value={sourceQuery}
+                  onChange={(event) => {
+                    setSourceQuery(event.target.value);
+                  }}
+                  placeholder="Type any part of the source name"
+                />
+              </label>
+              <label className="field">
+                Matching sources ({sourceMatches.length})
                 <select
                   value={status.selection ?? ''}
                   onChange={(event) => {
@@ -152,7 +168,13 @@ export function ObsWebcamPanel({
                   }}
                 >
                   <option value="">Auto-detect one named webcam</option>
-                  {status.sources.map((source) => (
+                  {selectedSource &&
+                  !sourceMatches.some((source) => source.id === selectedSource.id) ? (
+                    <option value={selectedSource.id}>
+                      Current selection: {selectedSource.name}
+                    </option>
+                  ) : null}
+                  {sourceMatches.map((source) => (
                     <option key={source.id} value={source.id} disabled={!source.rect}>
                       {source.name}
                       {source.rect ? '' : ' (place manually)'}
