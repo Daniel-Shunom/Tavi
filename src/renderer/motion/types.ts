@@ -24,6 +24,7 @@ export interface MotionSettings {
  *  mouthX/Y   -1..1 mouth offset (sideways smirk, open/drop)
  *  squash     -1 stretch .. 1 squash (volume-preserving, rig-authored)
  *  hair*      -1..1 secondary motion
+ *  turnHead/turnBody  -1..1 three-quarter turnaround toward screen right (+) / left (-), 0 = camera
  *  headTilt, lean, armL/armR  radians (armL/armR: positive raises the arm outward)
  *  bob, shift body offset in body heights (+bob = down/crouch); headY head offset (+ = down)
  *  footLX..   foot offsets in body heights (+y = up/lift)
@@ -52,6 +53,8 @@ export const channelNames = [
   'hairSwoop',
   'hairSquash',
   'headTilt',
+  'turnHead',
+  'turnBody',
   'headY',
   'lean',
   'bob',

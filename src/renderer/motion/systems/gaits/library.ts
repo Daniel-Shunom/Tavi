@@ -467,11 +467,31 @@ export function resolveGait(id: string | undefined): GaitId | undefined {
  * Authored gait cycles a remixed rig may provide (manifest locomotion handles), used instead of
  * the procedural cycle when present. Loop lengths are one full cycle (two steps / two skips).
  */
-export const authoredGaitClips: Readonly<Record<GaitId, { handle: string; loop: string }>> = {
-  walk: { handle: 'walk-cycle', loop: '2 steps, 0.7 s at 60 fps (42 frames)' },
+export interface AuthoredGaitClip {
+  handle: string;
+  loop: string;
+  /** For cycles that exist: loop length (s) and ground covered per loop (BH, planted foot). */
+  seconds?: number;
+  stride?: number;
+}
+
+export const authoredGaitClips: Readonly<Record<GaitId, AuthoredGaitClip>> = {
+  // Lyla v2: 42 frames, planted foot slides 56 artboard units (of 600) per loop.
+  walk: {
+    handle: 'walk-cycle',
+    loop: '2 steps, 0.7 s at 60 fps (42 frames)',
+    seconds: 0.7,
+    stride: 56 / 600,
+  },
   amble: { handle: 'amble-cycle', loop: '2 steps, 0.9 s' },
   skip: { handle: 'skip-cycle', loop: '2 skips, 0.83 s, contact on frames 0 and 25' },
-  trudge: { handle: 'trudge-cycle', loop: '2 steps, 1.14 s, toe drag on the swing' },
+  // Lyla v2: 80 frames, 36 units per loop.
+  trudge: {
+    handle: 'trudge-cycle',
+    loop: '2 steps, 1.33 s, toe drag on the swing',
+    seconds: 80 / 60,
+    stride: 36 / 600,
+  },
   scurry: { handle: 'scurry-cycle', loop: '2 steps, 0.53 s' },
   sneak: { handle: 'sneak-cycle', loop: '2 steps, 1.25 s, tiptoe contacts' },
   stomp: { handle: 'stomp-cycle', loop: '2 steps, 0.87 s, heavy heel strikes' },
