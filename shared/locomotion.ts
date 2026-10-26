@@ -15,7 +15,55 @@ export type AnchorId = keyof typeof anchors;
 export const anchorIds = Object.keys(anchors) as [AnchorId, ...AnchorId[]];
 export const anchorSchema = z.enum(anchorIds);
 
-export const gaits = ['stroll', 'walk', 'hurry', 'tiptoe', 'hop'] as const;
+/**
+ * HOW Tavi travels (the motion layer's gait library, src/renderer/motion/systems/gaits/).
+ * 'stroll', 'hurry' and 'tiptoe' are kept as aliases of amble, scurry and sneak. Omit `gait` to let
+ * the motion layer choose from why it is moving, personality and distance.
+ */
+export const gaits = [
+  'walk',
+  'amble',
+  'skip',
+  'trudge',
+  'scurry',
+  'sneak',
+  'stomp',
+  'run',
+  'hop',
+  'stroll',
+  'hurry',
+  'tiptoe',
+] as const;
+/** Mood carried while travelling: an expression id with a face pose (shared/expressions.ts). */
+export const moods = [
+  'content',
+  'excited',
+  'sad',
+  'annoyed',
+  'sleepy',
+  'worried',
+  'pout',
+  'frown',
+  'bored',
+  'determined',
+  'focused',
+  'grin',
+] as const;
+export type Mood = (typeof moods)[number];
+/** Studio "How it moves" choices: auto lets the motion layer decide. */
+export const movementStyles = [
+  'auto',
+  'walk',
+  'amble',
+  'skip',
+  'trudge',
+  'scurry',
+  'sneak',
+  'stomp',
+  'run',
+  'hop',
+] as const;
+export type MovementStyle = (typeof movementStyles)[number];
 export type Gait = (typeof gaits)[number];
 
 export const movementKinds = {
@@ -68,6 +116,7 @@ export const movementSchema = z
     to: point,
     anchor: anchorSchema.optional(),
     gait: z.enum(gaits).optional(),
+    mood: z.enum(moods).optional(),
     /** 0..1 hint; the motion layer maps it to the character's real speed. */
     speed: z.number().min(0).max(1).optional(),
     startAt: z.number(),

@@ -11,6 +11,7 @@ import { G_BH, airtime, fallTime, hopHeight } from '../core/physics';
 import { pick, rngFor } from '../core/random';
 import type { MotionProfile } from '../profile';
 import type { Pose, Stage } from '../types';
+import { resolveGait } from './gaits/library';
 import type { Gait, Locomotion, LocomotionFrame } from './locomotion';
 
 export interface ActOutput {
@@ -47,7 +48,14 @@ export type Step =
   | { kind: 'expression'; id: string; hold?: number }
   | { kind: 'release'; id: string }
   | { kind: 'pause'; duration: number }
-  | { kind: 'walk'; to: 'anchor' | 'side'; gait: Gait | 'personality'; speed: number }
+  | {
+      kind: 'walk';
+      to: 'anchor' | 'side';
+      gait: Gait | 'personality';
+      speed: number;
+      /** Gait beats to keep (the choreography adds its own arrival). */
+      beats?: 'all' | 'start' | 'none';
+    }
   | { kind: 'turn'; to: 'camera' | 'side' }
   /** Ballistic drop from the current lift to below the ground line (clipped). */
   | { kind: 'sink' }
@@ -607,7 +615,7 @@ export const choreographies: Readonly<Record<string, Choreography>> = {
     steps: [
       { kind: 'spawnSide' },
       { kind: 'expression', id: 'tired', hold: 60 },
-      { kind: 'walk', to: 'anchor', gait: 'tired', speed: 1.8 },
+      { kind: 'walk', to: 'anchor', gait: 'trudge', speed: 1.8, beats: 'start' },
       { kind: 'release', id: 'tired' },
       sigh,
       yawnStretch,
@@ -624,7 +632,7 @@ export const choreographies: Readonly<Record<string, Choreography>> = {
     steps: [
       { kind: 'turn', to: 'side' },
       glanceBack,
-      { kind: 'walk', to: 'side', gait: 'personality', speed: 2.2 },
+      { kind: 'walk', to: 'side', gait: 'personality', speed: 2.2, beats: 'start' },
     ],
     calm: calmOut,
   },
@@ -934,16 +942,31 @@ export class ChoreographyPlayer {
           if (!run.issued.has(index)) {
             run.issued.add(index);
             const side = run.locomotion.position.x < 0.5 ? -1 : 1;
-            const x = step.to === 'anchor' ? run.anchor.x : side < 0 ? -0.12 : 1.12;
+            const x = step.to === 'anchor' ? run.anchor.x : side < 0 ? -0.3 : 1.3;
+            // Personality gait from the library; playful skips off rather than bunny-hopping.
             const gait: Gait =
               step.gait === 'personality'
                 ? profile.gait === 'hop'
-                  ? 'hop'
-                  : profile.gait
+                  ? 'skip'
+                  : (resolveGait(profile.gait) ?? 'walk')
                 : step.gait;
-            run.locomotion.moveTo({ x, at: now, gait, speed: step.speed, unbounded: true });
-          } else if (!run.lengths.has(index) && !loco.moving && local > 0.2)
-            run.lengths.set(index, local);
+            run.locomotion.moveTo({
+              x,
+              at: now,
+              gait,
+              speed: step.speed,
+              unbounded: true,
+              beats: step.beats ?? 'none',
+            });
+          } else if (!run.lengths.has(index)) {
+            // Walking off: done as soon as the body is fully off-screen (no arrival slow-down).
+            const x = run.locomotion.position.x;
+            const offstage = step.to === 'side' && (x < -0.07 || x > 1.07);
+            if ((!loco.moving && local > 0.2) || offstage) {
+              run.lengths.set(index, local);
+              if (offstage) run.locomotion.stop(now);
+            }
+          }
           lift = 0;
           break;
         }

@@ -66,12 +66,12 @@ describe('locomotion', () => {
   it('keeps the stance foot planted on the ground (no sliding)', () => {
     const loco = new Locomotion(4);
     loco.place(0.3, 0.9);
-    loco.moveTo({ x: 0.42, at: 0, gait: 'step' });
+    loco.moveTo({ x: 0.42, at: 0, gait: 'walk' });
     // World x of the screen-left foot, in stage units, while it is in stance.
     let anchor: number | null = null;
     let worst = 0;
     run(loco, 6, 120, profile, 0, (f) => {
-      if (f.gait !== 'step' || !f.moving) return;
+      if (f.gait !== 'walk' || !f.moving) return;
       const bh = stage.bodyHeight;
       const footWorld = f.x * stage.aspect + f.facing * (f.pose.footLX ?? 0) * bh;
       const stance = (f.pose.footLY ?? 0) < 1e-4;
@@ -105,7 +105,7 @@ describe('locomotion', () => {
   it('leans into acceleration and back on braking', () => {
     const loco = new Locomotion(3);
     loco.place(0.2, 0.9);
-    loco.moveTo({ x: 0.6, at: 0, gait: 'step' });
+    loco.moveTo({ x: 0.6, at: 0, gait: 'walk' });
     let forward = 0,
       back = 0;
     run(loco, 10, 60, profile, 0, (f) => {
@@ -147,7 +147,7 @@ describe('locomotion', () => {
     loco.place(0.3, 0.9);
     loco.moveTo({ x: 0.45, at: 0 });
     run(loco, 6, 60, profile, 0);
-    loco.moveTo({ x: 0.3, at: 6.05, gait: 'step' }); // reverse mid-way or after arrival
+    loco.moveTo({ x: 0.3, at: 6.05, gait: 'walk' }); // reverse mid-way or after arrival
     const flipStates = new Set<string>();
     let previous = 1,
       flips = 0,
@@ -172,9 +172,10 @@ describe('locomotion', () => {
   it('chooses gait from distance and personality', () => {
     const shy = motionProfile({ ...settings, personality: 'shy' });
     const playful = motionProfile({ ...settings, personality: 'playful' });
-    expect(chooseGait(0.6, shy, feet)).toBe('scoot');
+    // Fallback only (selection rules live in gaits/select.ts); never an automatic hop.
+    expect(chooseGait(0.6, shy, feet)).toBe('scurry');
     expect(chooseGait(0.6, profile, feet)).toBe('amble');
-    expect(chooseGait(3, playful, feet)).toBe('hop');
+    expect(chooseGait(3, playful, feet)).toBe('walk');
     expect(chooseGait(0.6, profile, { feet: false })).toBe('hop');
   });
 });
