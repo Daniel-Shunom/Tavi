@@ -61,10 +61,15 @@ try {
     .poll(async () => (await (await page.request.get(base + '/api/state')).json()).config.name)
     .toBe('Mochi');
   await page.getByRole('button', { name: 'shy', exact: false }).click();
-  await page.getByRole('button', { name: 'Try reaction', exact: true }).click();
+  await page.getByRole('button', { name: 'Say it', exact: true }).click();
+  // Typed lines go through the active decision provider; without keys that is labelled rules.
   await expect
-    .poll(async () => (await (await page.request.get(base + '/api/state')).json()).action.gesture)
-    .toBe('peek');
+    .poll(
+      async () =>
+        (await (await page.request.get(base + '/api/state')).json()).performance.script?.decidedBy
+          .kind,
+    )
+    .toMatch(/^(rules|ai|local)$/);
   await page.getByRole('button', { name: 'Tuck away', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Bring Tavi back' })).toBeVisible();
   await page.getByRole('button', { name: 'Bring Tavi back' }).click();
@@ -81,7 +86,8 @@ try {
       socket.onmessage = () => {
         if (!initialized) {
           initialized = true;
-          socket.send(JSON.stringify({ type: 'configure', patch: config }));
+          const { version: _version, ...patch } = config;
+          socket.send(JSON.stringify({ type: 'configure', patch }));
         } else {
           socket.close();
           resolve();
@@ -100,11 +106,15 @@ try {
     'Browser checks passed: renderer, customization, personality reaction, retraction, placement, transparent overlay, and mobile overflow.',
   );
 } finally {
-  if (original && currentPage)
+  if (original && currentPage) {
+    const { version: _version, ...patch } = original.config;
     await apply(currentPage, [
-      { type: 'configure', patch: original.config },
+      { type: 'configure', patch },
       { type: 'quiet', value: original.quiet },
       { type: 'retract', value: original.retracted },
-    ]);
+    ]).catch((error) => {
+      console.error('Could not restore the pre-test character:', error.message);
+    });
+  }
   await browser.close();
 }

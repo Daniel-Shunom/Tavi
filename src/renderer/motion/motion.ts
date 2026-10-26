@@ -85,6 +85,10 @@ export class MotionLayer {
     return this.profile;
   }
 
+  reveal() {
+    this.choreo.reveal();
+  }
+
   get hidden() {
     return this.choreo.isHidden;
   }

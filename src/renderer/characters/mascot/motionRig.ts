@@ -1,7 +1,7 @@
 // Motion rig manifest for alisketch's "Mascot / Avatar Customization" (CC BY 4.0),
 // artboard "lyla animation". Indices come from the exported file (see docs/motion/ASSET-AUDIT.md);
 // expectTypes guards against silently driving the wrong object if the asset is replaced.
-import { RiveProperty, type ControlTrack, type RigPatch } from '../rive/patch';
+import { RiveProperty, type ControlTrack, type RigPatch } from '../../motion/rive/patch';
 
 const JOYSTICK = 148;
 const NODE = 2;

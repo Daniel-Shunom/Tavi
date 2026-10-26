@@ -78,9 +78,13 @@ describe('Twitch integration public boundary', () => {
         receivedAt: Date.now(),
       };
       listener.input?.onChange({ type: 'message', message });
+      // The decision pipeline is asynchronous even for rules.
+      await vi.advanceTimersByTimeAsync(10);
       const state = stateSchema.parse((await app.inject('/api/state')).json());
-      expect(state.action.source).toBe('twitch');
-      expect(state.action.gesture).toBe('smile');
+      expect(state.performance.script?.source).toBe('chat');
+      expect(state.performance.script?.sourceEventId).toBe('m1');
+      expect(state.performance.script?.decidedBy.label).toBe('Rules (not AI)');
+      expect(state.performance.script?.beats[0]?.target).toBe('chat');
       listener.input?.onChange({ type: 'message', message });
       expect(
         twitchStatusSchema.parse((await app.inject('/api/twitch')).json()).messages,

@@ -8,14 +8,18 @@ import { createRoot } from 'react-dom/client';
 import { Studio } from './studio';
 import { Avatar } from './renderer/Avatar';
 import { useConnection } from './useConnection';
+import { motionRigs } from './renderer/characters/motionRigs';
+import { installMotionLayer } from './renderer/motion/hook';
 import './style.css';
+
+installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
 if (overlay) document.documentElement.classList.add('overlay');
 function App() {
   const connection = useConnection();
   return overlay ? (
     <main className="overlay-surface">
-      <Avatar state={connection.state} />
+      <Avatar state={connection.state} serverNow={connection.serverNow} />
     </main>
   ) : (
     <Studio {...connection} />

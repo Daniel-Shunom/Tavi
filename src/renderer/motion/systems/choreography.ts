@@ -148,6 +148,13 @@ export class ChoreographyPlayer {
     return this.running?.id ?? null;
   }
 
+  /** Visible again without a choreography (another system performed the entrance). */
+  reveal() {
+    this.hidden = false;
+    this.running = null;
+    this.lastLift = 0;
+  }
+
   get isHidden() {
     return this.hidden;
   }

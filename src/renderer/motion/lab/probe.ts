@@ -2,9 +2,9 @@
 // tools/motion-lab/probe.mjs can screenshot what each joystick channel and named node does.
 import { RuntimeLoader } from '@rive-app/webgl2';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
-import avatarURL from '../../assets/mascot.riv?url';
+import avatarURL from '../../characters/mascot/mascot.riv?url';
 import { createMotionRig, type FrameInput } from '../rive/motionRig';
-import { lylaPatch, lylaRig } from '../rigs/lyla';
+import { lylaPatch, lylaRig } from '../../characters/mascot/motionRig';
 
 RuntimeLoader.setWasmUrl(wasmURL);
 RuntimeLoader.setWasmFallbackUrl(null);

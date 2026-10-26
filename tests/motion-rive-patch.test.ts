@@ -7,9 +7,9 @@ import {
   controlTime,
   patchRiv,
 } from '../src/renderer/motion/rive/patch';
-import { lylaRig, lylaPatch } from '../src/renderer/motion/rigs/lyla';
+import { lylaRig, lylaPatch } from '../src/renderer/characters/mascot/motionRig';
 
-const source = new Uint8Array(readFileSync('src/renderer/assets/mascot.riv'));
+const source = new Uint8Array(readFileSync('src/renderer/characters/mascot/mascot.riv'));
 const JOYSTICK = 148;
 
 describe('riv scanning', () => {

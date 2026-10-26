@@ -1,35 +1,27 @@
-import type { State, Gesture } from '../../shared/protocol.js';
+// Gate for live chat: only invitations (Tavi is named), within cooldown and streamer controls.
+// What to express is decided afterwards by the shared decision pipeline.
+import type { State } from '../../shared/protocol.js';
 import type { ChatMessage } from '../../shared/twitch.js';
-export function chatReaction(
+
+const initiativeCooldown = { reserved: 1.5, occasional: 1, outgoing: 0.6 } as const;
+export function chatCooldown(state: State) {
+  return (90000 - state.config.chatEngagement * 600) * initiativeCooldown[state.config.initiative];
+}
+export function chatGate(
   state: State,
-  message: ChatMessage,
+  message: Pick<ChatMessage, 'text'>,
   now: number,
   lastReaction: number,
-): State {
-  if (state.quiet || state.retracted || state.config.chatEngagement === 0) return state;
-  const cooldown = 90000 - state.config.chatEngagement * 600;
-  if (now - lastReaction < cooldown) return state;
-  const words = message.text.toLocaleLowerCase().split(/[^\p{L}\p{N}_]+/u);
+): { allowed: true } | { allowed: false; reason: string } {
+  if (state.retracted) return { allowed: false, reason: 'Tucked away.' };
+  if (state.quiet) return { allowed: false, reason: 'Quiet mode.' };
+  if (state.config.chatEngagement === 0)
+    return { allowed: false, reason: 'Chat engagement is off.' };
+  const text = message.text.toLocaleLowerCase();
+  const words = text.split(/[^\p{L}\p{N}_]+/u);
   const name = state.config.name.toLocaleLowerCase();
-  if (
-    !words.includes('tavi') &&
-    !message.text.toLocaleLowerCase().includes('@' + name) &&
-    !words.includes(name)
-  )
-    return state;
-  const gesture: Gesture =
-    state.config.personality === 'shy'
-      ? 'peek'
-      : state.config.personality === 'playful'
-        ? 'wave'
-        : 'smile';
-  return {
-    ...state,
-    action: {
-      id: state.action.id + 1,
-      gesture,
-      note: `Chat from ${message.author}: ${message.text}`,
-      source: 'twitch',
-    },
-  };
+  if (!words.includes('tavi') && !text.includes('@' + name) && !words.includes(name))
+    return { allowed: false, reason: 'Not addressed to the companion.' };
+  if (now - lastReaction < chatCooldown(state)) return { allowed: false, reason: 'Chat cooldown.' };
+  return { allowed: true };
 }

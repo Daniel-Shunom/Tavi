@@ -1,7 +1,7 @@
 // Maps the abstract MotionFrame onto the lyla rig (joystick channels + named nodes).
 // Channel semantics were verified visually (docs/motion/ASSET-AUDIT.md).
-import type { FrameInput, NodeOffset } from '../rive/motionRig';
-import type { MotionFrame } from '../types';
+import type { FrameInput, NodeOffset } from '../../motion/rive/motionRig';
+import type { MotionFrame } from '../../motion/types';
 
 /** Artboard units per body height (artboard is 600 tall and placement height = artboard). */
 const UNITS = 600;

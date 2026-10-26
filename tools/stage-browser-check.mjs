@@ -8,7 +8,7 @@ try {
   });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('http://127.0.0.1:5173');
+  await page.goto(process.env.TAVI_TEST_URL ?? 'http://127.0.0.1:5173');
   await expect(page.getByText('Local service connected', { exact: true })).toBeVisible();
   await expect(page.locator('canvas')).toBeVisible();
   await page.getByRole('button', { name: 'Daydream', exact: true }).click();
@@ -41,12 +41,8 @@ try {
       });
       if (await button.count()) await button.click();
       await page.getByRole('link', { name: 'Playground', exact: true }).click();
-      await page
-        .getByRole('button', { name: 'Try reaction', exact: true })
-        .scrollIntoViewIfNeeded();
-      await expect(
-        page.getByRole('button', { name: 'Try reaction', exact: true }),
-      ).toBeInViewport();
+      await page.getByRole('button', { name: 'Say it', exact: true }).scrollIntoViewIfNeeded();
+      await expect(page.getByRole('button', { name: 'Say it', exact: true })).toBeInViewport();
       const bounds = await page.evaluate(() => {
         const stage = document.querySelector('.companion-stage').getBoundingClientRect();
         const deck = document.querySelector('.tool-deck').getBoundingClientRect();

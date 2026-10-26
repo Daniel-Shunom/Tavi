@@ -1,223 +1,294 @@
 import { useEffect, useRef, useState } from 'react';
-import type { State, Gesture } from '../../shared/protocol';
-import { Director, performancePose, smooth, type PerformanceAction } from './performance';
-import type { RiveRig } from './riveRig';
-// MOTION LAYER HOOK (motion agent): procedural idle life, walking and entrances/exits.
-// Set to false to restore the previous clip-scrub renderer. See docs/motion/INTEGRATION.md.
-import type { AvatarMotion } from './motion/avatarMotion';
-const MOTION_LAYER: boolean = true;
-const actions: Partial<Record<Gesture, PerformanceAction>> = {
-  wave: 'wave',
-  smile: 'nod',
-  surprise: 'celebrate',
-  point: 'listening',
-  peek: 'caught',
-  listening: 'listening',
-  skeptical: 'skeptical',
-  caught: 'caught',
-  nod: 'nod',
-  celebrate: 'celebrate',
-};
+import type { State } from '../../shared/protocol';
+import type { Target } from '../../shared/expressions';
+import { anchors, locomotionTarget, type Point } from '../../shared/locomotion';
+import { hiddenAmount } from '../../shared/presence';
+import { createCharacterRenderer, type CharacterRenderer, type RenderFrame } from './adapter';
+import { getCharacter } from './characters/registry';
+import { composePose, phaseLookup, variantFor } from './compose';
+import { IdleScheduler } from './idle';
+import {
+  createMotionLayer,
+  fallbackStep,
+  onMotionLayerChange,
+  type MotionLayer,
+  type MotionOutput,
+} from './motionHook';
+import { Performer, smooth } from './timeline';
+
+/** Rough walking speed used to estimate arrival for timed visits (normalized units/second). */
+const NOMINAL_SPEED = 0.22;
+
 export function Avatar({
   state,
+  serverNow = Date.now,
   presentation = 'overlay',
+  captions = presentation === 'overlay'
+    ? state.config.captions.overlay
+    : state.config.captions.studio,
 }: {
   state: State;
+  serverNow?: () => number;
   presentation?: 'overlay' | 'portrait';
+  captions?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const latest = useRef(state);
-  latest.current = state;
+  const bubble = useRef<HTMLDivElement>(null);
+  const latest = useRef({ state, serverNow, captions });
+  latest.current = { state, serverNow, captions };
   const [error, setError] = useState('');
+  const characterId = state.config.character;
   useEffect(() => {
+    const manifest = getCharacter(characterId);
     let cancelled = false,
-      motion: AvatarMotion | undefined, // MOTION LAYER HOOK
-      rig: RiveRig | undefined,
+      view: CharacterRenderer | undefined,
       frame: number | null = null;
     let clock = 0,
       last: number | null = null,
       width = 1,
       height = 1;
-    let lastAction = latest.current.action.id;
-    let retracted = latest.current.retracted,
-      quiet = latest.current.quiet;
-    let restoreAt = 0,
-      restoreFrom = retracted ? 1 : 0,
-      hiddenAmount = retracted ? 1 : 0;
-    let peek = false,
-      x = latest.current.config.x,
-      y = latest.current.config.y;
-    const director = new Director();
-    if (retracted) director.play('tuck', -2);
+    let position: Point = { x: latest.current.state.config.x, y: latest.current.state.config.y };
+    let pointer: Point | null = null;
+    const performer = new Performer(phaseLookup(manifest));
+    const idle = new IdleScheduler({
+      supported: Object.keys(manifest.expressions) as (keyof typeof manifest.expressions)[],
+      seed: 7,
+    });
+    let motion: MotionLayer | null = createMotionLayer(manifest);
+    const stopMotionWatch = onMotionLayerChange(() => {
+      motion?.dispose?.();
+      motion = createMotionLayer(manifest);
+    });
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     function resize() {
       const element = host.current;
-      if (!element || (!rig && !motion)) return;
+      if (!element || !view) return;
       width = element.clientWidth;
       height = element.clientHeight;
-      rig?.resize(width, height);
-      motion?.resize(width, height); // MOTION LAYER HOOK
+      view.resize(width, height);
     }
     const observer = new ResizeObserver(resize);
+    function trackPointer(event: PointerEvent) {
+      pointer = {
+        x: event.clientX / Math.max(1, innerWidth),
+        y: event.clientY / Math.max(1, innerHeight),
+      };
+    }
+    if (presentation === 'portrait') addEventListener('pointermove', trackPointer);
     function stop() {
-      const runtime = motion?.runtime ?? rig?.runtime; // MOTION LAYER HOOK
-      if (frame !== null && runtime) runtime.cancelAnimationFrame(frame);
+      if (frame !== null && view) view.cancelFrame(frame);
       frame = null;
       last = null;
     }
     function fail(reason: unknown) {
       console.error('Tavi character renderer:', reason);
       stop();
-      rig?.dispose();
-      motion?.dispose(); // MOTION LAYER HOOK
+      view?.dispose();
       if (!cancelled)
         setError('The character could not load. Check graphics acceleration and refresh.');
     }
-    function draw(now: number) {
+    function draw(time: number) {
       frame = null;
-      if (cancelled || (!rig && !motion) || document.hidden) return;
+      if (cancelled || !view || document.hidden) return;
       try {
-        const dt = last === null ? 0 : Math.min(0.1, Math.max(0, (now - last) / 1000));
-        last = now;
+        const dt = last === null ? 0 : Math.min(0.1, Math.max(0, (time - last) / 1000));
+        last = time;
         clock += dt;
-        // MOTION LAYER HOOK: the motion layer drives everything; the legacy path below is unused.
-        if (motion) {
-          const result = motion.frame(dt, clock, latest.current);
-          const element = host.current;
-          if (element) {
-            element.dataset['performance'] = result.status.expressions[0] ?? 'idle';
-            element.dataset['retracted'] = String(latest.current.retracted);
-            element.dataset['locomotion'] = result.status.locomotion;
-            element.dataset['ready'] = 'true';
-          }
-          frame = motion.runtime.requestAnimationFrame(draw);
-          return;
-        }
-        if (!rig) return;
-        const current = latest.current,
-          config = current.config;
-        if (current.quiet !== quiet) {
-          quiet = current.quiet;
-          if (quiet && !retracted) director.idle();
-        }
-        if (current.retracted !== retracted) {
-          retracted = current.retracted;
-          peek = false;
-          if (retracted) director.play('tuck', clock);
-          else {
-            restoreFrom = hiddenAmount;
-            restoreAt = clock;
-            director.idle();
-          }
-        }
-        if (current.action.id !== lastAction) {
-          lastAction = current.action.id;
-          if (!retracted && (!quiet || current.action.source === 'manual')) {
-            peek = current.action.gesture === 'peek';
-            if (current.action.gesture === 'scene') director.runScene(clock);
-            else if (current.action.gesture === 'idle') director.idle();
-            else {
-              const action = actions[current.action.gesture];
-              if (action) director.play(action, clock);
-            }
-          }
-        }
-        const performance = director.snapshot(clock);
-        const pose = performancePose(performance, {
-          strength: 0.5 + config.energy / 200,
+        const { state: current, serverNow: now, captions: showCaptions } = latest.current;
+        const config = current.config;
+        const serviceTime = now();
+        const reducedMotion = reduced.matches;
+        performer.set(current.performance.script, serviceTime);
+        const layers = performer.sample(serviceTime, reducedMotion);
+        layers.push(
+          ...idle.sample(
+            clock,
+            layers.length > 0,
+            current.quiet || current.retracted || reducedMotion,
+          ),
+        );
+        // Which side of the character an attention target is on.
+        const targetX = (target: Target) =>
+          target === 'chat'
+            ? anchors.chat.x
+            : target === 'streamer'
+              ? anchors.webcam.x
+              : target === 'pointer'
+                ? (pointer?.x ?? 0.5)
+                : position.x;
+        const reference = presentation === 'portrait' ? 0.5 : position.x;
+        const side = (target: Target): -1 | 1 => (targetX(target) < reference ? -1 : 1);
+        const pose = composePose(layers, manifest, {
+          reducedMotion,
+          energy: config.energy,
           attitude: config.attitude,
-          reducedMotion: reduced.matches,
+          side,
+          delegated: new Set(motion?.performances ?? []),
         });
-        hiddenAmount = retracted
-          ? reduced.matches
+        // Presence: entrances/exits on the service clock (never replayed after reconnect).
+        const transition = current.performance.presence;
+        let hidden =
+          current.retracted && !transition
             ? 1
-            : pose.tuck
-          : restoreFrom * (1 - smooth((clock - restoreAt) / 0.55));
-        const follow = reduced.matches ? 1 : 1 - Math.exp(-dt * 9);
-        x += (config.x - x) * follow;
-        y += (config.y - y) * follow;
-        rig.apply('wave Non Looping', 0);
-        rig.apply('blink_IDLE', reduced.matches ? 0.2 : (clock % 2) / 2);
-        for (const clip of pose.clips) if (clip.mix > 0) rig.apply(clip.name, clip.time, clip.mix);
-        rig.apply('hair ' + config.riveHair, 0);
-        rig.apply('clothing ' + config.riveOutfit, 0);
-        rig.apply('glasses ' + config.riveGlasses, 0);
+            : hiddenAmount(transition, serviceTime, reducedMotion);
+        // Locomotion lane.
+        const home = { x: config.x, y: config.y };
+        const movement = current.performance.movement;
+        const travel = movement
+          ? Math.hypot(movement.to.x - home.x, movement.to.y - home.y) / NOMINAL_SPEED
+          : 0;
+        const goal = locomotionTarget(movement, home, serviceTime, travel);
+        let output: MotionOutput = {};
+        if (motion)
+          output = motion.update({
+            dt,
+            time: clock,
+            layers,
+            attention: pose.attention
+              ? { ...pose.attention, side: side(pose.attention.target) }
+              : null,
+            persona: {
+              attitude: config.attitude,
+              initiative: config.initiative,
+              personality: config.personality,
+              energy: config.energy,
+            },
+            reducedMotion,
+            quiet: current.quiet,
+            retracted: current.retracted,
+            presence: {
+              transition,
+              hidden,
+              elapsed: transition ? (serviceTime - transition.startAt) / 1000 : Infinity,
+            },
+            performances: pose.performances,
+            base: { offset: { ...pose.offset } },
+            locomotion: {
+              home,
+              target: goal.to,
+              position,
+              movement: goal.movement,
+              viewport: { width, height },
+            },
+            character: {
+              id: manifest.id,
+              motionTracks: manifest.motionTracks,
+              nodes: Object.keys(manifest.nodes),
+              inputs: Object.keys(manifest.inputs),
+              locomotion: manifest.locomotion,
+            },
+          });
+        position =
+          output.position ?? fallbackStep(position, goal.to, dt, NOMINAL_SPEED, reducedMotion);
+        const handledPresence = output.presence !== undefined;
+        if (output.presence) hidden = output.presence.hidden;
+        // Build the render frame: ambient loop, expressions, tuck, motion.
+        const renderFrame: RenderFrame = {
+          tracks: [],
+          inputs: { ...output.inputs },
+          nodes: { ...output.nodes },
+        };
+        if (manifest.idleLoop)
+          renderFrame.tracks.push({
+            track: manifest.idleLoop.track,
+            time: reducedMotion
+              ? 0.1
+              : (clock % manifest.idleLoop.seconds) / manifest.idleLoop.seconds,
+            mix: 1,
+          });
+        renderFrame.tracks.push(...pose.tracks);
+        const tuck = variantFor(manifest.controls.tuck, 0.5);
+        const tuckWeight = !handledPresence && transition?.kind === 'exit' ? smooth(hidden * 2) : 0;
+        if (tuck && tuckWeight > 0)
+          for (const sample of tuck.tracks)
+            renderFrame.tracks.push({
+              track: sample.track,
+              time: sample.at ?? 0.5,
+              mix: sample.mix * tuckWeight,
+            });
+        if (output.tracks) renderFrame.tracks.push(...output.tracks);
+        view.setAppearance(config.appearance);
+        view.applyFrame(renderFrame);
+        // Placement in CSS pixels; manifest offsets are in 720p reference pixels.
         const scale = Math.min(width / 1280, height / 720);
         const size =
           presentation === 'portrait' ? Math.min(height * 0.9, width / 0.7) : 220 * scale;
-        const peekWeight = peek ? performance.weight : 0;
-        const centerX = presentation === 'portrait' ? width * 0.5 : x * width;
-        const bottomY = presentation === 'portrait' ? height * 0.96 : y * height;
-        const idleBreath = reduced.matches || quiet ? 0 : Math.sin(clock * 1.7) * 0.003;
+        const unit = presentation === 'portrait' ? size / 220 : scale;
+        const offset = {
+          x: pose.offset.x + (output.offset?.x ?? 0),
+          y: pose.offset.y + (output.offset?.y ?? 0),
+          rotation:
+            pose.offset.rotation +
+            (output.offset?.rotation ?? 0) +
+            (!handledPresence && tuck?.transform?.rotation
+              ? tuck.transform.rotation * tuckWeight
+              : 0),
+          scale: pose.offset.scale + (output.offset?.scale ?? 0),
+        };
+        const centerX = presentation === 'portrait' ? width * 0.5 : position.x * width;
+        const bottomY = presentation === 'portrait' ? height * 0.96 : position.y * height;
+        const peek = pose.peek;
+        const slide = handledPresence ? 0 : hidden;
         const placement = {
-          x: centerX + pose.x * scale + (width - size * 0.35 - centerX) * peekWeight,
+          x: centerX + offset.x * unit + (width - size * 0.35 - centerX) * peek,
           y:
             bottomY +
-            pose.y * scale +
-            (height + size * 0.42 - bottomY) * peekWeight +
-            (height + size - bottomY) * hiddenAmount,
-          width: size * 0.8,
-          height: size * (pose.scale + idleBreath),
-          rotation: pose.rotation,
+            offset.y * unit +
+            (height + size * 0.42 - bottomY) * peek +
+            (height + size - bottomY) * slide,
+          width: size * manifest.aspect,
+          height: size * offset.scale,
+          rotation: offset.rotation,
         };
         const element = host.current;
         if (element) {
-          element.dataset['performance'] = performance.action;
-          element.dataset['retracted'] = String(retracted);
+          const primary = [...layers].sort((a, b) => b.weight - a.weight)[0];
+          element.dataset['performance'] =
+            primary && primary.channel !== 'idle' ? primary.expression : 'idle';
+          element.dataset['layers'] = layers
+            .map((layer) => `${layer.expression}:${layer.weight.toFixed(2)}`)
+            .join(' ');
+          element.dataset['retracted'] = String(current.retracted);
+          element.dataset['decidedBy'] = current.performance.script?.decidedBy.kind ?? 'none';
           element.dataset['ready'] = 'true';
         }
-        if (canvas.current) canvas.current.style.opacity = String(1 - hiddenAmount);
-        rig.draw(dt, placement);
-        frame = rig.runtime.requestAnimationFrame(draw);
+        if (canvas.current)
+          canvas.current.style.opacity = String(1 - (handledPresence ? hidden : hidden * hidden));
+        const caption = showCaptions && hidden < 0.5 ? pose.caption : '';
+        if (bubble.current && bubble.current.textContent !== caption) {
+          bubble.current.textContent = caption;
+          bubble.current.hidden = !caption;
+        }
+        if (bubble.current && caption) {
+          bubble.current.style.left = `${String(placement.x)}px`;
+          bubble.current.style.top = `${String(placement.y - placement.height * 0.92)}px`;
+        }
+        view.draw(dt, placement);
+        frame = view.requestFrame(draw);
       } catch (reason) {
         fail(reason);
       }
     }
     function visibility() {
       if (document.hidden) stop();
-      else if ((rig || motion) && !cancelled && frame === null)
-        frame = (motion?.runtime ?? rig?.runtime)?.requestAnimationFrame(draw) ?? null;
+      else if (view && !cancelled && frame === null) frame = view.requestFrame(draw);
     }
-    const isCancelled = () => cancelled;
     async function mount() {
       try {
         const element = host.current,
           target = canvas.current;
         if (!element || !target) return;
-        // MOTION LAYER HOOK: load the motion-driven renderer instead of the clip-scrub rig.
-        if (MOTION_LAYER) {
-          const motionModule = await import('./motion/avatarMotion');
-          if (isCancelled()) return;
-          const loadedMotion = await motionModule.createAvatarMotion(
-            target,
-            latest.current,
-            presentation,
-            clock,
-          );
-          if (isCancelled()) {
-            loadedMotion.dispose();
-            return;
-          }
-          motion = loadedMotion;
-          resize();
-          observer.observe(element);
-          document.addEventListener('visibilitychange', visibility);
-          frame = motion.runtime.requestAnimationFrame(draw);
-          return;
-        }
-        const module = await import('./riveRig');
-        if (isCancelled()) return;
-        const loaded = await module.createRiveRig(target);
-        if (isCancelled()) {
+        const loaded = await createCharacterRenderer(target, manifest);
+        if (cancelled) {
           loaded.dispose();
           return;
         }
-        rig = loaded;
+        view = loaded;
         resize();
         observer.observe(element);
         document.addEventListener('visibilitychange', visibility);
-        frame = rig.runtime.requestAnimationFrame(draw);
+        frame = view.requestFrame(draw);
       } catch (reason) {
         fail(reason);
       }
@@ -227,14 +298,17 @@ export function Avatar({
       cancelled = true;
       stop();
       observer.disconnect();
+      stopMotionWatch();
+      motion?.dispose?.();
+      removeEventListener('pointermove', trackPointer);
       document.removeEventListener('visibilitychange', visibility);
-      rig?.dispose();
-      motion?.dispose(); // MOTION LAYER HOOK
+      view?.dispose();
     };
-  }, [presentation]);
+  }, [presentation, characterId]);
   return (
-    <div className="avatar-renderer" ref={host} data-renderer="rive">
+    <div className="avatar-renderer" ref={host} data-renderer={getCharacter(characterId).renderer}>
       <canvas ref={canvas} aria-label={`${state.config.name}, animated companion`} />
+      <div className="avatar-caption" ref={bubble} role="status" aria-live="polite" hidden />
       {error ? <p role="alert">{error}</p> : null}
     </div>
   );

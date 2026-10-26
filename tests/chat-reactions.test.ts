@@ -1,23 +1,21 @@
 import { expect, it } from 'vitest';
-import { chatReaction } from '../server/twitch/reactions';
+import { chatGate } from '../server/twitch/reactions';
 import { initialState } from '../shared/protocol';
-const message = {
-  id: 'message',
-  userId: 'viewer',
-  author: 'Pixel',
-  text: 'Hey Tavi!',
-  receivedAt: 0,
-};
-it('reacts only to invitations, respects cooldowns and streamer controls', () => {
+const message = { text: 'Hey Tavi!' };
+it('reacts only to invitations, respects cooldowns, initiative and streamer controls', () => {
   const state = initialState();
-  expect(
-    chatReaction(state, { ...message, text: 'talking about the game' }, 100000, -Infinity),
-  ).toBe(state);
-  expect(chatReaction(state, message, 100000, 90000)).toBe(state);
-  expect(chatReaction({ ...state, quiet: true }, message, 100000, -Infinity).action.id).toBe(0);
-  expect(chatReaction({ ...state, retracted: true }, message, 100000, -Infinity).action.id).toBe(0);
+  expect(chatGate(state, { text: 'talking about the game' }, 100000, -Infinity).allowed).toBe(
+    false,
+  );
+  expect(chatGate(state, message, 100000, 90000).allowed).toBe(false);
+  expect(chatGate({ ...state, quiet: true }, message, 100000, -Infinity).allowed).toBe(false);
+  expect(chatGate({ ...state, retracted: true }, message, 100000, -Infinity).allowed).toBe(false);
   const disabled = initialState();
   disabled.config.chatEngagement = 0;
-  expect(chatReaction(disabled, message, 100000, -Infinity)).toBe(disabled);
-  expect(chatReaction(state, message, 100000, -Infinity).action.source).toBe('twitch');
+  expect(chatGate(disabled, message, 100000, -Infinity).allowed).toBe(false);
+  expect(chatGate(state, message, 100000, -Infinity).allowed).toBe(true);
+  const outgoing = initialState();
+  outgoing.config.initiative = 'outgoing';
+  expect(chatGate(state, message, 100000, 100000 - 60000).allowed).toBe(false);
+  expect(chatGate(outgoing, message, 100000, 100000 - 60000).allowed).toBe(true);
 });

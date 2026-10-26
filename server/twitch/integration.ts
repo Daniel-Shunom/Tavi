@@ -17,7 +17,7 @@ export type TwitchOptions = {
   gateway?: TwitchGateway;
   clientId?: string;
   onMessage?: (message: ChatMessage) => void;
-  onModeration?: () => void;
+  onModeration?: (event: Exclude<ChatChange, { type: 'message' }>) => void;
 };
 const errorMessages = {
   denied: 'Twitch authorization was declined. You can try again.',
@@ -199,7 +199,7 @@ export class TwitchIntegration {
     );
   }
   private receive(event: ChatChange) {
-    if (event.type !== 'message') this.options.onModeration?.();
+    if (event.type !== 'message') this.options.onModeration?.(event);
     if (event.type === 'delete') {
       this.state.messages = this.state.messages.filter((message) => message.id !== event.id);
       return;

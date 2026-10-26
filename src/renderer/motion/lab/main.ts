@@ -3,12 +3,13 @@
 // envelope, sine "breath", exponential glide); right stage runs the motion layer.
 import { RuntimeLoader } from '@rive-app/webgl2';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
-import avatarURL from '../../assets/mascot.riv?url';
+import avatarURL from '../../characters/mascot/mascot.riv?url';
 import { MotionLayer } from '../motion';
 import { createMotionRig, type MotionRig } from '../rive/motionRig';
-import { lylaPatch, lylaRig } from '../rigs/lyla';
-import { bindLyla } from '../rigs/lylaBinding';
+import { lylaPatch, lylaRig } from '../../characters/mascot/motionRig';
+import { bindLyla } from '../../characters/mascot/motionBinding';
 import { expressionLibrary } from '../systems/expressions';
+import { mascot } from '../../characters/mascot/manifest';
 import type { Attitude, MotionSettings, Personality } from '../types';
 
 RuntimeLoader.setWasmUrl(wasmURL);
@@ -21,14 +22,15 @@ const settings: MotionSettings = {
   reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
   quiet: false,
 };
-const palette = ['hair Pink', 'clothing green', 'glasses blue'];
+const clip = (handle: string) => mascot.tracks[handle] ?? handle;
+const palette = ['hair.pink', 'outfit.green', 'glasses.blue'].map(clip);
 const legacyClip: Record<string, { name: string; time: number } | undefined> = {
-  listening: { name: 'blink 3', time: 0.4 },
-  skeptical: { name: 'thoughtful', time: 1.2 },
-  caught: { name: 'blink 3', time: 1.3 },
-  approve: { name: 'blink 2', time: 0.5 },
-  wave: { name: 'wave Non Looping', time: -1 },
-  celebrate: { name: 'celebration', time: -1 },
+  listening: { name: clip('sheepish-wave'), time: 0.4 },
+  skeptical: { name: clip(mascot.expressions.skeptical?.tracks?.[0]?.track ?? ''), time: 1.2 },
+  caught: { name: clip('sheepish-wave'), time: 1.3 },
+  approve: { name: clip('happy-shrug'), time: 0.5 },
+  wave: { name: clip('wave-once'), time: -1 },
+  celebrate: { name: clip(mascot.expressions.celebrate?.tracks?.[0]?.track ?? ''), time: -1 },
 };
 
 const smooth = (v: number) => {
@@ -224,8 +226,8 @@ async function main() {
     const age = clock - legacy.started;
     const weight = smooth(age / 0.45) * (1 - smooth((age - 3 + 0.65) / 0.65));
     const clips = [
-      { name: 'wave Non Looping', time: 0, mix: 1 },
-      { name: 'blink_IDLE', time: clock % 2, mix: 1 },
+      { name: clip('wave-once'), time: 0, mix: 1 },
+      { name: clip('blink-idle'), time: clock % 2, mix: 1 },
     ];
     const legacyDef = legacyClip[legacy.action];
     if (legacyDef && age < 3)
