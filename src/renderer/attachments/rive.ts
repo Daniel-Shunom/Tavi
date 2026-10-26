@@ -43,12 +43,14 @@ export function riveTransformSource(board: Artboard): TransformSource {
     let target = cache.get(key);
     if (target === undefined) {
       try {
-        target =
-          (binding.kind === 'bone'
+        // Typed as non-null, but the runtime returns null for unknown names.
+        const found: WorldReadable | null =
+          binding.kind === 'bone'
             ? board.bone(binding.node)
             : binding.kind === 'rootBone'
               ? board.rootBone(binding.node)
-              : board.node(binding.node)) ?? null;
+              : board.node(binding.node);
+        target = found;
       } catch {
         target = null;
       }

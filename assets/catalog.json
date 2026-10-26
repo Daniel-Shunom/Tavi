@@ -170,6 +170,105 @@
       "license": "CC0-1.0",
       "redistribution": true,
       "modification": true
+    },
+    {
+      "id": "kenney-assets",
+      "origin": "discovered",
+      "status": "candidate",
+      "source": "https://kenney.nl/assets",
+      "author": "Kenney",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Licence as published by the project; re-check the exact file licence when importing. Best fit for hand props (food, tools, game pads). Most packs ship PNG plus some SVG; only SVG/vector packs convert to layers. Not converted yet."
+    },
+    {
+      "id": "twemoji",
+      "origin": "discovered",
+      "status": "candidate",
+      "source": "https://github.com/jdecked/twemoji",
+      "author": "Twitter, Inc and other contributors (jdecked fork)",
+      "license": "CC-BY-4.0",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Licence as published by the project; re-check the exact file licence when importing. Flat SVG props (crown, mug, trophy, party hat) convert directly: one <path> per layer; attribution required. Style is flatter than the mascot. Not converted yet."
+    },
+    {
+      "id": "fluentui-emoji-flat",
+      "origin": "discovered",
+      "status": "candidate",
+      "source": "https://github.com/microsoft/fluentui-emoji",
+      "author": "Microsoft",
+      "license": "MIT",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Licence as published by the project; re-check the exact file licence when importing. Use the Flat SVG style only (3D/colour styles use gradients and filters). Good for props and hats. Not converted yet."
+    },
+    {
+      "id": "game-icons",
+      "origin": "discovered",
+      "status": "candidate",
+      "source": "https://game-icons.net",
+      "author": "Lorc, Delapouite and contributors",
+      "license": "CC-BY-3.0",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Licence as published by the project; re-check the exact file licence when importing. Single-colour silhouettes: convert as one tinted layer plus a hand-drawn shade layer. Per-icon author must be credited."
+    },
+    {
+      "id": "tabler-icons",
+      "origin": "discovered",
+      "status": "candidate",
+      "source": "https://github.com/tabler/tabler-icons",
+      "author": "Pawel Kuna",
+      "license": "MIT",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Licence as published by the project; re-check the exact file licence when importing. Stroke icons; usable as sign/badge glyphs on props (e.g. heart, star on a sign), too thin for wearables."
+    },
+    {
+      "id": "lucide",
+      "origin": "discovered",
+      "status": "candidate",
+      "source": "https://github.com/lucide-icons/lucide",
+      "author": "Lucide contributors",
+      "license": "ISC",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Licence as published by the project; re-check the exact file licence when importing. ISC is permissive (MIT-equivalent) but not on the pre-approved list; confirm before importing. Already a dependency for UI icons."
+    },
+    {
+      "id": "openmoji",
+      "origin": "discovered",
+      "status": "rejected",
+      "source": "https://github.com/hfg-gmuend/openmoji",
+      "author": "OpenMoji contributors",
+      "license": "CC-BY-SA-4.0",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Rejected for now: share-alike would require derived attachments to be CC BY-SA; not on the approved licence list. Reconsider only with a product decision."
+    },
+    {
+      "id": "rive-community-wearables",
+      "origin": "discovered",
+      "status": "rejected",
+      "source": "https://rive.app/community",
+      "author": "various",
+      "license": "varies per file",
+      "redistribution": false,
+      "modification": false,
+      "notes": "Rejected as attachments: clothing/hair inside other .riv files is skinned to their own rigs and cannot be transplanted without the editor; licences vary per file and are often unstated in the export."
+    },
+    {
+      "id": "avatar-riv-reference-files",
+      "origin": "discovered",
+      "status": "rejected",
+      "source": "experiments/rive-avatar/public/assets/ATTRIBUTION.md",
+      "author": "nasmith, JcToon, hemantp-B9R83",
+      "license": "CC-BY-4.0",
+      "redistribution": true,
+      "modification": true,
+      "notes": "Licence is fine, but their hair/outfit parts are rigged to different skeletons and art styles; kept as reference only."
     }
   ]
 }

@@ -4,7 +4,8 @@ import { RuntimeLoader } from '@rive-app/webgl2';
 import type { Artboard, LinearAnimationInstance } from '@rive-app/webgl2/rive_advanced.mjs';
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
 import avatarURL from '../../src/renderer/assets/mascot.riv?url';
-import { loadAttachments, itemsForSlot } from '../../src/renderer/attachments/catalog';
+import { itemsForSlot } from '../../src/renderer/attachments/catalog';
+import { loadAttachments } from '../../src/renderer/attachments/bundle';
 import {
   createAttachmentLayer,
   multiply,

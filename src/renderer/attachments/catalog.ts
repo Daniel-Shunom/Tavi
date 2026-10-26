@@ -1,11 +1,6 @@
-// Loads and validates the attachment catalog (assets/catalog.json) and item specs
-// (assets/items/*.json). Invalid items fail loudly in development and tests.
-import catalogJson from '../../../assets/catalog.json';
+// Validates the attachment catalog (assets/catalog.json) against item specs
+// (assets/items/*.json). Pure, so Node tools can share it; bundle.ts loads the files in Vite.
 import { AttachmentSpec, Catalog, type CatalogEntry } from './schema';
-
-const itemModules = import.meta.glob<{ default: unknown }>('../../../assets/items/*.json', {
-  eager: true,
-});
 
 export interface LoadedCatalog {
   catalog: Catalog;
@@ -45,16 +40,6 @@ export function parseCatalog(
     if ((entry.status === 'ready' || entry.status === 'converted') && !items.has(entry.id))
       throw new Error(`Catalog entry ${entry.id} is ${entry.status} but has no item spec`);
   return { catalog, items };
-}
-
-let loaded: LoadedCatalog | undefined;
-/** The bundled catalog, validated once. */
-export function loadAttachments(): LoadedCatalog {
-  loaded ??= parseCatalog(
-    catalogJson,
-    Object.fromEntries(Object.entries(itemModules).map(([file, module]) => [file, module.default])),
-  );
-  return loaded;
 }
 
 /** Items usable in a slot, for pickers. */
