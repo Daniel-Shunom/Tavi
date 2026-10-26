@@ -6,6 +6,10 @@ Eight days total, solo developer: target a complete end-to-end build in four day
 
 ## Next checkpoints
 
+### Next design milestone
+
+Run a substantial design and UI optimization pass across both the Tavi client app and the planned public website. Establish a cohesive visual system and refine the key flows, layouts, responsive behavior, accessibility, and finish to a high product-quality standard. Treat this as a focused design milestone before expanding product surface area; review the direction and scope with the streamer as the concrete screens and priorities are prepared.
+
 1. Finish expressive performances and audit actual rig capabilities.
 2. Add attention, restrained idle behavior, and shared reaction timing/priority.
 3. Connect microphone input and transcription to real streamer reactions.
