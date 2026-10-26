@@ -1,5 +1,19 @@
 # OBS webcam awareness
 
+## Current local setup
+
+The streamer has enabled the OBS WebSocket server and configured a password. The default port is **4455**. Enter the password directly in Studio's OBS connection panel when connecting; do not put it in this guide, source control, or saved project settings. The password is intentionally not recorded here.
+
+### OBS setup
+
+1. In OBS, open **Tools → WebSocket Server Settings**.
+2. Enable **WebSocket server**. Keep the default server port **4455**, unless another port is needed; if changed, use the same port in Tavi.
+3. Set or retain the server password and save the settings. The password is required for Tavi to authenticate, but it is only entered into the connection form and is not stored by Tavi.
+4. In Tavi Studio, open **Placement → Find webcam in OBS**. Enter the host (`127.0.0.1` when OBS and Tavi run on the same computer), port, and OBS password, then start discovery.
+5. Confirm the panel reports **Connected** and an OBS-verified camera source and region. If OBS has multiple possible camera sources, select the webcam explicitly.
+
+If the OBS WebSocket settings item is missing, use OBS 28 or newer, where WebSocket support is built in. OBS and Tavi must run on the same computer for this first integration.
+
 In Studio's Placement tab, use **Find webcam in OBS**. In OBS, enable **Tools → WebSocket Server Settings → Enable WebSocket server**. Use that port (normally 4455) and password in Studio. OBS and Tavi must run on the same computer for this first integration. The Tavi browser source must fill the base OBS canvas so normalized coordinates line up. Placement always shows whether the webcam is OBS-verified, a manually declared rectangle, or not detected. Searching reads source metadata; it does not animate the character wandering around to infer a camera.
 
 The observer only reads scene information. It follows the active program scene, visible source transforms, crops, and changes to source visibility. It can follow axis-aligned sources inside groups or nested scenes, including parent scaling and cropping. It does not modify OBS scenes, capture camera images, or send screenshots to an AI provider. Passwords are used for the current connection and are not saved or returned by the status API. Reconnect after restarting the service.
