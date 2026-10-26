@@ -32,9 +32,11 @@ Overlap: expressions, gaze and locomotion are independent layers, so "walk while
 - Attention cue: `{ kind: 'attention', target: 'streamer' | 'chat' | 'pointer' | null, startAt }` -> `attend` (the app maps targets to directions).
 - Seed: one per character profile, shared by studio and overlay.
 
-## Current hook in this branch
+## Official hook (merged)
 
-`src/renderer/Avatar.tsx` has a marked `MOTION LAYER HOOK` (flag `MOTION_LAYER`). `motion/avatarMotion.ts` diffs the existing `State` (gesture ids, retracted, quiet, config x/y) into commands. When the expression agent's cue Director lands, replace that diffing with their cues; the renderer side (`MotionRig` + `bindLyla`) stays.
+`motion/hook.ts` registers with `registerMotionLayer` (installed from `src/main.tsx`). Per frame it maps the hook input onto MotionLayer commands: `performances` nod/skeptical/caught -> `approve`/`skeptical`/`caught`; `attention.side` -> gaze; `locomotion.target` -> `moveTo` (walk/hop instead of the fallback glide); presence styles enter slide/drop/walk/climb -> `slideUp`/`drop`/`tiredWalk`/`climb`, exit -> `duck`/`jumpOut`/`walkOff`/`hopOff`. It returns `ctl.*` control-track samples and node transforms (manifest handles from `characters/mascot/motion.ts`), the position, facing and `presence.hidden`. The renderer applies the character's motion-rig patch at load (`characters/motionRigs.ts`) and treats node transforms as additive over clip-animated values.
+
+Open points: the renderer has no clip mask, so climbing/sinking fades by depth instead of being cut at the ground line; "Surprise me" is resolved by `pickChoreography` (shared/presence.ts), which does not yet use the personality weights in `profile.ts` (`entranceWeights`); facing is returned but the renderer does not mirror yet.
 
 ## Rig adapter
 
