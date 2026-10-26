@@ -43,24 +43,38 @@ for (const [size, viewport] of [
   });
   for (const [id, kind, seconds] of runs) {
     // Start from the opposite state.
-    await page.evaluate((k) => (k === 'show' ? window.lab.hide('duck') : window.lab.show('slideUp')), kind);
+    await page.evaluate(
+      (k) => (k === 'show' ? window.lab.hide('duck') : window.lab.show('slideUp')),
+      kind,
+    );
     await page.waitForTimeout(kind === 'show' ? 1200 : 3200);
     // Step the lab clock deterministically: one capture every 0.1 s of motion time.
     await page.evaluate(() => window.lab.pause());
     await page.evaluate(([name, k]) => window.lab[k](name), [id, kind]);
     const shots = [];
     for (let t = 0; t < seconds; t += 0.1) {
-      shots.push((await page.screenshot({ clip: crop(id === 'tiredWalk' || id === 'walkOff') })).toString('base64'));
+      shots.push(
+        (await page.screenshot({ clip: crop(id === 'tiredWalk' || id === 'walkOff') })).toString(
+          'base64',
+        ),
+      );
       await page.evaluate(() => window.lab.advance(0.1));
     }
     await page.evaluate(() => window.lab.resume());
     const opacity = await page.evaluate(
       () => getComputedStyle(document.querySelector('#after canvas')).opacity,
     );
-    summary[`${id}-${size}`] = { frames: shots.length, distinct: new Set(shots).size, opacityAfter: opacity };
+    summary[`${id}-${size}`] = {
+      frames: shots.length,
+      distinct: new Set(shots).size,
+      opacityAfter: opacity,
+    };
     const cols = 10;
     const html = `<body style="margin:0;display:grid;grid-template-columns:repeat(${cols},1fr);background:#fff">${shots
-      .map((s, i) => `<div style="position:relative"><img src="data:image/png;base64,${s}" style="width:100%"><span style="position:absolute;left:2px;top:0;font:10px sans-serif">${i}</span></div>`)
+      .map(
+        (s, i) =>
+          `<div style="position:relative"><img src="data:image/png;base64,${s}" style="width:100%"><span style="position:absolute;left:2px;top:0;font:10px sans-serif">${i}</span></div>`,
+      )
       .join('')}</body>`;
     const sheet = await browser.newPage({ viewport: { width: 1600, height: 400 } });
     await sheet.setContent(html);

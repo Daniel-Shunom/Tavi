@@ -39,7 +39,9 @@ describe('choreography', () => {
     const { frames } = play('drop');
     expect(frames[0]?.liftBH).toBeGreaterThan(anchor.y / stage.bodyHeight);
     // Splat: hard flatten held long enough to read (>= 0.35 s), eyes shut.
-    const splat = frames.filter((f) => f.beat === 'splat' && f.scaleY < 0.75 && (f.pose.blinkL ?? 0) > 0.9);
+    const splat = frames.filter(
+      (f) => f.beat === 'splat' && f.scaleY < 0.75 && (f.pose.blinkL ?? 0) > 0.9,
+    );
     expect(splat.length / 60).toBeGreaterThanOrEqual(0.35);
     // Knee pats: arms reaching down with at least 2 pats per side, alternating.
     const dust = frames.filter((f) => f.beat === 'dust off knees');

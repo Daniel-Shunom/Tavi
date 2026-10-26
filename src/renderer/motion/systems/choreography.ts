@@ -64,7 +64,8 @@ function win(t: number, s: number, a: number, h: number, r: number) {
   if (x < a + h) return 1;
   return 1 - smootherstep((x - a - h) / r);
 }
-const pulse = (t: number, at: number, length = 0.16) => win(t, at, length * 0.4, 0.02, length * 0.6);
+const pulse = (t: number, at: number, length = 0.16) =>
+  win(t, at, length * 0.4, 0.02, length * 0.6);
 const personality = (p: MotionProfile) =>
   p.gait === 'hop' ? 'playful' : p.gait === 'scoot' ? 'shy' : 'cozy';
 
@@ -106,7 +107,12 @@ const splat: Step = {
   fn: (t) => {
     const slam = smootherstep(t / 0.07);
     const daze = t > 0.2 ? Math.sin((t - 0.2) * 14) * Math.exp(-(t - 0.2) * 3) : 0;
-    const hair = t < 0.1 ? t / 0.1 : t < 0.25 ? 1 - ((t - 0.1) / 0.15) * 1.7 : -0.7 * (1 - clamp01((t - 0.25) / 0.2));
+    const hair =
+      t < 0.1
+        ? t / 0.1
+        : t < 0.25
+          ? 1 - ((t - 0.1) / 0.15) * 1.7
+          : -0.7 * (1 - clamp01((t - 0.25) / 0.2));
     const flat = 0.34 * slam;
     return {
       lift: 0,
@@ -253,7 +259,15 @@ const yawnStretch: Step = {
   fn: (t, _k, { profile }) => {
     if (personality(profile) === 'shy') {
       const smile = win(t, 0, 0.25, 0.4, 0.25);
-      return { lift: 0, pose: { smile: 0.4 * smile, squintL: 0.4 * smile, squintR: 0.4 * smile, gazeY: 0.3 * smile } };
+      return {
+        lift: 0,
+        pose: {
+          smile: 0.4 * smile,
+          squintL: 0.4 * smile,
+          squintR: 0.4 * smile,
+          gazeY: 0.3 * smile,
+        },
+      };
     }
     const reach = win(t, 0.1, 0.45, 0.6, 0.45);
     const yawn = win(t, 0.25, 0.35, 0.55, 0.35);
@@ -291,7 +305,11 @@ const slowBlink: Step = {
 // Climb: hands appear first, a straining pull with a look around, a second pull, a leg swings
 // over, hop up, brush the hands, idle.
 
-const climbClip = (name: string, duration: number, fn: (t: number, k: number, ctx: ActContext) => ActOutput): Step => ({
+const climbClip = (
+  name: string,
+  duration: number,
+  fn: (t: number, k: number, ctx: ActContext) => ActOutput,
+): Step => ({
   kind: 'act',
   name,
   duration,
@@ -368,7 +386,11 @@ const climbSteps: Step[] = [
     kind: 'act',
     name: 'land',
     duration: 0.25,
-    fn: (_t, k) => ({ lift: 0, scaleY: 1 - 0.12 * (1 - smootherstep(k)), pose: { bob: 0.01 * (1 - k) } }),
+    fn: (_t, k) => ({
+      lift: 0,
+      scaleY: 1 - 0.12 * (1 - smootherstep(k)),
+      pose: { bob: 0.01 * (1 - k) },
+    }),
   },
   brushHands,
   { kind: 'expression', id: 'happy' },
@@ -381,13 +403,23 @@ const climbSteps: Step[] = [
 
 const slideSteps: Step[] = [
   { kind: 'spawnBelow' },
-  climbClip('peek up', 0.55, (_t, k) => ({ lift: lerp(-1.1, -0.55, easeOutCubic(k)), pose: { browL: -0.3, browR: -0.3 } })),
+  climbClip('peek up', 0.55, (_t, k) => ({
+    lift: lerp(-1.1, -0.55, easeOutCubic(k)),
+    pose: { browL: -0.3, browR: -0.3 },
+  })),
   climbClip('cautious look', 1.1, (t, _k, { profile }) => {
     const slow = personality(profile) === 'shy' ? 0.8 : 1;
     const sweep = Math.sin(Math.min(1, (t * slow) / 1.0) * Math.PI * 2);
     return {
       lift: -0.55 + 0.012 * Math.sin(t * 5),
-      pose: { gazeX: -0.75 * sweep, headTilt: -0.06 * sweep, browL: -0.35, browR: -0.35, squintL: 0.15, squintR: 0.15 },
+      pose: {
+        gazeX: -0.75 * sweep,
+        headTilt: -0.06 * sweep,
+        browL: -0.35,
+        browR: -0.35,
+        squintL: 0.15,
+        squintR: 0.15,
+      },
     };
   }),
   climbClip('notice camera', 0.45, (t, _k, { profile }) => {
@@ -406,7 +438,10 @@ const slideSteps: Step[] = [
       },
     };
   }),
-  climbClip('rise', 0.5, (_t, k) => ({ lift: lerp(-0.55, 0, smootherstep(k)), pose: { smile: 0.4 } })),
+  climbClip('rise', 0.5, (_t, k) => ({
+    lift: lerp(-0.55, 0, smootherstep(k)),
+    pose: { smile: 0.4 },
+  })),
   {
     kind: 'act',
     name: 'land',
@@ -427,7 +462,12 @@ const glanceBack: Step = {
     const wave = personality(profile) === 'playful' ? Math.sin(t * 30) * look : 0;
     return {
       lift: from,
-      pose: { gazeX: -0.85 * look, headTilt: -0.08 * look, smile: 0.4 * look, armR: (0.9 + 0.2 * wave) * (personality(profile) === 'playful' ? look : 0) },
+      pose: {
+        gazeX: -0.85 * look,
+        headTilt: -0.08 * look,
+        smile: 0.4 * look,
+        armR: (0.9 + 0.2 * wave) * (personality(profile) === 'playful' ? look : 0),
+      },
     };
   },
 };
@@ -436,7 +476,10 @@ const lookUp: Step = {
   kind: 'act',
   name: 'look up',
   duration: 0.2,
-  fn: (_t, k, { from }) => ({ lift: from, pose: { gazeY: -0.85 * smootherstep(k), browL: -0.5, browR: -0.5 } }),
+  fn: (_t, k, { from }) => ({
+    lift: from,
+    pose: { gazeY: -0.85 * smootherstep(k), browL: -0.5, browR: -0.5 },
+  }),
 };
 
 const deepCrouch: Step = {
@@ -445,7 +488,12 @@ const deepCrouch: Step = {
   duration: 0.24,
   fn: (_t, k, { from }) => {
     const c = smootherstep(k);
-    return { lift: from, scaleY: 1 - 0.2 * c, scaleX: 1 + 0.12 * c, pose: { bob: 0.025 * c, armL: -0.3 * c, armR: -0.3 * c, gazeY: -0.6 } };
+    return {
+      lift: from,
+      scaleY: 1 - 0.2 * c,
+      scaleX: 1 + 0.12 * c,
+      pose: { bob: 0.025 * c, armL: -0.3 * c, armR: -0.3 * c, gazeY: -0.6 },
+    };
   },
 };
 
@@ -467,7 +515,15 @@ const lookDownHereGoes: Step = {
   duration: 0.4,
   fn: (t, _k, { from }) => {
     const nod = win(t, 0.22, 0.06, 0.02, 0.1);
-    return { lift: from, pose: { gazeY: 0.75 - 0.4 * nod, headTilt: 0.05, browL: -0.7 * win(t, 0.15, 0.06, 0.2, 0.05), browR: -0.7 * win(t, 0.15, 0.06, 0.2, 0.05) } };
+    return {
+      lift: from,
+      pose: {
+        gazeY: 0.75 - 0.4 * nod,
+        headTilt: 0.05,
+        browL: -0.7 * win(t, 0.15, 0.06, 0.2, 0.05),
+        browR: -0.7 * win(t, 0.15, 0.06, 0.2, 0.05),
+      },
+    };
   },
 };
 
@@ -486,7 +542,11 @@ const startle: Step = {
   kind: 'act',
   name: 'startle',
   duration: 0.14,
-  fn: (_t, k, { from }) => ({ lift: from, scaleY: 1 + 0.06 * Math.sin(k * Math.PI), pose: { browL: -1, browR: -1, squash: -0.4 } }),
+  fn: (_t, k, { from }) => ({
+    lift: from,
+    scaleY: 1 + 0.06 * Math.sin(k * Math.PI),
+    pose: { browL: -1, browR: -1, squash: -0.4 },
+  }),
 };
 
 const crouch = (duration: number, amount: number): Step => ({
@@ -495,7 +555,12 @@ const crouch = (duration: number, amount: number): Step => ({
   duration,
   fn: (_t, k, { from }) => {
     const c = smootherstep(k);
-    return { lift: from, scaleY: 1 - amount * c, scaleX: 1 + amount * 0.6 * c, pose: { bob: 0.012 * c } };
+    return {
+      lift: from,
+      scaleY: 1 - amount * c,
+      scaleX: 1 + amount * 0.6 * c,
+      pose: { bob: 0.012 * c },
+    };
   },
 });
 
@@ -516,7 +581,14 @@ const calmOut: Step[] = [{ kind: 'fade', to: 0, duration: 0.25 }];
 export const choreographies: Readonly<Record<string, Choreography>> = {
   drop: {
     type: 'entrance',
-    steps: [{ kind: 'spawnAbove' }, { kind: 'fall', duration: 0.5 }, splat, getUp, dustKnees, straighten],
+    steps: [
+      { kind: 'spawnAbove' },
+      { kind: 'fall', duration: 0.5 },
+      splat,
+      getUp,
+      dustKnees,
+      straighten,
+    ],
     calm: [...calmIn, { ...brushHands, duration: 0.35 }],
   },
   tiredWalk: {
@@ -538,7 +610,11 @@ export const choreographies: Readonly<Record<string, Choreography>> = {
   slideUp: { type: 'entrance', steps: slideSteps, calm: calmIn },
   walkOff: {
     type: 'exit',
-    steps: [{ kind: 'turn', to: 'side' }, glanceBack, { kind: 'walk', to: 'side', gait: 'personality', speed: 2.2 }],
+    steps: [
+      { kind: 'turn', to: 'side' },
+      glanceBack,
+      { kind: 'walk', to: 'side', gait: 'personality', speed: 2.2 },
+    ],
     calm: calmOut,
   },
   jumpOut: {
@@ -736,7 +812,13 @@ export class ChoreographyPlayer {
       this.lastLift = 0;
       if (exit) this.hidden = true;
       else run.locomotion.place(run.anchor.x, run.anchor.y);
-      return { ...frame, choreography: null, done: true, hidden: this.hidden, opacity: exit ? 0 : 1 };
+      return {
+        ...frame,
+        choreography: null,
+        done: true,
+        hidden: this.hidden,
+        opacity: exit ? 0 : 1,
+      };
     }
     let t = now - run.at;
     let lift = run.fromLift;
@@ -781,7 +863,11 @@ export class ChoreographyPlayer {
         }
         case 'act': {
           const at = Math.min(local, length);
-          const out = step.fn(at, length > 0 ? clamp01(at / length) : 1, { profile, from: lift, top });
+          const out = step.fn(at, length > 0 ? clamp01(at / length) : 1, {
+            profile,
+            from: lift,
+            top,
+          });
           if (out.lift !== undefined) lift = out.lift;
           if (inside) {
             frame.beat = step.name;
@@ -812,8 +898,7 @@ export class ChoreographyPlayer {
         case 'turn':
           if (!run.issued.has(index)) {
             run.issued.add(index);
-            const direction =
-              step.to === 'camera' ? 1 : run.locomotion.position.x < 0.5 ? -1 : 1;
+            const direction = step.to === 'camera' ? 1 : run.locomotion.position.x < 0.5 ? -1 : 1;
             run.locomotion.turnTo(direction, now);
           }
           break;
@@ -823,7 +908,11 @@ export class ChoreographyPlayer {
             const side = run.locomotion.position.x < 0.5 ? -1 : 1;
             const x = step.to === 'anchor' ? run.anchor.x : side < 0 ? -0.12 : 1.12;
             const gait: Gait =
-              step.gait === 'personality' ? (profile.gait === 'hop' ? 'hop' : profile.gait) : step.gait;
+              step.gait === 'personality'
+                ? profile.gait === 'hop'
+                  ? 'hop'
+                  : profile.gait
+                : step.gait;
             run.locomotion.moveTo({ x, at: now, gait, speed: step.speed, unbounded: true });
           } else if (!run.lengths.has(index) && !loco.moving && local > 0.2)
             run.lengths.set(index, local);
