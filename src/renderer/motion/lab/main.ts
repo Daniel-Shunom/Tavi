@@ -195,9 +195,15 @@ async function main() {
   resize();
 
   const frameTimes: number[] = [];
+  // Deterministic capture: lab.pause() stops the real-time loop; lab.advance(s) steps at 60 fps.
+  let paused = false;
   function tick(now: number) {
     const dt = last === null ? 0 : Math.min(0.1, (now - last) / 1000);
     last = now;
+    if (!paused) render(dt);
+    requestAnimationFrame(tick);
+  }
+  function render(dt: number) {
     clock += dt;
     const w = after.host.clientWidth,
       h = after.host.clientHeight;
@@ -257,7 +263,6 @@ async function main() {
       const sorted = [...frameTimes].sort((a, b) => a - b);
       status.textContent = `expressions: ${frame.status.expressions.join(', ') || '-'} | locomotion: ${frame.status.locomotion} | choreography: ${frame.status.choreography ?? '-'} | fidget: ${frame.status.fidget ?? '-'} | motion+draw ms median ${(sorted[Math.floor(sorted.length / 2)] ?? 0).toFixed(2)}`;
     }
-    requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
   Object.assign(window, {
@@ -271,6 +276,15 @@ async function main() {
         apply();
       },
       frameTimes: () => [...frameTimes],
+      pause: () => {
+        paused = true;
+      },
+      resume: () => {
+        paused = false;
+      },
+      advance: (seconds: number) => {
+        for (let i = 0; i < Math.round(seconds * 60); i++) render(1 / 60);
+      },
     },
   });
   document.body.dataset['ready'] = 'true';

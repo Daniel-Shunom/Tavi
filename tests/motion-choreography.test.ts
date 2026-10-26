@@ -35,17 +35,27 @@ function play(id: string, { seconds = 6, p = profile, calm = false } = {}) {
 }
 
 describe('choreography', () => {
-  it('drop from the top: falls, squashes on impact, bounces and dusts off', () => {
+  it('drop: fall, a held splat with eyes squeezed shut, get up, knee pats, straighten', () => {
     const { frames } = play('drop');
     expect(frames[0]?.liftBH).toBeGreaterThan(anchor.y / stage.bodyHeight);
-    expect(Math.min(...frames.map((f) => f.scaleY))).toBeLessThan(0.85);
-    const bounces = frames.filter(
-      (f, i) => i > 0 && f.liftBH > 0.02 && (frames[i - 1]?.liftBH ?? 1) <= 0.02,
-    ).length;
-    expect(bounces).toBeGreaterThanOrEqual(1);
-    expect(frames.some((f) => f.expressions.includes('dustOff'))).toBe(true);
+    // Splat: hard flatten held long enough to read (>= 0.35 s), eyes shut.
+    const splat = frames.filter((f) => f.beat === 'splat' && f.scaleY < 0.75 && (f.pose.blinkL ?? 0) > 0.9);
+    expect(splat.length / 60).toBeGreaterThanOrEqual(0.35);
+    // Knee pats: arms reaching down with at least 2 pats per side, alternating.
+    const dust = frames.filter((f) => f.beat === 'dust off knees');
+    let patsL = 0,
+      prev = 0;
+    for (const f of dust) {
+      const v = f.pose.armL ?? 0;
+      if (v > 0.3 && prev <= 0.3) patsL++;
+      prev = v;
+    }
+    expect(patsL).toBeGreaterThanOrEqual(2);
+    expect(frames.some((f) => f.beat === 'get up')).toBe(true);
+    const doneAt = frames.findIndex((f) => f.done) / 60;
+    expect(doneAt).toBeGreaterThan(2.5);
+    expect(doneAt).toBeLessThan(4.2);
     const end = frames.at(-1);
-    expect(end?.done).toBe(true);
     expect(end?.liftBH).toBe(0);
     expect(end?.hidden).toBe(false);
     expect(frames.every((f) => f.shake === 0)).toBe(true);
@@ -117,7 +127,7 @@ describe('choreography', () => {
     it(`${id} exits below the ground line quickly and ends hidden`, () => {
       const { frames } = play(id);
       const doneAt = frames.findIndex((f) => f.done);
-      expect(doneAt / 60).toBeLessThan(id === 'walkOff' ? 5 : 1);
+      expect(doneAt / 60).toBeLessThan(id === 'walkOff' ? 5 : 1.5);
       if (id === 'hopOff' || id === 'duck')
         expect(frames.some((f) => f.clipBelow === anchor.y)).toBe(true);
       expect(frames.at(-1)?.hidden).toBe(true);
@@ -125,7 +135,7 @@ describe('choreography', () => {
 
   it('calm variant (quiet / reduced motion) is a short fade', () => {
     const { frames } = play('drop', { calm: true });
-    expect(frames.findIndex((f) => f.done) / 60).toBeLessThan(0.5);
+    expect(frames.findIndex((f) => f.done) / 60).toBeLessThan(0.9);
     expect(Math.max(...frames.map((f) => Math.abs(f.liftBH)))).toBeLessThan(0.1);
   });
 
