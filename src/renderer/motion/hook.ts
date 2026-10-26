@@ -15,12 +15,18 @@ import { poseChannels } from '../face/pose';
 import { MotionLayer } from './motion';
 import type { RigPatch } from './rive/patch';
 import type { MotionFrame } from './types';
+// Body states (sit, nap, peek...): src/renderer/motion/states/.
+import { applyStateKey } from './states/apply';
+import { BodyStatePlayer, type PlayerFrame, type PlayerResult } from './states/player';
+import type { StateRig } from './states/types';
 
 export interface CharacterMotionRig {
   /** In-memory patch the renderer applies at load (runtime names + control tracks). */
   patch: RigPatch;
   /** Abstract frame -> manifest handles (ctl.* tracks and node handles). */
   bind(frame: MotionFrame): Required<Pick<MotionOutput, 'tracks' | 'nodes'>>;
+  /** Body-state key poses and contact geometry (optional; without it states are ignored). */
+  states?: StateRig;
 }
 
 /** Hook performance ids this layer performs, mapped to motion-layer expressions. */
@@ -64,6 +70,8 @@ export function createHookLayer(
     : null;
   const restBlinkRate = manifest.face?.blink.rate ?? 17;
   let lastTime: number | null = null;
+  const bodyStates = rig.states ? new BodyStatePlayer(rig.states, SEED) : null;
+  let facing = 1;
 
   return {
     // Motion-library performances plus every expression the manifest acts out with a face pose
@@ -117,11 +125,44 @@ export function createHookLayer(
           : null,
       );
 
-      // Locomotion: walk/hop to the cue target instead of gliding.
+      // Body state: sync the cue; a settled cue on mount/reconnect places us at its spot.
+      const motion = layer;
+      const playerFrame = (): PlayerFrame => ({
+        now,
+        stage,
+        reducedMotion: input.reducedMotion,
+        position: motion.locomotion.position,
+        travelling: motion.locomotion.busy,
+        facing,
+        target: input.locomotion.target,
+        breathPeriod: motion.currentProfile.breathPeriod,
+        personality: input.persona.personality,
+      });
+      if (bodyStates) {
+        const { place } = bodyStates.sync(
+          input.body?.cue ?? null,
+          input.body?.elapsed ?? 0,
+          playerFrame(),
+        );
+        if (place) {
+          layer.place(place.x, place.y);
+          lastTarget = { ...input.locomotion.target };
+        }
+      }
+
+      // Locomotion: walk/hop to the cue target instead of gliding (after leaving a body state).
       const target = input.locomotion.target;
       if (!lastTarget || Math.hypot(target.x - lastTarget.x, target.y - lastTarget.y) > 1e-3) {
-        if (lastTarget) layer.moveTo({ x: target.x, y: target.y, at: now });
-        lastTarget = { ...target };
+        if (lastTarget && !bodyStates?.holdsTravel(now)) {
+          const face = bodyStates?.facingOnArrival();
+          layer.moveTo({
+            x: target.x,
+            y: target.y,
+            at: now,
+            ...(face ? { faceOnArrival: face } : {}),
+          });
+          lastTarget = { ...target };
+        } else if (!lastTarget) lastTarget = { ...target };
       }
 
       // Presence: perform drop entrances and exits ourselves; others use the renderer fallback.
@@ -176,6 +217,9 @@ export function createHookLayer(
       }
       lastTime = now;
       const frame = layer.update(now, face);
+      facing = frame.placement.facing < 0 ? -1 : 1;
+      const state: PlayerResult | null = bodyStates ? bodyStates.evaluate(playerFrame()) : null;
+      if (state) applyStateKey(frame.pose, state.key);
       const bound = rig.bind(frame);
       const p = frame.placement;
       const output: MotionOutput = {
@@ -183,9 +227,37 @@ export function createHookLayer(
         nodes: bound.nodes,
         position: { x: p.x, y: p.y },
         facing: p.facing < 0 ? -1 : 1,
-        // Not part of MotionOutput yet: renderers that support it draw a soft ellipse here.
-        ...{ shadow: frame.shadow },
+        shadow: frame.shadow,
       };
+      if (state) {
+        const { key } = state;
+        // Root lift (ledges, jumps) moves the placement; rotation and pose-local offsets pivot
+        // about the soles (reference pixels: 1 BH = 220 x aspect).
+        const unit = 220 * manifest.aspect;
+        output.position = { x: p.x, y: p.y - key.lift * stage.bodyHeight };
+        if (key.rot || key.dx || key.dy)
+          output.offset = {
+            x: key.dx * facing * unit,
+            y: key.dy * unit,
+            rotation: key.rot * facing,
+          };
+        const shadow = frame.shadow;
+        if (state.floorShadow) output.shadow = { ...shadow, opacity: 0 };
+        else if (state.surfaceY !== null || key.lift > 1e-4)
+          output.shadow = {
+            x: p.x,
+            y: state.surfaceY ?? shadow.y,
+            scale: shadow.scale / (1 + 1.6 * state.height),
+            opacity: shadow.opacity / (1 + 2.5 * state.height),
+          };
+        output.states = {
+          state: bodyStates?.state ?? 'stand',
+          status: state.status,
+          effects: state.effects,
+          floorShadow: state.floorShadow,
+          ledge: state.ledge,
+        };
+      }
       // The renderer masks everything below the ground line while climbing or sinking.
       output.clipBelow = p.clipBelow;
       if (handlingPresence) {
