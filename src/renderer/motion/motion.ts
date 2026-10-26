@@ -47,6 +47,8 @@ const ranges: Partial<Record<Channel, [number, number]>> = {
   hairSwing: [-0.25, 0.25],
   hairSwoop: [-0.18, 0.18],
   hairSquash: [-0.06, 0.06],
+  turnHead: [-1, 1],
+  turnBody: [-1, 1],
 };
 
 /** Motion-library stand-ins for travel moods when a rig has no face poses (e.g. the lab). */

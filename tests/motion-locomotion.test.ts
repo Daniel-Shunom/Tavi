@@ -162,6 +162,39 @@ describe('locomotion', () => {
     expect(moveAt - gazeAt).toBeGreaterThanOrEqual(0.08);
   });
 
+  it('authored turnaround: head leads body toward travel, holds ~0.6, returns to camera', () => {
+    const caps = { feet: true, turnStyle: 'authored' as const };
+    const loco = new Locomotion(7);
+    loco.place(0.45, 0.9);
+    loco.moveTo({ x: 0.3, at: 0, gait: 'walk' });
+    let headAt = Infinity,
+      bodyAt = Infinity,
+      arrivedAt = Infinity,
+      settledAt = Infinity,
+      hold = 0;
+    for (let i = 0; i <= 60 * 12; i++) {
+      const t = i / 60;
+      const f = loco.update(i ? 1 / 60 : 0, t, profile, stage, caps);
+      expect(f.facing).toBe(1);
+      const head = f.pose.turnHead ?? 0,
+        body = f.pose.turnBody ?? 0;
+      if (head < -0.3 && headAt === Infinity) headAt = t;
+      if (body < -0.3 && bodyAt === Infinity) bodyAt = t;
+      if (f.state === 'moving') hold = Math.min(hold, body);
+      if (!f.moving && t > 1 && arrivedAt === Infinity) arrivedAt = t;
+      if (
+        arrivedAt < Infinity &&
+        Math.abs(head) < 0.05 &&
+        Math.abs(body) < 0.05 &&
+        settledAt === Infinity
+      )
+        settledAt = t;
+    }
+    expect(bodyAt - headAt).toBeGreaterThanOrEqual(0.08);
+    expect(hold).toBeCloseTo(-0.6, 1);
+    expect(settledAt - arrivedAt).toBeLessThan(0.6);
+  });
+
   it('mirror-hidden turn swaps facing once, instantly, at the apex of a pivot hop', () => {
     const caps = { feet: true, turnStyle: 'mirror-hidden' as const };
     const loco = new Locomotion(7);

@@ -38,7 +38,9 @@ export type GaitDef = GaitSpec;
  *                 direction (default).
  *  mirror-hidden  asymmetric character: mirror, but swap facing within a frame at the apex of a
  *                 tiny step-pivot hop so the flip is hidden in the action.
- *  authored       an authored side-facing cycle exists: same hidden swap (the clip covers it).
+ *  authored       the rig has a three-quarter turnaround (turnHead/turnBody channels): never
+ *                 mirror; the head turns toward travel ~100 ms before the body, both hold ~0.6
+ *                 while walking and ease back to the camera on arrival.
  */
 export type TurnStyle = 'cheat' | 'mirror-hidden' | 'authored';
 
@@ -131,6 +133,9 @@ const TURN_LEAD = 0.1;
 const PIVOT_APEX = 0.025;
 const TURN = airtime(PIVOT_APEX);
 const TURN_TAIL = 0.06;
+/** Authored turnaround: hold while walking, and the body's lag behind the head. */
+const TURN_HOLD = 0.6;
+const TURN_BODY_LAG = 0.1;
 
 export class Locomotion {
   private rng: Rng;
@@ -331,7 +336,9 @@ export class Locomotion {
     const vmax = authored
       ? (authored.stride / authored.seconds) * 1.6 * bh * tempo * this.speedScale
       : def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
-    const cheat = (caps.turnStyle ?? 'cheat') === 'cheat';
+    const style = caps.turnStyle ?? 'cheat';
+    // Only mirror-hidden characters are ever mirrored; cheat and authored stay front-facing.
+    const cheat = style !== 'mirror-hidden';
     const facing = cheat ? 1 : this.facingAt(now);
     const forward = Math.sign(this.facingTo) || 1;
     let desired = 0;
@@ -615,6 +622,22 @@ export class Locomotion {
         'footRX',
       ] as const)
         if (out[key] !== undefined) out[key] = -(out[key] ?? 0);
+    if (style === 'authored') {
+      // Three-quarter turnaround: head leads toward travel, the body follows ~100 ms later.
+      const travelling3q =
+        this.state !== 'idle' &&
+        this.state !== 'arriving' &&
+        this.state !== 'fadeOut' &&
+        this.state !== 'fadeIn';
+      const headTarget = travelling3q ? TURN_HOLD * forward : 0;
+      if (headTarget !== this.turnHeadTarget) {
+        this.turnHeadTarget = headTarget;
+        this.turnHeadChangedAt = now;
+      }
+      if (now - this.turnHeadChangedAt >= TURN_BODY_LAG) this.turnBodyTarget = this.turnHeadTarget;
+      out.turnHead = this.turnHead.update(dt, this.turnHeadTarget);
+      out.turnBody = this.turnBody.update(dt, this.turnBodyTarget);
+    }
     return {
       x: this.x,
       y: this.y,
@@ -636,6 +659,11 @@ export class Locomotion {
   }
 
   private speedScale = 1;
+  private turnHead = new CriticalSpring(0.06, 0);
+  private turnBody = new CriticalSpring(0.1, 0);
+  private turnHeadTarget = 0;
+  private turnBodyTarget = 0;
+  private turnHeadChangedAt = 0;
   private authoredPhase = 0;
   private beats: 'all' | 'start' | 'none' = 'all';
   private mood: MoodId | null = null;
