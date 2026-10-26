@@ -30,6 +30,7 @@ import {
   WifiOff,
   Zap,
   CircleAlert,
+  MessageCircle,
 } from 'lucide-react';
 import { TwitchPanel } from './TwitchPanel';
 import { AiPanel } from './AiPanel';
@@ -49,14 +50,18 @@ import {
   sequences,
   type ExpressionId,
   type SequenceId,
+  type Target,
 } from '../shared/expressions';
 import { anchors, movementStyles, type AnchorId } from '../shared/locomotion';
+import { anchorPoint } from '../shared/attention';
 import { choreographies, choreographyIds } from '../shared/presence';
 type Cue = { expression: ExpressionId } | { sequence: SequenceId };
 /** The six core reactions plus a greeting and peek, offered when the character supports them. */
-const coreCues: { cue: Cue; label: string; icon: ReactNode }[] = [
+const coreCues: { cue: Cue; label: string; icon: ReactNode; target?: Target }[] = [
   { cue: { sequence: 'greeting' }, label: 'wave', icon: <Hand /> },
-  { cue: { expression: 'listening' }, label: 'listen', icon: <Eye /> },
+  { cue: { expression: 'listening' }, label: 'listen', icon: <Eye />, target: 'streamer' },
+  // Looks at the real chat panel from the scene layout (shared/attention.ts).
+  { cue: { expression: 'glance' }, label: 'chat', icon: <MessageCircle />, target: 'chat' },
   { cue: { sequence: 'doubt-then-nod' }, label: 'really?', icon: <CircleAlert /> },
   { cue: { sequence: 'caught-innocent' }, label: 'oops', icon: <Cloud /> },
   { cue: { sequence: 'restrained-approval' }, label: 'nice', icon: <Check /> },
@@ -104,8 +109,8 @@ export function Studio({
       removeEventListener('keydown', onKey);
     };
   }, [connected, send]);
-  const perform = (cue: Cue) => {
-    send({ type: 'perform', ...cue });
+  const perform = (cue: Cue, target?: Target) => {
+    send({ type: 'perform', ...cue, ...(target ? { target } : {}) });
   };
   const [tab, setTab] = useState<'character' | 'scene'>('character');
   const [lighting, setLighting] = useState<'moonlight' | 'daydream' | 'afterhours'>('moonlight');
@@ -168,7 +173,8 @@ export function Studio({
     setActive(current);
   }
   function anchor(value: AnchorId) {
-    patch({ anchor: value, x: anchors[value].x, y: anchors[value].y });
+    const point = anchorPoint(value, c.scene);
+    patch({ anchor: value, x: point.x, y: point.y });
   }
   return (
     <div className={`companion-studio ${spacious ? 'tools-expanded' : ''}`}>
@@ -344,7 +350,7 @@ export function Studio({
                       : expressions[entry.cue.expression].meaning
                   }
                   onClick={() => {
-                    perform(entry.cue);
+                    perform(entry.cue, entry.target);
                   }}
                 >
                   {entry.icon}
@@ -810,6 +816,12 @@ export function Studio({
                     </div>
                   </div>
                 </fieldset>
+                {!c.scene.chat.enabled ? (
+                  <p className="helper-note">
+                    No chat panel is placed, so {c.name} looks to the right for chat. Place it in
+                    the scene editor so glances and pointing aim at your real chat.
+                  </p>
+                ) : null}
                 <div className="range-row">
                   <label className="field checkbox-field">
                     <input

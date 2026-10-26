@@ -35,6 +35,8 @@ export interface DecisionContext {
   /** Oldest first, bounded. The last item is the event being reacted to. */
   recent: ContextEvent[];
   trigger: ContextEvent;
+  /** Spatial summary from the scene resolver, e.g. "chat is to your right". */
+  layout?: string;
   /** Whether a movement cue is currently allowed by the initiative budget. */
   canMove: boolean;
   /** Whether a body-state change is allowed (initiative and cooldown). Defaults to canMove. */
