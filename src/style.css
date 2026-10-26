@@ -1683,3 +1683,182 @@ input[type='range'] {
   );
   pointer-events: none;
 }
+
+/* Body states (src/renderer/motion/states/): z z z and a lying body's floor shadow, drawn
+   outside the rotating body so they stay upright and flat. */
+.avatar-states {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.avatar-states [hidden] {
+  display: none;
+}
+.state-z {
+  position: absolute;
+  font:
+    800 1em/1 'Manrope',
+    'DM Sans',
+    system-ui,
+    sans-serif;
+  color: #f4ecff;
+  text-shadow:
+    0 1px 2px rgb(20 12 40 / 0.55),
+    0 0 6px rgb(120 90 200 / 0.35);
+  will-change: transform, opacity;
+}
+.state-floor-shadow {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(8 6 18 / 0.75), rgb(8 6 18 / 0.3) 55%, transparent);
+}
+
+/* Body-state dock (stage) and scene editor (Placement tab): src/StatesPanel.tsx. */
+.state-dock {
+  position: absolute;
+  right: 3%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  background: #151420b5;
+  backdrop-filter: blur(14px);
+  border: 1px solid #d8c0ec24;
+  border-radius: 15px;
+  z-index: 4;
+}
+.state-dock button {
+  width: 46px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  color: #beb2d0;
+}
+.state-dock button svg {
+  width: 17px;
+  height: 17px;
+}
+.state-dock button span {
+  font-size: 8px;
+}
+.state-dock button:hover:not(:disabled) {
+  background: #cdb5ef1a;
+  color: #eee3ff;
+}
+.state-dock button[aria-pressed='true'] {
+  background: #cdb5ef33;
+  color: #fff6ff;
+}
+.state-dock button:disabled {
+  opacity: 0.35;
+}
+.scene-editor {
+  display: grid;
+  gap: 10px;
+}
+.scene-canvas {
+  position: relative;
+  aspect-ratio: 16/9;
+  border: 1px solid #60506e;
+  border-radius: 10px;
+  background: linear-gradient(140deg, #28263d, #26373e);
+  overflow: hidden;
+  min-height: 145px;
+  touch-action: none;
+}
+.scene-label {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 9px;
+  color: #b8abc9;
+  pointer-events: none;
+}
+.scene-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed #b99cdb66;
+  pointer-events: none;
+}
+.scene-rect {
+  position: absolute;
+  border: 1px solid #b99cdb99;
+  border-radius: 4px;
+  background: #b99cdb1a;
+  cursor: move;
+}
+.scene-rect:focus-visible {
+  outline: 2px solid #e9d5ff;
+}
+.scene-rect span {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 8px;
+  color: #d8c8ea;
+  pointer-events: none;
+}
+.scene-chat {
+  background: #8cc6db1a;
+  border-color: #8cc6db99;
+}
+.scene-game {
+  background: #e3c08a12;
+  border-color: #e3c08a88;
+}
+.scene-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: #e9d5ff;
+  cursor: nwse-resize;
+}
+.scene-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.scene-field {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  border: 1px solid #60506e66;
+  border-radius: 8px;
+  padding: 6px 8px 8px;
+  font-size: 10px;
+  color: #b8adca;
+}
+.scene-field legend label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.scene-field label {
+  display: grid;
+  gap: 2px;
+}
+.scene-field input[type='number'] {
+  width: 100%;
+  min-width: 0;
+}
+.scene-floor-field {
+  grid-column: 1 / -1;
+}
+.state-ledge {
+  position: absolute;
+  height: 10px;
+  border-radius: 3px;
+  border-top: 2px solid #b99cdb99;
+  background: linear-gradient(#b99cdb30, transparent);
+}
