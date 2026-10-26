@@ -42,6 +42,8 @@ for (const intensity of process.env.INTENSITIES?.split(',').map(Number) ?? [0.25
       .locator(`[data-expression="${id}"]`)
       .screenshot({ path: `${out}/cards/${intensity}/${id}.png` });
 }
+if (process.env.CHARACTER === 'mascot-v2')
+  await page.locator('#mouths').screenshot({ path: `${out}/mouths.png` });
 await mkdir(`${out}/transitions`, { recursive: true });
 const pairs = (
   process.env.PAIRS ?? 'content:innocent,innocent:embarrassed,skeptical:laugh,sad:grin'
