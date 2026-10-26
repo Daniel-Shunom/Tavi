@@ -148,9 +148,9 @@ describe('locomotion', () => {
     loco.moveTo({ x: 0.45, at: 0 });
     run(loco, 6, 60, profile, 0);
     loco.moveTo({ x: 0.3, at: 6.05, gait: 'step' }); // reverse mid-way or after arrival
+    const flipStates = new Set<string>();
     let previous = 1,
       flips = 0,
-      flipStates = new Set<string>(),
       crouched = false,
       last: LocomotionFrame | null = null;
     run(loco, 8, 60, profile, 6, (f) => {
