@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "beanie",
+      "origin": "created",
+      "status": "ready",
+      "slot": "head.top",
+      "author": "Tavi contributors",
+      "license": "CC0-1.0",
+      "redistribution": true,
+      "modification": true
+    }
+  ]
+}
