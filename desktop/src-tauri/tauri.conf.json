@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Tavi Studio",
-  "version": "0.1.0",
+  "version": "../package.json",
   "identifier": "app.tavi.studio",
   "build": {
     "beforeDevCommand": "node scripts/dev.mjs",
@@ -11,16 +11,23 @@
   },
   "app": {
     "windows": [],
+    "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:4318 ws://127.0.0.1:4318; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; script-src 'self'"
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:4318 ws://127.0.0.1:4318; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; media-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:"
     }
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis"
-    ],
+    "targets": ["nsis"],
+    "publisher": "Tavi",
+    "copyright": "Tavi contributors. Character artwork by alisketch (CC BY 4.0).",
+    "category": "Entertainment",
+    "shortDescription": "Tavi Studio - streamer companion and OBS overlay",
+    "longDescription": "Tavi Studio runs a local companion service and serves an OBS browser-source overlay at http://127.0.0.1:4318/overlay.",
     "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
       "icons/icon.ico",
       "icons/icon.png"
     ],
@@ -28,8 +35,11 @@
       "../resources/": "resources/"
     },
     "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "displayLanguageSelector": false
       }
     }
   }
