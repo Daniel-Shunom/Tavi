@@ -30,6 +30,7 @@ export const mascotV2: ManifestInput = {
     ...mascot.nodes,
     'arm-l-fore': 'tavi/armL.fore',
     'arm-r-fore': 'tavi/armR.fore',
+    eyes: 'tavi/eyes',
   },
   motionTracks: [...(mascot.motionTracks ?? []), ...Object.keys(mascotV2ControlTracks)],
   face: mascotV2Face,

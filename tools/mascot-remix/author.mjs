@@ -36,6 +36,9 @@ export const lylaSpec = {
     '0:2080': 'tavi/armL.fore',
     '0:2340': 'tavi/armR.upper',
     '0:2341': 'tavi/armR.fore',
+    // Pupil look-at target: the irises follow it (translation constraint) within 8 units of each
+    // eye centre (distance constraint). Clips key it; Tavi adds offsets.
+    '0:1265': 'tavi/eyes',
   },
   /** Forearm bones (hands attach at `tip` along each) and shoulder groups (draw rules). */
   arms: {

@@ -49,6 +49,8 @@ export const faceChannels = [
   'viseme',
   'browTiltL',
   'browTiltR',
+  'pupilX',
+  'pupilY',
 ] as const;
 export type FaceChannel = (typeof faceChannels)[number];
 export type FaceValues = Partial<Record<FaceChannel, number>>;
@@ -89,6 +91,8 @@ export const channelGroup: Record<FaceChannel, ChannelGroup> = {
   viseme: 'mouth',
   browTiltL: 'brows',
   browTiltR: 'brows',
+  pupilX: 'eyes',
+  pupilY: 'eyes',
 };
 
 /** Pose indices and switches: taken from the dominant cue, never blended or sprung. */
