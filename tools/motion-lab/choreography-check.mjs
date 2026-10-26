@@ -14,7 +14,7 @@ const all = [
   ['climb', 'show', 4.5],
   ['slideUp', 'show', 3.5],
   ['walkOff', 'hide', 4],
-  ['jumpOut', 'hide', 1.4],
+  ['jumpOut', 'hide', 1.9],
   ['hopOff', 'hide', 1.4],
   ['duck', 'hide', 1.4],
 ];

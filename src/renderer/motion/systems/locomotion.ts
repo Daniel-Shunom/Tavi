@@ -13,6 +13,7 @@
 // heights (BH, the rendered character height).
 import { clamp01, smootherstep } from '../core/curves';
 import { range, rngFor, type Rng } from '../core/random';
+import { apexFor, impactSpeed } from '../core/physics';
 import { CriticalSpring, SecondOrder } from '../core/spring';
 import type { MotionProfile } from '../profile';
 import type { Pose, Stage } from '../types';
@@ -414,16 +415,21 @@ export class Locomotion {
     if (this.gait && (travelling || this.state === 'settling')) {
       if (def.hop) {
         const airborne = s >= 0.15 && s <= 0.85;
-        const flight = airborne ? Math.sin(((s - 0.15) / 0.7) * Math.PI) : 0;
-        const hopHeight =
-          def.hop * Math.max(0.4, profile.amplitude) * Math.min(1, speedFraction * 1.6 + 0.2);
-        lift = flight * hopHeight * bh;
+        const x = (s - 0.15) / 0.7;
+        const flight = airborne ? 4 * x * (1 - x) : 0;
+        // Ballistic under the shared gravity: the apex follows from the time spent in the air at
+        // the current speed (capped by the gait's personality height).
+        const hopTime = (def.stride * bh) / Math.max(1e-4, Math.abs(v));
+        const apex = Math.min(def.hop * Math.max(0.4, profile.amplitude), apexFor(0.7 * hopTime));
+        lift = flight * apex * bh;
         // Takeoff stretch, landing squash (volume preserving), scaled by the profile's limit.
         const contact = s < 0.15 ? 1 - s / 0.15 : s > 0.85 ? (s - 0.85) / 0.15 : 0;
         const stretch = airborne
           ? 0.08 * Math.sin(((s - 0.15) / 0.35) * Math.PI) * (s < 0.5 ? 1 : 0)
           : 0;
-        const squash = def.land * contact * speedFraction;
+        // Landing compression in proportion to the impact speed (sqrt(2 g h)).
+        const impact = Math.min(1, impactSpeed(apex) / 1.5);
+        const squash = def.land * contact * impact;
         scaleY = Math.max(0.75, 1 - squash * profile.maxSquash + stretch * profile.maxSquash);
         scaleX = 1 / scaleY;
         pose.footLY = def.lift * flight;

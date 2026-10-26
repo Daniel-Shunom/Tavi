@@ -53,6 +53,11 @@ async function main() {
   ]);
   const before = stageCanvas('before');
   const after = stageCanvas('after');
+  // Contact shadow under the feet (drawn by the host; shrinks and fades when airborne).
+  const shadow = document.createElement('div');
+  shadow.style.cssText =
+    'position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(20,24,40,.55),rgba(20,24,40,0))';
+  after.host.insertBefore(shadow, after.canvas);
   const rigs: [MotionRig, MotionRig] = [
     await createMotionRig(runtime, before.canvas, bytes, lylaPatch, lylaRig),
     await createMotionRig(runtime, after.canvas, bytes, lylaPatch, lylaRig),
@@ -225,6 +230,12 @@ async function main() {
       scaleY: p.scaleY,
     });
     after.canvas.style.opacity = String(p.opacity);
+    const sh = frame.shadow;
+    shadow.style.left = String(sh.x * w - height * 0.22 * sh.scale) + 'px';
+    shadow.style.top = String(sh.y * h - height * 0.035 * sh.scale) + 'px';
+    shadow.style.width = String(height * 0.44 * sh.scale) + 'px';
+    shadow.style.height = String(height * 0.07 * sh.scale) + 'px';
+    shadow.style.opacity = String(sh.opacity);
     after.canvas.style.clipPath =
       p.clipBelow === null ? '' : `inset(0 0 ${String((1 - p.clipBelow) * 100)}% 0)`;
     frameTimes.push(performance.now() - start);

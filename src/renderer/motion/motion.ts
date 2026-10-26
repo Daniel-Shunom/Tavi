@@ -41,6 +41,9 @@ const ranges: Partial<Record<Channel, [number, number]>> = {
   hairSquash: [-0.06, 0.06],
 };
 
+/** Hips may rise at most this far above standing (BH) while grounded. */
+const MAX_HIP_RISE = 0.004;
+
 export class MotionLayer {
   readonly seed: number;
   private settings: MotionSettings;
@@ -279,8 +282,14 @@ export class MotionLayer {
     // Reduced motion: cap squash and travel-type body offsets.
     if (this.settings.reducedMotion) pose.squash = Math.max(-0.3, Math.min(0.3, pose.squash));
 
+    // Floor constraint: while the feet are on the ground the hips cannot rise above standing
+    // height (the legs are nearly straight, so the IK would lift the feet off the floor).
     const liftFraction = loco.lift + choreo.liftBH * stage.bodyHeight;
+    const airborne = liftFraction / stage.bodyHeight;
+    if (Math.abs(airborne) < 1e-6) pose.bob = Math.max(-MAX_HIP_RISE, pose.bob);
     const hidden = choreo.hidden;
+    const opacity = hidden ? 0 : loco.opacity * choreo.opacity;
+    const height = Math.max(0, airborne);
     return {
       time: now,
       pose,
@@ -292,10 +301,18 @@ export class MotionLayer {
         facing: loco.facing,
         scaleX: loco.scaleX * choreo.scaleX,
         scaleY: loco.scaleY * choreo.scaleY,
-        opacity: hidden ? 0 : loco.opacity * choreo.opacity,
+        opacity,
         clipBelow: choreo.clipBelow,
       },
+      // Contact shadow: shrinks and fades with height; gone while below the edge (climbing).
+      shadow: {
+        x: loco.x,
+        y: loco.y,
+        scale: 1 / (1 + 1.6 * height),
+        opacity: airborne < -0.05 ? 0 : (opacity * 0.55) / (1 + 2.5 * height),
+      },
       status: {
+        airborne,
         expressions: expr.active,
         locomotion: loco.state + (loco.gait ? ':' + loco.gait : ''),
         choreography: choreo.choreography,

@@ -6,7 +6,8 @@
 // timing is a function of the cue's start time, so a late joiner (reconnect) jumps to the end
 // state instead of replaying; selection is seeded by cue id and never repeats the previous choice.
 // Quiet mode and reduced motion use the short `calm` lists.
-import { clamp01, easeInCubic, easeOutCubic, lerp, smootherstep } from '../core/curves';
+import { clamp01, easeOutCubic, lerp, smootherstep } from '../core/curves';
+import { G_BH, airtime, fallTime, hopHeight } from '../core/physics';
 import { pick, rngFor } from '../core/random';
 import type { MotionProfile } from '../profile';
 import type { Pose, Stage } from '../types';
@@ -40,13 +41,18 @@ export type Step =
       name: string;
       duration: number | ((profile: MotionProfile) => number);
       fn: (t: number, k: number, ctx: ActContext) => ActOutput;
+      /** Airborne beat: duration is physics (gravity), never scaled by personality tempo. */
+      physical?: boolean;
     }
   | { kind: 'expression'; id: string; hold?: number }
   | { kind: 'release'; id: string }
   | { kind: 'pause'; duration: number }
   | { kind: 'walk'; to: 'anchor' | 'side'; gait: Gait | 'personality'; speed: number }
   | { kind: 'turn'; to: 'camera' | 'side' }
-  | { kind: 'sink'; duration: number }
+  /** Ballistic drop from the current lift to below the ground line (clipped). */
+  | { kind: 'sink' }
+  /** Ballistic jump from the current lift up and out of the top of the canvas. */
+  | { kind: 'leap' }
   | { kind: 'fade'; to: 0 | 1; duration: number; rise?: number };
 
 export interface Choreography {
@@ -371,9 +377,10 @@ const climbSteps: Step[] = [
   {
     kind: 'act',
     name: 'hop up',
-    duration: 0.42,
-    fn: (_t, k) => {
-      const air = 4 * 0.12 * k * (1 - k);
+    duration: airtime(0.12),
+    physical: true,
+    fn: (t, k) => {
+      const air = hopHeight(t, airtime(0.12));
       return {
         lift: lerp(-0.08, 0, k) + air,
         clip: k < 0.4,
@@ -497,15 +504,17 @@ const deepCrouch: Step = {
   },
 };
 
+// Launch: arms up, stretch, then a ballistic leap (the 'leap' step) out of the top.
 const launch: Step = {
   kind: 'act',
   name: 'launch',
-  duration: 0.45,
-  fn: (_t, k, { top, from }) => ({
-    lift: from + (top + 1.2 - from) * Math.pow(k, 1.5),
-    scaleY: 1 + 0.18 * (1 - k),
-    scaleX: 1 - 0.1 * (1 - k),
-    pose: { armL: 1.4, armR: 1.4, squash: -0.6 * (1 - k), hairSwoop: -0.18 },
+  duration: 0.08,
+  physical: true,
+  fn: (_t, k, { from }) => ({
+    lift: from,
+    scaleY: 1 + 0.18 * k,
+    scaleX: 1 - 0.1 * k,
+    pose: { armL: 1.4 * k, armR: 1.4 * k, squash: -0.6 * k },
   }),
 };
 
@@ -527,13 +536,15 @@ const lookDownHereGoes: Step = {
   },
 };
 
+// Small hop up (to the apex) before dropping down over the edge with the 'sink' step.
 const hopOver: Step = {
   kind: 'act',
   name: 'hop',
-  duration: 0.3,
-  fn: (_t, k, { from }) => ({
-    lift: from + 4 * 0.12 * Math.min(k, 0.5) * (1 - Math.min(k, 0.5)),
-    scaleY: 1 + 0.1 * Math.sin(k * Math.PI),
+  duration: airtime(0.12) / 2,
+  physical: true,
+  fn: (t, _k, { from }) => ({
+    lift: from + hopHeight(t, airtime(0.12)),
+    scaleY: 1.06,
     pose: { armL: 0.6, armR: 0.6 },
   }),
 };
@@ -619,17 +630,17 @@ export const choreographies: Readonly<Record<string, Choreography>> = {
   },
   jumpOut: {
     type: 'exit',
-    steps: [lookUp, deepCrouch, launch, { kind: 'pause', duration: 0.25 }],
+    steps: [lookUp, deepCrouch, launch, { kind: 'leap' }, { kind: 'pause', duration: 0.25 }],
     calm: calmOut,
   },
   hopOff: {
     type: 'exit',
-    steps: [lookDownHereGoes, crouch(0.12, 0.12), hopOver, { kind: 'sink', duration: 0.32 }],
+    steps: [lookDownHereGoes, crouch(0.12, 0.12), hopOver, { kind: 'sink' }],
     calm: calmOut,
   },
   duck: {
     type: 'exit',
-    steps: [startle, crouch(0.08, 0.12), { kind: 'sink', duration: 0.25 }, shyPeek],
+    steps: [startle, crouch(0.08, 0.12), { kind: 'sink' }, shyPeek],
     calm: calmOut,
   },
 };
@@ -702,6 +713,8 @@ interface Running {
 }
 
 const TURN_STEP = 0.34;
+/** How far below the ground line a sinking exit goes before it is fully hidden (BH). */
+const SINK_DEPTH = 1.25;
 
 function stepLength(step: Step, profile: MotionProfile) {
   // Personality tempo, softened: cozy a little slower, playful a little quicker.
@@ -717,8 +730,13 @@ function stepLength(step: Step, profile: MotionProfile) {
       return Infinity;
     case 'turn':
       return TURN_STEP;
-    case 'act':
-      return (typeof step.duration === 'function' ? step.duration(profile) : step.duration) * k;
+    case 'act': {
+      const base = typeof step.duration === 'function' ? step.duration(profile) : step.duration;
+      return step.physical ? base : base * k;
+    }
+    case 'sink':
+    case 'leap':
+      return Infinity; // set from the starting height when reached (gravity)
     case 'fall':
     case 'fade':
       return step.duration;
@@ -828,6 +846,16 @@ export class ChoreographyPlayer {
     for (let index = 0; index < run.steps.length; index++) {
       const step = run.steps[index];
       if (!step) continue;
+      if (!run.lengths.has(index)) {
+        // Ballistic steps: duration follows from the height to cover under one gravity.
+        if (step.kind === 'fall') run.lengths.set(index, fallTime(top + 1));
+        else if (step.kind === 'sink') run.lengths.set(index, fallTime(lift + SINK_DEPTH));
+        else if (step.kind === 'leap') {
+          const height = top + 1.2 - lift;
+          const v0 = Math.sqrt(2 * G_BH * (height + 0.3));
+          run.lengths.set(index, (v0 - Math.sqrt(v0 * v0 - 2 * G_BH * height)) / G_BH);
+        }
+      }
       const length = run.lengths.get(index) ?? stepLength(step, profile);
       const local = t;
       const inside = local < length;
@@ -846,7 +874,7 @@ export class ChoreographyPlayer {
           break;
         case 'fall': {
           const k = clamp01(local / length);
-          lift = (top + 1) * (1 - k * k); // gravity: distance ~ t^2
+          lift = (top + 1) * (1 - k * k); // constant g: length = fallTime(top + 1)
           if (inside) {
             frame.scaleY = 1 + 0.14 * k * squash;
             frame.scaleX = 1 / frame.scaleY;
@@ -920,13 +948,30 @@ export class ChoreographyPlayer {
           break;
         }
         case 'sink': {
-          const k = clamp01(local / length);
+          // Free fall from the current lift down through the ground line (clipped there).
           const from = lift;
-          lift = from + (-1.25 - from) * easeInCubic(k);
+          const tt = Math.min(local, length);
+          lift = Math.max(-SINK_DEPTH, from - (G_BH * tt * tt) / 2);
           frame.clipBelow = run.ground;
           if (inside) {
-            frame.pose.armL = 0.7 * k;
-            frame.pose.armR = 0.7 * k;
+            frame.pose.armL = 0.7 * clamp01(tt / length);
+            frame.pose.armR = 0.7 * clamp01(tt / length);
+          }
+          break;
+        }
+        case 'leap': {
+          // Ballistic jump: v0 chosen so the apex is just above the top of the canvas.
+          const from = lift;
+          const height = top + 1.2 - from;
+          const v0 = Math.sqrt(2 * G_BH * (height + 0.3));
+          const tt = Math.min(local, length);
+          lift = from + v0 * tt - (G_BH * tt * tt) / 2;
+          if (inside) {
+            frame.scaleY = 1 + 0.15 * (1 - clamp01(tt / 0.15)) * squash;
+            frame.scaleX = 1 / frame.scaleY;
+            frame.pose.armL = 1.4;
+            frame.pose.armR = 1.4;
+            frame.pose.hairSwoop = -0.18;
           }
           break;
         }

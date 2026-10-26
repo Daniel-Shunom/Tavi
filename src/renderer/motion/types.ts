@@ -107,7 +107,11 @@ export interface MotionFrame {
   clips: ClipRequest[];
   placement: MotionPlacement;
   /** What the layer is doing, for studio diagnostics and data attributes. */
+  /** Soft contact shadow on the ground line under the feet (renderers draw an ellipse). */
+  shadow: { x: number; y: number; scale: number; opacity: number };
   status: {
+    /** Total lift above the ground line in body heights (0 = standing on the floor). */
+    airborne: number;
     expressions: string[];
     locomotion: string;
     choreography: string | null;
