@@ -10,7 +10,13 @@
 //   5. blinks   = scheduled blinks (rate and hold from the dominant pose) layered over the lids
 //   6. clamp    = the rig's safe ranges from the manifest
 import type { ExpressionId } from '../../../shared/expressions';
-import { channelGroup, faceChannels, type FaceChannel, type FaceValues } from './channels';
+import {
+  channelGroup,
+  faceChannels,
+  sidedChannels,
+  type FaceChannel,
+  type FaceValues,
+} from './channels';
 import { clampToRig, sampleFacePose, type CharacterFace } from './pose';
 import { stepSpring, type SpringState } from './spring';
 
@@ -26,6 +32,15 @@ export interface FaceCue {
    * the facial features (brows, lids, mouth, gaze), not head tilt or squash.
    */
   featuresOnly?: boolean;
+  /** Side of the attention target (1 = screen right), for poses that turn toward it. */
+  side?: -1 | 1;
+}
+export interface ActingClip {
+  /** Clip role from the character's motion binding. */
+  role: string;
+  /** Seconds into the clip. */
+  time: number;
+  mix: number;
 }
 export interface FaceInput {
   dt: number;
@@ -41,6 +56,8 @@ export interface FaceOutput {
   blink: { rate: number; hold: number };
   /** Expressions contributing this frame. */
   active: ExpressionId[];
+  /** Authored clips requested by active poses, mixed by their envelopes. */
+  clips: ActingClip[];
 }
 export interface FaceLayerOptions {
   seed?: number;
@@ -53,7 +70,8 @@ export const halfLives: Record<(typeof channelGroup)[FaceChannel], number> = {
   brows: 0.055,
   eyes: 0.05,
   mouth: 0.08,
-  head: 0.12,
+  head: 0.1,
+  body: 0.11,
 };
 
 const DRIFT: Partial<Record<FaceChannel, { amount: number; hz: number }>> = {
@@ -65,7 +83,11 @@ const DRIFT: Partial<Record<FaceChannel, { amount: number; hz: number }>> = {
   mouthX: { amount: 0.05, hz: 0.13 },
   gazeX: { amount: 0.035, hz: 0.11 },
   gazeY: { amount: 0.025, hz: 0.09 },
-  headTilt: { amount: 0.008, hz: 0.07 },
+  headTilt: { amount: 0.012, hz: 0.07 },
+  lean: { amount: 0.008, hz: 0.09 },
+  bob: { amount: 0.002, hz: 0.21 },
+  armL: { amount: 0.035, hz: 0.12 },
+  armR: { amount: 0.035, hz: 0.1 },
 };
 
 /** Smooth deterministic noise in about -1..1 from three incommensurate sines. */
@@ -126,9 +148,14 @@ export class FaceLayer {
       if (!dominant || cue.weight * cue.intensity > dominant.weight * dominant.intensity)
         dominant = cue;
       const sample = sampleFacePose(def, cue.intensity, cue.elapsed);
-      for (const [name, value] of Object.entries(sample) as [FaceChannel, number][]) {
-        if (cue.featuresOnly && channelGroup[name] === 'head') continue;
-        values[name] = (values[name] ?? 0) + value * cue.weight;
+      const flip = def.towardTarget && cue.side === -1;
+      for (const [authored, value] of Object.entries(sample) as [FaceChannel, number][]) {
+        const name =
+          flip && authored === 'armL' ? 'armR' : flip && authored === 'armR' ? 'armL' : authored;
+        const group = channelGroup[name];
+        if (cue.featuresOnly && (group === 'head' || group === 'body')) continue;
+        const signed = flip && sidedChannels.has(name) ? -value : value;
+        values[name] = (values[name] ?? 0) + signed * cue.weight;
       }
       drift = Math.max(drift, (def.living?.drift ?? 0.5) * cue.weight);
     }
@@ -150,15 +177,23 @@ export class FaceLayer {
     const dt = Math.max(0, Math.min(0.1, input.dt));
     const { values: target, dominant } = this.target(input);
     this.history.push({ time: input.time, values: target });
-    const lag = this.face.mouthLag;
-    while (this.history.length > 2 && (this.history[1]?.time ?? Infinity) <= input.time - lag)
+    const longest = Math.max(this.face.mouthLag, this.face.bodyLag);
+    while (this.history.length > 2 && (this.history[1]?.time ?? Infinity) <= input.time - longest)
       this.history.shift();
-    const lagged = this.history[0]?.values ?? target;
+    /** The target as it was `lag` seconds ago (overlapping action). */
+    const past = (lag: number) => {
+      let found = this.history[0]?.values ?? target;
+      for (const entry of this.history) if (entry.time <= input.time - lag) found = entry.values;
+      return found;
+    };
+    const mouth = past(this.face.mouthLag),
+      body = past(this.face.bodyLag);
     const out: FaceValues = {};
     for (const name of faceChannels) {
       if (!this.face.channels[name]) continue;
       const group = channelGroup[name];
-      const goal = (group === 'mouth' ? lagged[name] : target[name]) ?? 0;
+      const source = group === 'mouth' ? mouth : group === 'body' ? body : target;
+      const goal = source[name] ?? 0;
       const spring = this.springs.get(name);
       if (!spring) continue;
       stepSpring(spring, goal, halfLives[group], dt);
@@ -174,7 +209,25 @@ export class FaceLayer {
       active: input.cues
         .filter((cue) => cue.weight > 0.01 && this.face.poses[cue.expression])
         .map((cue) => cue.expression),
+      clips: this.clips(input.cues),
     };
+  }
+
+  private clips(cues: readonly FaceCue[]): ActingClip[] {
+    const out: ActingClip[] = [];
+    for (const cue of cues) {
+      const clip = this.face.poses[cue.expression]?.clip;
+      if (!clip || cue.weight <= 0.001 || cue.featuresOnly) continue;
+      let time = (clip.start ?? 0) + Math.max(0, cue.elapsed) * (clip.rate ?? 1);
+      if (clip.pingPong && time > clip.pingPong[0]) {
+        const [from, to] = clip.pingPong;
+        const span = Math.max(0.05, to - from);
+        const cycle = (time - from) % (2 * span);
+        time = from + (cycle < span ? cycle : 2 * span - cycle);
+      }
+      out.push({ role: clip.role, time, mix: clip.mix * Math.min(1, cue.weight) });
+    }
+    return out;
   }
 
   private blink(time: number, rate: number, hold: number, out: FaceValues) {

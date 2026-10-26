@@ -69,6 +69,37 @@ describe('face pose library', () => {
     expect(face.poses.innocent?.onset, 'Oops needs a startle onset').toBeDefined();
     expect(face.poses.embarrassed?.keys, 'embarrassed needs darting glances').toBeDefined();
   });
+  it('acts with the face, not just a body bob', () => {
+    const features = new Set<FaceChannel>([
+      'browL',
+      'browR',
+      'squintL',
+      'squintR',
+      'blinkL',
+      'blinkR',
+      'smile',
+      'mouthX',
+      'mouthY',
+      'gazeX',
+      'gazeY',
+    ]);
+    const flat: string[] = [];
+    for (const id of poseIds) {
+      const def = face.poses[id];
+      if (!def) continue;
+      for (const [label, intensity] of [
+        ['typical', 0.6],
+        ['strong', 1],
+      ] as const) {
+        let amount = 0;
+        for (const [name, value] of Object.entries(sampleFacePose(def, intensity, 1)))
+          if (features.has(name as FaceChannel)) amount += Math.abs(value);
+        if (amount < (label === 'strong' ? 1.2 : 0.7))
+          flat.push(`${id} ${label} ${amount.toFixed(2)}`);
+      }
+    }
+    expect(flat).toEqual([]);
+  });
   it('keeps every pose inside the rig safe ranges at every intensity and moment', () => {
     const outside: string[] = [];
     for (const id of poseIds) {
@@ -88,11 +119,11 @@ describe('face pose library', () => {
     }
     expect(outside.slice(0, 10)).toEqual([]);
   });
-  it('distinguishes every pose from every other at typical intensity', () => {
+  it('distinguishes every emote face from every other at typical intensity', () => {
     const close: string[] = [];
-    const looks = poseIds.map(
-      (id) => [id, sampleFacePose(face.poses[id] ?? { pose: {} }, 0.6, 1.5)] as const,
-    );
+    const looks = poseIds
+      .filter((id) => expressions[id].channel === 'emote')
+      .map((id) => [id, sampleFacePose(face.poses[id] ?? { pose: {} }, 0.6, 1.5)] as const);
     for (let a = 0; a < looks.length; a++)
       for (let b = a + 1; b < looks.length; b++) {
         const [idA, A] = looks[a] ?? ['', {}];

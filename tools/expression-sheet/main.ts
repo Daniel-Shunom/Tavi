@@ -10,7 +10,10 @@ import avatarURL from '../../src/renderer/characters/mascot/mascot.riv?url';
 import { characters } from '../../src/renderer/characters/registry';
 import { phaseLookup } from '../../src/renderer/compose';
 import type { FaceValues } from '../../src/renderer/face/channels';
-import { FaceLayer } from '../../src/renderer/face/faceLayer';
+import { FaceLayer, type ActingClip } from '../../src/renderer/face/faceLayer';
+import { poseChannels } from '../../src/renderer/face/pose';
+import { performances } from '../../src/renderer/motion/hook';
+import { MotionLayer } from '../../src/renderer/motion/motion';
 import { sampleScript } from '../../src/renderer/timeline';
 import { createSheetRig } from './rig';
 
@@ -22,7 +25,7 @@ const face = manifest?.face;
 if (!manifest || !face) throw new Error('mascot face missing');
 const lookup = phaseLookup(manifest);
 const ids = Object.keys(face.poses) as ExpressionId[];
-const LARGE = { width: 320, height: 320, zoom: 3, focus: 0.36 };
+const LARGE = { width: 320, height: 320, zoom: 1.7, focus: 0.42 };
 const SMALL = { width: 180, height: 230 };
 
 function script(steps: { id: ExpressionId; offset: number; hold: number }[], intensity: number) {
@@ -44,19 +47,15 @@ function script(steps: { id: ExpressionId; offset: number; hold: number }[], int
 }
 
 /** Runs the face layer from the cue start to `seconds` (60 fps) and returns that frame. */
-function faceAt(id: ExpressionId, intensity: number, seconds: number): FaceValues {
+function faceAt(id: ExpressionId, intensity: number, seconds: number) {
   const cue = script([{ id, offset: 0, hold: 30 }], intensity);
   const layer = new FaceLayer(face ?? ({} as never), { ownBlinks: false, seed: 7 });
-  let values: FaceValues = {};
+  let result: { values: FaceValues; clips: ActingClip[] } = { values: {}, clips: [] };
   for (let frame = 0; frame <= Math.round(seconds * 60); frame++) {
     const time = frame / 60;
-    values = layer.update({
-      dt: 1 / 60,
-      time,
-      cues: sampleScript(cue, time * 1000, lookup),
-    }).values;
+    result = layer.update({ dt: 1 / 60, time, cues: sampleScript(cue, time * 1000, lookup) });
   }
-  return values;
+  return result;
 }
 
 function element<T extends HTMLElement>(selector: string) {
@@ -132,10 +131,10 @@ async function main() {
   function renderGrid() {
     const intensity = Number(intensityInput.value);
     for (const [id, cell] of cells) {
-      const values = faceAt(id, intensity, lookup(id).anticipation + 1.2);
-      large.draw(values, { zoom: LARGE.zoom, focus: LARGE.focus });
+      const { values, clips } = faceAt(id, intensity, lookup(id).anticipation + 1.2);
+      large.draw(values, { zoom: LARGE.zoom, focus: LARGE.focus, clips });
       cell.large.drawImage(offscreenLarge, 0, 0, cell.large.canvas.width, cell.large.canvas.height);
-      small.draw(values, { zoom: 1 });
+      small.draw(values, { zoom: 1, clips });
       cell.small.drawImage(offscreenSmall, 0, 0, cell.small.canvas.width, cell.small.canvas.height);
     }
   }
@@ -152,14 +151,38 @@ async function main() {
   to.value = params.get('to') ?? 'innocent';
   const label = element('#player-label'),
     clock = element('#player-time');
-  let run: { layer: FaceLayer; cue: ExpressionScript; time: number } | null = null;
+  // The player runs the full stack the overlay runs: the motion layer (idle life, gaze, blinks,
+  // performances such as Oops/skeptical/nod) with the face layer feeding it, as in motion/hook.ts.
+  interface Run {
+    face: FaceLayer;
+    motion: MotionLayer;
+    cue: ExpressionScript;
+    time: number;
+    performing: Set<string>;
+  }
+  let run: Run | null = null;
   const HOLD_A = 1.6;
+  const settings = {
+    personality: 'playful',
+    attitude: 'cheeky',
+    energy: 60,
+    reducedMotion: false,
+    quiet: false,
+  } as const;
   function start() {
     const a = from.value as ExpressionId,
       b = to.value as ExpressionId;
     label.textContent = `${expressions[a].label} → ${expressions[b].label}`;
+    const motion = new MotionLayer(
+      20261025,
+      settings,
+      { aspect: 1, bodyHeight: 0.3, margin: 0.02 },
+      { feet: true },
+    );
+    motion.place(0.5, 0.9);
     run = {
-      layer: new FaceLayer(face ?? ({} as never), { seed: 11 }),
+      face: new FaceLayer(face ?? ({} as never), { seed: 20261025, ownBlinks: false }),
+      motion,
       cue: script(
         [
           { id: a, offset: 0, hold: HOLD_A },
@@ -168,20 +191,39 @@ async function main() {
         Number(intensityInput.value),
       ),
       time: 0,
+      performing: new Set(),
     };
   }
   /** Advances the player by `dt` and draws; exposed for deterministic screenshots. */
   function step(dt: number) {
-    if (!run) return;
+    if (!run || !manifest) return;
     run.time += dt;
-    const values = run.layer.update({
-      dt,
-      time: run.time,
-      cues: sampleScript(run.cue, run.time * 1000, lookup),
-    }).values;
+    const layers = sampleScript(run.cue, run.time * 1000, lookup);
+    const owned = new Map<string, ReadonlySet<string>>();
+    const current = new Set<string>();
+    const cues = layers.map((cue) => {
+      const performance = manifest.expressions[cue.expression]?.motion;
+      const motionId = performance ? performances[performance] : undefined;
+      if (motionId) {
+        current.add(motionId);
+        if (!run?.performing.has(motionId))
+          run?.motion.express(motionId, { at: run.time - cue.elapsed, intensity: cue.intensity });
+        const pose = face?.poses[cue.expression];
+        if (pose) owned.set(motionId, poseChannels(pose));
+      }
+      return { ...cue, featuresOnly: Boolean(motionId) };
+    });
+    for (const id of run.performing) if (!current.has(id)) run.motion.release(id, run.time);
+    run.performing = current;
+    const result = run.face.update({ dt, time: run.time, cues });
+    const frame = run.motion.update(run.time, {
+      values: result.values,
+      owned,
+      blinkScale: result.blink.rate / (face?.blink.rate ?? 17),
+    });
     clock.textContent = `t = ${run.time.toFixed(2)} s`;
-    playerLarge.draw(values, { zoom: LARGE.zoom, focus: LARGE.focus, dt });
-    playerSmall.draw(values, { zoom: 1, dt });
+    playerLarge.drawFrame(frame, { zoom: LARGE.zoom, focus: LARGE.focus, dt });
+    playerSmall.drawFrame(frame, { zoom: 1, dt });
   }
   element('#play').addEventListener('click', start);
   let last = performance.now();

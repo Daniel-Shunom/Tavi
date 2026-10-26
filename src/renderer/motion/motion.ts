@@ -190,8 +190,10 @@ export class MotionLayer {
     now: number,
     face?: {
       values: Partial<Pose>;
-      owned: ReadonlySet<string>;
+      owned: ReadonlyMap<string, ReadonlySet<string>>;
       blinkScale: number;
+      /** Authored clips the face layer's acting requests (roles from the rig binding). */
+      clips?: readonly { role: string; time: number; mix: number }[];
     },
   ): MotionFrame {
     const dt = this.lastTime === null ? 0 : Math.min(0.1, Math.max(0, now - this.lastTime));
@@ -293,7 +295,7 @@ export class MotionLayer {
     return {
       time: now,
       pose,
-      clips: expr.clips,
+      clips: face?.clips ? [...expr.clips, ...face.clips] : expr.clips,
       placement: {
         x: loco.x,
         y: loco.y - liftFraction,

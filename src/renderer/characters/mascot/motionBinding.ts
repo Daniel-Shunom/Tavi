@@ -12,6 +12,12 @@ export const lylaClipRoles: Readonly<Record<string, string>> = {
   think: 'thoughtful',
   hips: 'hands on hips',
   sway: 'back and forth',
+  // Acting clips used by face poses (characters/mascot/face.ts) for body language.
+  'happy-shrug': 'blink 2',
+  sheepish: 'blink 3',
+  shrug: 'blink 4',
+  'wink-wave': 'wave',
+  swing: 'testing',
 };
 
 /** Neutral authored pose applied first every frame (eyes open, brows and lids at rest). */

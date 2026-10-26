@@ -11,6 +11,7 @@ import {
   type MotionOutput,
 } from '../motionHook';
 import { FaceLayer } from '../face/faceLayer';
+import { poseChannels } from '../face/pose';
 import { MotionLayer } from './motion';
 import type { RigPatch } from './rive/patch';
 import type { MotionFrame } from './types';
@@ -23,7 +24,7 @@ export interface CharacterMotionRig {
 }
 
 /** Hook performance ids this layer performs, mapped to motion-layer expressions. */
-const performances: Readonly<Record<string, string>> = {
+export const performances: Readonly<Record<string, string>> = {
   nod: 'approve',
   skeptical: 'skeptical',
   caught: 'caught',
@@ -65,7 +66,9 @@ export function createHookLayer(
   let lastTime: number | null = null;
 
   return {
-    performances: Object.keys(performances),
+    // Motion-library performances plus every expression the manifest acts out with a face pose
+    // (bindings name them via `motion: <id>`); the face layer performs the latter.
+    performances: [...Object.keys(performances), ...Object.keys(manifest.face?.poses ?? {})],
     update(input: MotionInput): MotionOutput {
       const { width, height } = input.locomotion.viewport;
       const scale = Math.min(width / 1280, height / 720);
@@ -144,7 +147,7 @@ export function createHookLayer(
         const performed = new Map(
           input.performances.map(({ id, layer: cue }) => [cue.expression, id]),
         );
-        const owned = new Set<string>();
+        const owned = new Map<string, ReadonlySet<string>>();
         const result = faceLayer.update({
           dt,
           time: now,
@@ -152,18 +155,24 @@ export function createHookLayer(
           cues: input.layers.map((cue) => {
             const performance = performed.get(cue.expression);
             const motionId = performance ? performances[performance] : undefined;
-            const hasPose = Boolean(manifest.face?.poses[cue.expression]);
-            if (motionId && hasPose) owned.add(motionId);
+            const pose = manifest.face?.poses[cue.expression];
+            if (motionId && pose) owned.set(motionId, poseChannels(pose));
             return {
               expression: cue.expression,
               intensity: cue.intensity,
               weight: cue.weight,
               elapsed: cue.elapsed,
               featuresOnly: Boolean(motionId),
+              side: input.attention?.side ?? 1,
             };
           }),
         });
-        face = { values: result.values, owned, blinkScale: result.blink.rate / restBlinkRate };
+        face = {
+          values: result.values,
+          owned,
+          blinkScale: result.blink.rate / restBlinkRate,
+          clips: result.clips,
+        };
       }
       lastTime = now;
       const frame = layer.update(now, face);
