@@ -1,0 +1,54 @@
+{
+  "id": "beanie",
+  "name": "Pom beanie",
+  "category": "hat",
+  "slot": "head.top",
+  "viewBox": [0, 0, 100, 60],
+  "anchor": [50, 16],
+  "size": 0.9,
+  "tints": {
+    "primary": { "label": "Knit", "default": "#f2a65a" },
+    "secondary": { "label": "Cuff and pom", "default": "#fff4e0" }
+  },
+  "springs": {
+    "pom": {
+      "pivot": [50, 12],
+      "stiffness": 90,
+      "damping": 7,
+      "inertia": 0.003,
+      "maxAngle": 18,
+      "hang": 0.3
+    }
+  },
+  "layers": [
+    { "d": "M8 42 C8 18 28 8 50 8 C72 8 92 18 92 42 Z", "fill": { "tint": "primary" } },
+    {
+      "d": "M92 42 C92 26 82 15 66 10 C78 18 83 30 80 42 Z",
+      "fill": { "tint": "primary", "shade": -0.22 }
+    },
+    {
+      "d": "M22 26 C28 17 38 13 48 12 C39 16 32 21 28 30 Z",
+      "fill": { "tint": "primary", "shade": 0.45, "alpha": 0.7 }
+    },
+    {
+      "d": "M5 41 C5 38 7 36 10 36 L90 36 C93 36 95 38 95 41 L95 51 C95 54 93 56 90 56 L10 56 C7 56 5 54 5 51 Z",
+      "fill": { "tint": "secondary" }
+    },
+    {
+      "d": "M15 39 L15 53 M25 39 L25 53 M35 39 L35 53 M45 39 L45 53 M55 39 L55 53 M65 39 L65 53 M75 39 L75 53 M85 39 L85 53",
+      "stroke": { "tint": "secondary", "shade": -0.18 },
+      "strokeWidth": 2.2
+    },
+    {
+      "d": "M40 9 A10 10 0 1 1 60 9 A10 10 0 1 1 40 9 Z",
+      "fill": { "tint": "secondary" },
+      "spring": "pom"
+    },
+    {
+      "d": "M52 17 A8 8 0 0 0 59 7 A10 10 0 0 1 48 18.5 Z",
+      "fill": { "tint": "secondary", "shade": -0.2 },
+      "spring": "pom"
+    }
+  ],
+  "notes": "Overlay; sits over the hair and does not compress it."
+}

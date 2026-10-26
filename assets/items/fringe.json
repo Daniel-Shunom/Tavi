@@ -1,0 +1,53 @@
+{
+  "id": "fringe",
+  "name": "Wispy fringe",
+  "category": "hair",
+  "slot": "head.hair",
+  "viewBox": [0, 0, 100, 40],
+  "anchor": [50, 0],
+  "size": 0.64,
+  "offset": [0, 0.16],
+  "tints": {
+    "primary": {
+      "label": "Hair",
+      "default": "#d80b4c",
+      "follow": "hair"
+    }
+  },
+  "springs": {
+    "wisp": {
+      "pivot": [50, 6],
+      "stiffness": 80,
+      "damping": 6,
+      "inertia": 0.002,
+      "maxAngle": 6,
+      "hang": 0.2
+    }
+  },
+  "layers": [
+    {
+      "d": "M2 16 C8 4 28 0 52 0 C76 0 94 6 98 18 C96 26 92 32 86 36 C84 30 80 26 74 25 C70 31 64 34 56 35 C56 29 53 25 48 23 C42 26 34 27 26 26 C26 22 24 19 20 17 C14 20 8 21 2 22 Z",
+      "fill": {
+        "tint": "primary"
+      },
+      "spring": "wisp"
+    },
+    {
+      "d": "M2 16 C8 4 28 0 52 0 C76 0 94 6 98 18 C88 10 70 7 52 7 C32 7 14 10 2 16 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.22
+      },
+      "spring": "wisp"
+    },
+    {
+      "d": "M86 36 C84 30 80 26 74 25 C79 28 82 31 83 36 Z M56 35 C56 29 53 25 48 23 C51 27 52 30 52 35 Z M26 26 C26 22 24 19 20 17 C22 21 23 23 23 26 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.2
+      },
+      "spring": "wisp"
+    }
+  ],
+  "notes": "Front overlay over the hairline; reads best with hats off."
+}

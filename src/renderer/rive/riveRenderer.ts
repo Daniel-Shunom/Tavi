@@ -13,6 +13,8 @@ import type {
 import wasmURL from '@rive-app/webgl2/rive.wasm?url';
 import type { CharacterRenderer, Placement, RenderFrame } from '../adapter';
 import { assetUrl } from '../characters/assets';
+import { motionRigs } from '../characters/motionRigs';
+import { patchRiv } from '../motion/rive/patch';
 import type { CharacterManifest } from '../characters/manifest';
 RuntimeLoader.setWasmUrl(wasmURL);
 RuntimeLoader.setWasmFallbackUrl(null);
@@ -78,7 +80,12 @@ export async function createRiveRenderer(
     string,
     { instance: LinearAnimationInstance; duration: number; time: number }
   >();
-  const inputs = new Map<string, SMIInput>();
+  // Inputs must be accessed through their typed view (asBool/asNumber/asTrigger); setting
+  // `value` on the base input object is silently ignored by the pinned 2.45 runtime.
+  const inputs = new Map<
+    string,
+    { kind: 'bool' | 'number' | 'trigger'; input: SMIInput; last?: boolean | number }
+  >();
   const nodes = new Map<
     string,
     { node: Node; base: { x: number; y: number; rotation: number; scaleX: number; scaleY: number } }
@@ -97,7 +104,9 @@ export async function createRiveRenderer(
     renderer?.delete();
   }
   try {
-    file = await runtime.load(data, undefined, false);
+    // Motion rig extension (runtime names + control tracks), applied in memory; the .riv is unchanged.
+    const rig = motionRigs[manifest.id];
+    file = await runtime.load(rig ? patchRiv(data, rig.patch) : data, undefined, false);
     renderer = runtime.makeRenderer(canvas, true);
     board = file.artboardByName(manifest.artboard);
     const clipsByName = new Map<string, number>();
@@ -129,7 +138,14 @@ export async function createRiveRenderer(
       for (const [handle, name] of Object.entries(manifest.inputs)) {
         const input = byName.get(name);
         if (!input) throw new Error(`${manifest.id}: missing state machine input ${handle}`);
-        inputs.set(handle, input);
+        const type = property(input, 'type');
+        if (type === runtime.SMIInput.bool)
+          inputs.set(handle, { kind: 'bool', input: input.asBool() });
+        else if (type === runtime.SMIInput.number)
+          inputs.set(handle, { kind: 'number', input: input.asNumber() });
+        else if (type === runtime.SMIInput.trigger)
+          inputs.set(handle, { kind: 'trigger', input: input.asTrigger() });
+        else throw new Error(`${manifest.id}: unsupported input type for ${handle}`);
       }
     }
     for (const [handle, name] of Object.entries(manifest.nodes)) {
@@ -175,22 +191,37 @@ export async function createRiveRenderer(
       },
       applyFrame(frame: RenderFrame) {
         if (disposed) return;
+        // Nodes return to their setup pose before clips, so motion offsets add on top of the
+        // animated values instead of replacing them (and never accumulate).
+        for (const entry of nodes.values()) {
+          entry.node.x = entry.base.x;
+          entry.node.y = entry.base.y;
+          entry.node.rotation = entry.base.rotation;
+          entry.node.scaleX = entry.base.scaleX;
+          entry.node.scaleY = entry.base.scaleY;
+        }
         applyRest();
         for (const sample of frame.tracks)
           if (sample.mix > 0) apply(sample.track, sample.time, sample.mix);
         // Palette tracks last so poses never overwrite the chosen colours.
         applyAppearance();
         for (const [handle, value] of Object.entries(frame.inputs)) {
-          const input = inputs.get(handle);
-          if (input) input.value = value;
+          const entry = inputs.get(handle);
+          if (!entry) continue;
+          if (entry.kind === 'trigger') {
+            // Fire on a rising edge (false -> true or a changed number).
+            if (value && value !== entry.last) entry.input.fire();
+          } else if (entry.kind === 'bool') entry.input.value = Boolean(value);
+          else entry.input.value = Number(value);
+          entry.last = value;
         }
         for (const [handle, entry] of nodes) {
           const offset = frame.nodes[handle] ?? {};
-          entry.node.x = entry.base.x + (offset.x ?? 0);
-          entry.node.y = entry.base.y + (offset.y ?? 0);
-          entry.node.rotation = entry.base.rotation + (offset.rotation ?? 0);
-          entry.node.scaleX = entry.base.scaleX * (offset.scaleX ?? 1);
-          entry.node.scaleY = entry.base.scaleY * (offset.scaleY ?? 1);
+          entry.node.x += offset.x ?? 0;
+          entry.node.y += offset.y ?? 0;
+          entry.node.rotation += offset.rotation ?? 0;
+          entry.node.scaleX *= offset.scaleX ?? 1;
+          entry.node.scaleY *= offset.scaleY ?? 1;
         }
       },
       resize(width, height) {

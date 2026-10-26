@@ -21,6 +21,11 @@ export interface FaceCue {
   weight: number;
   /** Seconds since the beat started. */
   elapsed: number;
+  /**
+   * The motion layer performs this cue's head and body (e.g. the Oops performance): supply only
+   * the facial features (brows, lids, mouth, gaze), not head tilt or squash.
+   */
+  featuresOnly?: boolean;
 }
 export interface FaceInput {
   dt: number;
@@ -121,8 +126,10 @@ export class FaceLayer {
       if (!dominant || cue.weight * cue.intensity > dominant.weight * dominant.intensity)
         dominant = cue;
       const sample = sampleFacePose(def, cue.intensity, cue.elapsed);
-      for (const [name, value] of Object.entries(sample) as [FaceChannel, number][])
+      for (const [name, value] of Object.entries(sample) as [FaceChannel, number][]) {
+        if (cue.featuresOnly && channelGroup[name] === 'head') continue;
         values[name] = (values[name] ?? 0) + value * cue.weight;
+      }
       drift = Math.max(drift, (def.living?.drift ?? 0.5) * cue.weight);
     }
     if (!input.reducedMotion && drift > 0)

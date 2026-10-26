@@ -9,6 +9,7 @@ import {
 import { beat } from '../shared/cue';
 import { decisionJsonSchema, decisionSchema } from '../shared/decision';
 import { capabilitiesOf, manifestSchema } from '../src/renderer/characters/manifest';
+import { motionRigs } from '../src/renderer/characters/motionRigs';
 import { catalog, characters, getCharacter } from '../src/renderer/characters/registry';
 import { testCharacter } from './fixtures/test-character';
 
@@ -40,6 +41,8 @@ describe('character manifests', () => {
       const board = report.artboards.find((entry) => entry.name === manifest.artboard);
       expect(board, manifest.artboard).toBeDefined();
       const clips = new Set(board?.animations.map((clip) => clip.name));
+      // Control tracks the motion rig patch adds in memory (src/renderer/motion/rive/patch.ts).
+      for (const control of motionRigs[manifest.id]?.patch.controls ?? []) clips.add(control.name);
       for (const [handle, clip] of Object.entries(manifest.tracks))
         expect(clips.has(clip), handle).toBe(true);
       if (manifest.stateMachine)

@@ -1,0 +1,72 @@
+{
+  "id": "ponytail",
+  "name": "High ponytail",
+  "category": "hair",
+  "slot": "head.hair",
+  "viewBox": [0, 0, 100, 100],
+  "anchor": [50, 0],
+  "size": 1.25,
+  "tints": {
+    "primary": {
+      "label": "Hair",
+      "default": "#d80b4c",
+      "follow": "hair"
+    },
+    "tie": {
+      "label": "Hair tie",
+      "default": "#ffc94a"
+    }
+  },
+  "springs": {
+    "tail": {
+      "pivot": [72, 22],
+      "stiffness": 30,
+      "damping": 3.5,
+      "inertia": 0.006,
+      "maxAngle": 24,
+      "hang": 0.8
+    }
+  },
+  "layers": [
+    {
+      "d": "M70 18 C82 14 94 22 96 36 C98 48 92 56 96 66 C99 76 94 88 84 92 C88 82 84 74 80 66 C76 58 80 46 74 38 C70 32 64 28 62 24 Z",
+      "fill": {
+        "tint": "primary"
+      },
+      "behind": true,
+      "spring": "tail"
+    },
+    {
+      "d": "M84 92 C94 88 99 76 96 66 C92 56 98 48 96 36 C98 52 92 60 94 70 C96 80 90 88 84 92 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.25
+      },
+      "behind": true,
+      "spring": "tail"
+    },
+    {
+      "d": "M78 24 C86 26 90 34 88 44 C86 36 82 30 76 28 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.3
+      },
+      "behind": true,
+      "spring": "tail"
+    },
+    {
+      "d": "M64.5 20 A5.5 5.5 0 1 1 75.5 20 A5.5 5.5 0 1 1 64.5 20 Z",
+      "fill": {
+        "tint": "tie"
+      }
+    },
+    {
+      "d": "M66.5 18.5 A2 2 0 1 1 70.5 18.5 A2 2 0 1 1 66.5 18.5 Z",
+      "fill": {
+        "tint": "tie",
+        "shade": 0.5
+      }
+    }
+  ],
+  "notes": "Overlay behind the head; sways on a spring but does not deform with the hair rig."
+}
