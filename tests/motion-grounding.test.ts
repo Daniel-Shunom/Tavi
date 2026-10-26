@@ -93,13 +93,23 @@ describe('grounding', () => {
   for (const id of Object.keys(expressionLibrary))
     it(`expression ${id} acts over planted feet`, () => {
       const l = layer();
-      expectGrounded(analyse(run(l, 5, 0, (t) => t === 0.5 && l.express(id, { at: 0.5 }))));
+      expectGrounded(
+        analyse(
+          run(l, 5, 0, (t) => {
+            if (t === 0.5) l.express(id, { at: 0.5 });
+          }),
+        ),
+      );
     });
 
   it('walking keeps planted feet still and the body on the floor', () => {
     const l = layer('cozy');
     expectGrounded(
-      analyse(run(l, 14, 0, (t) => t === 0.2 && l.moveTo({ x: 0.75, at: 0.2, gait: 'step' }))),
+      analyse(
+        run(l, 14, 0, (t) => {
+          if (t === 0.2) l.moveTo({ x: 0.75, at: 0.2, gait: 'step' });
+        }),
+      ),
     );
   });
 
