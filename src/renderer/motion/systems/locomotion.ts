@@ -13,9 +13,10 @@
 // heights (BH, the rendered character height).
 import { clamp01, smootherstep } from '../core/curves';
 import { range, rngFor, type Rng } from '../core/random';
-import { apexFor, impactSpeed } from '../core/physics';
+import { airtime, apexFor, hopHeight, impactSpeed } from '../core/physics';
 import { CriticalSpring, SecondOrder } from '../core/spring';
 import {
+  authoredGaitClips,
   gaitLibrary,
   resolveGait,
   type GaitBeat,
@@ -31,7 +32,23 @@ export type Gait = GaitId;
 export const gaits = gaitLibrary;
 export type GaitDef = GaitSpec;
 
+/**
+ * How a character shows a change of direction:
+ *  cheat          front-facing chibi: never mirror; head/gaze, lean, weight and steps show the
+ *                 direction (default).
+ *  mirror-hidden  asymmetric character: mirror, but swap facing within a frame at the apex of a
+ *                 tiny step-pivot hop so the flip is hidden in the action.
+ *  authored       the rig has a three-quarter turnaround (turnHead/turnBody channels): never
+ *                 mirror; the head turns toward travel ~100 ms before the body, both hold ~0.6
+ *                 while walking and ease back to the camera on arrival.
+ */
+export type TurnStyle = 'cheat' | 'mirror-hidden' | 'authored';
+
 export interface LocomotionCaps {
+  /** Default 'cheat'. */
+  turnStyle?: TurnStyle;
+  /** Gaits the character provides authored cycles for (manifest tracks); others are procedural. */
+  authored?: readonly GaitId[];
   /** Rig has foot IK targets (planted steps); otherwise travel uses flight cycles. */
   feet: boolean;
 }
@@ -82,6 +99,8 @@ export interface LocomotionFrame {
   moving: boolean;
   gait: Gait | null;
   state: State;
+  /** Authored gait cycle to play, phase-locked to ground speed (0..1 of one loop). */
+  clip: { gait: GaitId; phase: number; mix: number } | null;
   /** Current gait/arrival beat name (diagnostics). */
   beat: string | null;
   /** Mood to perform while travelling (face pose id), with an envelope weight. */
@@ -108,11 +127,15 @@ interface Foot {
 }
 
 const G = 9.8; // body heights / s^2 (a chibi is roughly a metre tall)
-/** Facing flip duration; the swap happens at the narrowest point (|facing| ~ 0). */
-const TURN = 0.16;
-/** Crouch/squash anticipation before the flip, and settle after it. */
+/** Head snaps to the new side first (eyes lead the body by ~100 ms). */
 const TURN_LEAD = 0.1;
+/** Then a tiny step-pivot hop under the shared gravity; a mirror swap hides at its apex. */
+const PIVOT_APEX = 0.025;
+const TURN = airtime(PIVOT_APEX);
 const TURN_TAIL = 0.06;
+/** Authored turnaround: hold while walking, and the body's lag behind the head. */
+const TURN_HOLD = 0.6;
+const TURN_BODY_LAG = 0.1;
 
 export class Locomotion {
   private rng: Rng;
@@ -191,6 +214,11 @@ export class Locomotion {
     this.enter('turning', now);
   }
 
+  /** Travel heading (1 right, -1 left), independent of the displayed facing. */
+  get heading() {
+    return this.facingTo;
+  }
+
   /** Turn progress 0..1 while turning (0 otherwise), for renderers and debugging. */
   turnProgress(now: number) {
     return this.state === 'turning'
@@ -218,9 +246,9 @@ export class Locomotion {
     this.stateStart = now;
   }
 
+  /** Displayed facing: swaps within one frame at the pivot-hop apex (mirror styles only). */
   private facingAt(now: number) {
-    const t = clamp01((now - this.turnStart) / TURN);
-    return this.facingFrom + (this.facingTo - this.facingFrom) * smootherstep(t);
+    return now - this.turnStart >= TURN / 2 ? this.facingTo : this.facingFrom;
   }
 
   private bounds(stage: Stage) {
@@ -297,24 +325,46 @@ export class Locomotion {
       if (b.facing) facingScale = b.facing(k);
       return t >= length;
     };
-    const vmax = def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
-    const facing = this.facingAt(now);
+    // Authored cycle for this gait? Then play it phase-locked to distance (no foot slip) at a
+    // little above its natural ground speed, with procedural lean/mood/beats on top.
+    const authoredClip =
+      this.gait && caps.authored?.includes(this.gait) ? authoredGaitClips[this.gait] : undefined;
+    const authored =
+      authoredClip?.stride && authoredClip.seconds
+        ? { stride: authoredClip.stride, seconds: authoredClip.seconds }
+        : null;
+    const vmax = authored
+      ? (authored.stride / authored.seconds) * 1.6 * bh * tempo * this.speedScale
+      : def.stride * def.cadence * bh * tempo * this.speedScale; // stage units / s
+    const style = caps.turnStyle ?? 'cheat';
+    // Only mirror-hidden characters are ever mirrored; cheat and authored stay front-facing.
+    const cheat = style !== 'mirror-hidden';
+    const facing = cheat ? 1 : this.facingAt(now);
     const forward = Math.sign(this.facingTo) || 1;
     let desired = 0;
 
     switch (this.state) {
       case 'turning': {
-        // Crouch (anticipation), flip at the narrowest point with a squash, head and hair lag.
+        // Head-led turn: eyes and head snap to the new side, then a tiny step-pivot hop of the
+        // feet (no body rotation, no squeeze), hair lagging. Forward coords: + = new heading.
         const t = now - this.stateStart;
-        const crouch = Math.sin(clamp01(t / (TURN_LEAD + TURN * 0.5)) * Math.PI);
-        const narrow = 1 - Math.abs(facing);
-        pose.bob = 0.007 * crouch;
-        pose.squash = 0.35 * crouch;
-        scaleY = 1 + 0.05 * narrow;
-        pose.headTilt = -0.08 * this.facingTo * narrow;
-        pose.hairSwing = 0.25 * this.facingTo * narrow;
-        pose.gazeX = 0.5 * this.facingTo * clamp01((t - TURN_LEAD) / TURN);
+        const snap = smootherstep(t / TURN_LEAD);
+        pose.gazeX = 0.75 * snap;
+        pose.headTilt = 0.07 * snap;
+        pose.hairSwing = -0.2 * snap;
+        const hop = t - TURN_LEAD;
+        if (hop > 0 && hop < TURN) {
+          lift = hopHeight(hop, TURN) * bh;
+          pose.footLY = 0.015;
+          pose.footRY = 0.015;
+          pose.lean = 0.03;
+        } else if (hop >= TURN) {
+          const land = 1 - clamp01((hop - TURN) / TURN_TAIL);
+          pose.bob = 0.006 * land;
+          pose.squash = 0.25 * land;
+        }
         if (t >= TURN_LEAD + TURN + TURN_TAIL) {
+          this.needsReplant = true;
           if (this.moveAfterTurn) this.enter('anticipate', now);
           else this.enter('idle', now);
         }
@@ -405,7 +455,8 @@ export class Locomotion {
     if (travelling && dt > 0) {
       const distance = Math.abs(v) * dt;
       this.sincePause += distance;
-      if (flying) {
+      if (authored) this.authoredPhase += distance / (authored.stride * bh);
+      if (flying && !authored) {
         // Spend the distance in the air: weight w(s) is 0 on the ground, normalised to mean 1.
         const s = this.phase % 1;
         const w = s < contactEdge || s > 1 - contactEdge ? 0 : 1 / def.flight;
@@ -435,7 +486,10 @@ export class Locomotion {
     const speedFraction = vmax > 0 ? Math.min(1, Math.abs(v) / vmax) : 0;
     const s = this.phase % 1;
     if (this.gait && (travelling || this.state === 'settling')) {
-      if (flying) {
+      if (authored) {
+        // The clip keys feet, hips, torso, arms and head; add only crouch and posture here.
+        pose.bob = def.crouch * this.travelWeight * 0;
+      } else if (flying) {
         const airborne = s >= contactEdge && s <= 1 - contactEdge;
         const x = (s - contactEdge) / def.flight;
         const flight = airborne ? 4 * x * (1 - x) : 0;
@@ -501,8 +555,9 @@ export class Locomotion {
           (0.15 * Math.cos(2 * Math.PI * (s - 0.25)) + def.contactSquash * strike) * speedFraction;
       }
       pose.gazeY = def.gazeY * Math.max(speedFraction, this.travelWeight);
-      pose.gazeX = 0.45 * forward * speedFraction;
-      pose.hairSwing = -0.15 * forward * speedFraction;
+      // Forward coordinates (+ = travel direction); see the cheat transform below.
+      pose.gazeX = 0.45 * speedFraction;
+      pose.hairSwing = -0.15 * speedFraction;
     }
 
     if (this.state === 'settling') {
@@ -546,25 +601,70 @@ export class Locomotion {
     pose.hairSwoop = -0.6 * leanValue;
 
     this.lastFeet = [pose.footLX ?? 0, pose.footRX ?? 0];
+    const clip =
+      authored && this.gait && this.travelWeight > 0.01
+        ? { gait: this.gait, phase: this.authoredPhase % 1, mix: this.travelWeight }
+        : null;
+    if (this.state === 'idle') this.authoredPhase = 0;
+    // Pose is in forward coordinates. Mirror styles let the renderer flip it; the cheat keeps the
+    // body front-facing, so direction-signed channels point the way it travels instead.
+    const out: Partial<Pose> = { ...pose };
+    if (cheat && forward < 0)
+      for (const key of [
+        'gazeX',
+        'headTilt',
+        'lean',
+        'shift',
+        'hairSwing',
+        'hairSwoop',
+        'mouthX',
+        'footLX',
+        'footRX',
+      ] as const)
+        if (out[key] !== undefined) out[key] = -(out[key] ?? 0);
+    if (style === 'authored') {
+      // Three-quarter turnaround: head leads toward travel, the body follows ~100 ms later.
+      const travelling3q =
+        this.state !== 'idle' &&
+        this.state !== 'arriving' &&
+        this.state !== 'fadeOut' &&
+        this.state !== 'fadeIn';
+      const headTarget = travelling3q ? TURN_HOLD * forward : 0;
+      if (headTarget !== this.turnHeadTarget) {
+        this.turnHeadTarget = headTarget;
+        this.turnHeadChangedAt = now;
+      }
+      if (now - this.turnHeadChangedAt >= TURN_BODY_LAG) this.turnBodyTarget = this.turnHeadTarget;
+      out.turnHead = this.turnHead.update(dt, this.turnHeadTarget);
+      out.turnBody = this.turnBody.update(dt, this.turnBodyTarget);
+    }
     return {
       x: this.x,
       y: this.y,
       lift: lift,
-      facing: facing * facingScale,
+      // Beat facing (e.g. the skip twirl) only applies to mirroring characters.
+      facing: cheat ? 1 : facing * facingScale,
       opacity,
       scaleX,
       scaleY,
-      pose,
+      pose: out,
       // The arrival beat is cosmetic and interruptible: report arrival as soon as feet settle.
       moving: this.state !== 'idle' && this.state !== 'arriving',
       gait: this.gait,
       state: this.state,
       beat,
+      clip,
       mood: this.moodFrame(now, def, beatMood),
     };
   }
 
   private speedScale = 1;
+  private turnHead = new CriticalSpring(0.06, 0);
+  private turnBody = new CriticalSpring(0.1, 0);
+  private turnHeadTarget = 0;
+  private turnBodyTarget = 0;
+  private turnHeadChangedAt = 0;
+  private authoredPhase = 0;
   private beats: 'all' | 'start' | 'none' = 'all';
   private mood: MoodId | null = null;
   private moveStart = 0;
