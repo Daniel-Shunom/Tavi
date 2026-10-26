@@ -11,6 +11,13 @@ import {
   type ItemCatalog,
 } from './wardrobe.js';
 // Body states (sit, nap, peek...) and scene geometry: shared/states.ts.
+import {
+  defaultVariant,
+  hairStyles,
+  nearestSkinTone,
+  variantSchema,
+  withChanges,
+} from './variants.js';
 import { bodyCueSchema, defaultScene, requestableStates, sceneSchema } from './states.js';
 
 export const CONFIG_VERSION = 2;
@@ -41,6 +48,8 @@ export const configObjectSchema = z
     wardrobe: wardrobeSchema,
     /** Webcam, game/VOD and chat rectangles and the floor line. Added after v2; defaulted on load. */
     scene: sceneSchema,
+    /** Character variant (skin, build, face, hair, features). Added after v2; defaulted on load. */
+    variant: variantSchema,
   })
   .strict();
 export type Config = z.infer<typeof configObjectSchema>;
@@ -62,6 +71,7 @@ export const defaults: Config = {
   movementStyle: 'auto',
   wardrobe: defaultWardrobe,
   scene: defaultScene,
+  variant: defaultVariant,
 };
 const legacyAppearance = {
   riveHair: 'hair',
@@ -93,8 +103,22 @@ export function migrateConfig(raw: unknown): unknown {
       next[key] = value;
   }
   next['appearance'] = appearance;
+  next['variant'] = legacyVariant(input);
   next['version'] = CONFIG_VERSION;
   return next;
+}
+/** Version 1 files carried a skin colour and a hairstyle name: keep them as variant choices. */
+function legacyVariant(input: Record<string, unknown>) {
+  const skin = input['skin'],
+    hairstyle = input['hairstyle'];
+  const tone =
+    typeof skin === 'string' && /^#[0-9a-fA-F]{6}$/.test(skin) ? nearestSkinTone(skin) : undefined;
+  const style = hairStyles.find((id) => id === hairstyle);
+  if (!tone && !style) return defaultVariant;
+  return withChanges(defaultVariant, {
+    ...(tone ? { skin: { tone } } : {}),
+    ...(style ? { hair: { style } } : {}),
+  });
 }
 export const configSchema = z.preprocess(migrateConfig, configObjectSchema);
 /** Keeps the character id and appearance consistent with what the manifests offer. */
