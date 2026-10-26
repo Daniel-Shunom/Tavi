@@ -1,6 +1,17 @@
 // Renderer adapter contract. A CharacterRenderer turns abstract frames (manifest track handles,
 // input handles, node handles) into pixels. Rive is the first implementation; others plug in here.
 import type { CharacterManifest } from './characters/manifest';
+import type { Affine, TransformSource } from './attachments/layer';
+import type { CharacterAttachments } from './characters/attachmentRigs';
+
+/** Colour changes baked into the character file at load (recolour on commit). */
+export interface Look {
+  hairColor?: string | undefined;
+  outfitColor?: string | undefined;
+  hideGlasses?: boolean | undefined;
+}
+/** Draws extra layers (attachments) each frame with the artboard -> device-pixel matrix. */
+export type Decorator = (view: Affine, world: TransformSource, dt: number) => void;
 
 export interface TrackApplication {
   /** Manifest track handle, never a raw clip name. */
@@ -35,6 +46,8 @@ export interface Placement {
 export interface CharacterRenderer {
   readonly manifest: CharacterManifest;
   setAppearance(selection: Record<string, string>): void;
+  /** Optional per-frame drawing of attachment layers; called after the artboard advances. */
+  setDecorator?(decorator: Decorator | null): void;
   applyFrame(frame: RenderFrame): void;
   resize(width: number, height: number): void;
   draw(dt: number, placement: Placement): void;
@@ -48,8 +61,9 @@ export function emptyFrame(): RenderFrame {
 export async function createCharacterRenderer(
   canvas: HTMLCanvasElement,
   manifest: CharacterManifest,
+  options: { look?: Look; attachments?: CharacterAttachments | undefined } = {},
 ): Promise<CharacterRenderer> {
   // Add new renderer kinds here as manifest.renderer grows beyond 'rive'.
   const module = await import('./rive/riveRenderer');
-  return module.createRiveRenderer(canvas, manifest);
+  return module.createRiveRenderer(canvas, manifest, options);
 }

@@ -23,6 +23,7 @@ import {
   Sparkles,
   Square,
   Brain,
+  Shirt,
   Sun,
   VolumeX,
   Wifi,
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 import { TwitchPanel } from './TwitchPanel';
 import { AiPanel } from './AiPanel';
+import { WardrobePanel } from './WardrobePanel';
 import { Avatar } from './renderer/Avatar';
 import { catalog, characters } from './renderer/characters/registry';
 import type { useConnection } from './useConnection';
@@ -73,6 +75,7 @@ const personalities = {
 };
 const sections = [
   { id: 'appearance', name: 'Make it yours', icon: <Palette /> },
+  { id: 'wardrobe', name: 'Wardrobe', icon: <Shirt /> },
   { id: 'personality', name: 'Personality', icon: <Heart /> },
   { id: 'expressions', name: 'Expressions', icon: <Smile /> },
   { id: 'brain', name: 'Brain', icon: <Brain /> },
@@ -619,6 +622,25 @@ export function Studio({
                     </>
                   )}
                 </fieldset>
+              </section>
+              <section className="tool-section" id="wardrobe">
+                <div className="section-heading">
+                  <div>
+                    <span className="section-kicker">
+                      <Shirt size={14} /> Wardrobe
+                    </span>
+                    <h2>Dress them up.</h2>
+                    <p>One item per slot. Colours apply when you let go of the picker.</p>
+                  </div>
+                </div>
+                <WardrobePanel
+                  characterId={c.character}
+                  wardrobe={c.wardrobe}
+                  disabled={!connected}
+                  onChange={(wardrobe) => {
+                    patch({ wardrobe });
+                  }}
+                />
               </section>
               <section className="tool-section" id="personality">
                 <div className="section-heading">
