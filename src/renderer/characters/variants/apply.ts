@@ -8,10 +8,20 @@ import { recolorAnimation } from '../../attachments/riv/rivPatch';
 import { adjust } from './colorScience';
 import { ARGB, browColor, eyePalettes, hairPalette, skinPalette } from './palettes';
 import { RigIndex, resolveRig, type ColorRole, type VariantRig } from './rig';
-import { PROP, TYPE, componentColor, editComponents, type FloatEdit } from './rivEdit';
+import {
+  PROP,
+  TYPE,
+  componentColor,
+  editComponents,
+  type FloatEdit,
+  type UintEdit,
+} from './rivEdit';
 import type { RivObject } from '../../attachments/riv/rivBinary';
 
 const PINK = '#d80b4c';
+/** Rive BlendMode values (rive-runtime include/rive/shapes/paint/blend_mode.hpp). */
+const BLEND_SRC_OVER = 3;
+const BLEND_MULTIPLY = 24;
 /** Hair colour a variant renders with: the custom colour, else black-brown for new styles. */
 export function effectiveHairColor(variant: Variant): string | undefined {
   return variant.hair.color ?? (hidesBuiltInHair(variant) ? DEFAULT_HAIR : undefined);
@@ -91,7 +101,11 @@ export function variantEdits(bytes: Uint8Array, rig: VariantRig, variant: Varian
     const skin = skinPalette(variant.skin.tone, variant.skin.undertone);
     set('skin', skin.base);
     set('skinShade', skin.shade);
-    set('skinHighlight', skin.highlight);
+    // The face gradient spans the whole face: a gentle lift, like the original's, not the full
+    // highlight (a strong gradient reads as a dark lower face on deep tones).
+    set('skinHighlight', adjust(skin.base, { dl: 0.04, dh: 3 }));
+    // Lids sit at eye height, where the face gradient is about halfway to its light end.
+    set('skinLid', adjust(skin.base, { dl: 0.02, dh: 1.5 }));
     set('nose', skin.nose);
     set('mouth', skin.mouth);
     set('blush', skin.blush, variant.features.blush ? 0x4c : 0);
@@ -177,13 +191,25 @@ export function variantEdits(bytes: Uint8Array, rig: VariantRig, variant: Varian
         for (const ears of index.select(selector))
           floats.push({ index: ears, property: PROP.scaleX, value: (v) => v * width });
   }
-  return { colors, floats, resolved, hideHair };
+  // The mascot's blush multiplies (made for its pink skin), which darkens deep tones into
+  // shadows under the eyes; human tones use normal blending with a rosy colour instead.
+  const uints: UintEdit[] = [];
+  if (variant.skin.tone !== 'original')
+    index.components.forEach((component, fill) => {
+      if (
+        component.typeKey === TYPE.fill &&
+        resolved.colors.blush.some((color) => index.parent(color) === fill) &&
+        component.props.get(PROP.paintBlendMode) === BLEND_MULTIPLY
+      )
+        uints.push({ index: fill, property: PROP.paintBlendMode, value: BLEND_SRC_OVER });
+    });
+  return { colors, floats, uints, resolved, hideHair };
 }
 
 /** Applies a variant to the character file in memory. The original variant returns the input. */
 export function applyVariant(bytes: Uint8Array, rig: VariantRig, variant: Variant): Uint8Array {
-  const { colors, floats, resolved, hideHair } = variantEdits(bytes, rig, variant);
-  let out = editComponents(bytes, rig.artboard, { colors, floats });
+  const { colors, floats, uints, resolved, hideHair } = variantEdits(bytes, rig, variant);
+  let out = editComponents(bytes, rig.artboard, { colors, floats, uints });
   // Hair colour animations key the hair and brow colours every frame: rewrite their keys too.
   const hairSet = new Set(resolved.hairColors);
   const brows = new Set(resolved.browColors);

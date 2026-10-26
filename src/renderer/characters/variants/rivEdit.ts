@@ -31,6 +31,7 @@ export const PROP = {
   solidColor: 37,
   stopColor: 38,
   thickness: 47,
+  paintBlendMode: 747,
   inRotation: 84,
   inDistance: 85,
   outRotation: 86,
@@ -62,10 +63,18 @@ export interface FloatEdit {
   value: number | ((stored: number) => number);
 }
 
+/** A small unsigned property (enum) rewritten in place; both values must fit one byte. */
+export interface UintEdit {
+  index: number;
+  property: number;
+  value: number;
+}
+
 export interface ComponentEdits {
   /** Fill / gradient stop component index -> ARGB colour. */
   colors?: ReadonlyMap<number, number>;
   floats?: readonly FloatEdit[];
+  uints?: readonly UintEdit[];
 }
 
 function colorKeyOf(component: RivObject) {
@@ -82,7 +91,8 @@ export function editComponents(
 ): Uint8Array {
   const colors = edits.colors ?? new Map<number, number>();
   const floats = edits.floats ?? [];
-  if (!colors.size && !floats.length) return bytes;
+  const uints = edits.uints ?? [];
+  if (!colors.size && !floats.length && !uints.length) return bytes;
   const { components } = artboardSection(bytes, artboard);
   const out = bytes.slice();
   const view = new DataView(out.buffer, out.byteOffset, out.byteLength);
@@ -129,6 +139,16 @@ export function editComponents(
         at: component.terminator,
         bytes: new RivWriter().doubleProp(property, value).bytes(),
       });
+  }
+  for (const edit of uints) {
+    const component = components[edit.index];
+    const offset = component?.at.get(edit.property);
+    const stored = component?.props.get(edit.property);
+    if (offset === undefined || typeof stored !== 'number' || stored > 127 || edit.value > 127)
+      throw new Error(
+        `Variant edit ${String(edit.index)}.${String(edit.property)} is not a 1-byte uint`,
+      );
+    out[offset] = edit.value;
   }
   return inserts.length ? splice(out, inserts) : out;
 }

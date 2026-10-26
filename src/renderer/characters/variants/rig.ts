@@ -17,7 +17,16 @@ export interface Selector {
 }
 
 export type ColorRole =
-  'skin' | 'skinShade' | 'skinHighlight' | 'blush' | 'nose' | 'mouth' | 'irisDark' | 'irisLight';
+  /** skinLid: eyelid patches that blend into the face gradient at eye height. */
+  | 'skin'
+  | 'skinShade'
+  | 'skinHighlight'
+  | 'skinLid'
+  | 'blush'
+  | 'nose'
+  | 'mouth'
+  | 'irisDark'
+  | 'irisLight';
 
 export type OverlayAnchor =
   'head' | 'face' | 'hairBack' | 'hairLeft' | 'hairRight' | 'upper' | 'forearmL' | 'forearmR';
