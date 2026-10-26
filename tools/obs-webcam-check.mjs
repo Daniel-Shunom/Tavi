@@ -10,9 +10,8 @@ try {
   await page.goto('http://127.0.0.1:5173', { waitUntil: 'networkidle' });
   await page.addStyleTag({ content: '.tools-scroll { scroll-behavior: auto !important; }' });
   await page.getByRole('tab', { name: 'Placement', exact: true }).click();
-  const panel = page.locator('.obs-webcam');
-  await panel.locator('summary').click();
-  await panel.getByRole('button', { name: 'Connect OBS' }).waitFor();
+  const panel = page.locator('.obs-awareness');
+  await panel.getByRole('button', { name: 'Find webcam in OBS' }).waitFor();
   await panel
     .getByText('Connect OBS to locate the webcam automatically.', { exact: true })
     .waitFor();

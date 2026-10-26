@@ -25,13 +25,17 @@ export const sleepOwned: ReadonlySet<Channel> = new Set<Channel>([
   'squash',
 ]);
 
-export function applyStateKey(pose: Pose, key: KeyPose) {
+export function applyStateKey(pose: Pose, key: KeyPose, facing = 1) {
   const w = Math.min(1, Math.max(0, key.sleep));
   if (w > 0) {
     for (const channel of sleepOwned) pose[channel] *= 1 - w;
     pose.blinkL = pose.blinkL * (1 - w) + w;
     pose.blinkR = pose.blinkR * (1 - w) + w;
   }
-  for (const [channel, value] of Object.entries(key.pose) as [Channel, number][])
-    pose[channel] += value;
+  for (const [channel, value] of Object.entries(key.pose) as [Channel, number][]) {
+    // State poses are facing-relative; the shared gaze/pupil channels target screen directions.
+    // Convert only those X channels here, before the rig maps screen gaze into its local axes.
+    const direction = (channel === 'gazeX' || channel === 'pupilX') && facing < 0 ? -1 : 1;
+    pose[channel] += value * direction;
+  }
 }

@@ -190,8 +190,19 @@ export class Locomotion {
   }
 
   /** Stop where it is (settles the current step). */
-  stop(at: number) {
+  stop(at: number, position?: { x: number; y: number }) {
     this.command = null;
+    if (position) {
+      this.x = position.x;
+      this.y = position.y;
+      this.target = { ...position };
+      this.velocity.reset(0);
+      this.lastVelocity = 0;
+      this.settleFrom = [...this.lastFeet];
+      this.needsReplant = true;
+      this.enter(this.gait ? 'settling' : 'idle', at);
+      return;
+    }
     if (this.state === 'moving' || this.state === 'anticipate' || this.state === 'turning') {
       this.target = { x: this.x, y: this.y };
       this.enter('settling', at);

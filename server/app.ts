@@ -45,10 +45,14 @@ export async function createApp(
   const initial = config ?? defaults;
   const companion = new Companion({
     config:
-      initial.scene.webcamSource === 'obs'
+      initial.scene.webcamSource !== 'manual'
         ? {
             ...initial,
-            scene: { ...initial.scene, webcam: { ...initial.scene.webcam, enabled: false } },
+            scene: {
+              ...initial.scene,
+              webcam: { ...initial.scene.webcam, enabled: false },
+              webcamSource: 'obs',
+            },
           }
         : initial,
     catalog: options.catalog ?? characterCatalog,

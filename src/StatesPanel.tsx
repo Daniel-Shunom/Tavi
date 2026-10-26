@@ -41,11 +41,13 @@ export function BodyStateDock({
   send,
   connected,
   position,
+  getPosition,
 }: {
   state: State;
   send: (command: Command) => void;
   connected: boolean;
   position: { x: number; y: number };
+  getPosition?: () => { x: number; y: number };
 }) {
   const current = state.performance.body?.state ?? 'stand';
   const scene = { scene: state.config.scene, home: { x: state.config.x, y: state.config.y } };
@@ -68,7 +70,7 @@ export function BodyStateDock({
               !connected ||
               state.retracted ||
               (!possible && entry.state !== 'perch') ||
-              pressed ||
+              (pressed && entry.state !== 'stand') ||
               alreadyThere
             }
             title={
@@ -79,7 +81,11 @@ export function BodyStateDock({
                   : `${definition.label}: no place for this in the scene layout.`
             }
             onClick={() => {
-              send({ type: 'state', state: entry.state });
+              send({
+                type: 'state',
+                state: entry.state,
+                ...(entry.state === 'stand' ? { position: getPosition?.() ?? position } : {}),
+              });
             }}
           >
             {entry.icon}
@@ -121,6 +127,7 @@ export function SceneEditor({
 }) {
   const [draft, setDraft] = useState<Scene>(config.scene);
   const [followingObs, setFollowingObs] = useState(false);
+  const webcamLocked = followingObs || config.scene.webcamSource !== 'manual';
   const drag = useRef<Drag | null>(null);
   const suppressFrameClick = useRef(false);
   const box = useRef<HTMLDivElement>(null);
@@ -157,7 +164,7 @@ export function SceneEditor({
     else setDraft(next);
   };
   function down(event: PointerEvent<HTMLElement>, id: SceneRectId, mode: Drag['mode']) {
-    if (!connected || (id === 'webcam' && followingObs)) return;
+    if (!connected || (id === 'webcam' && webcamLocked)) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { id, mode, x: event.clientX, y: event.clientY, start: draft[id], moved: false };
@@ -206,7 +213,7 @@ export function SceneEditor({
     send({ type: 'state', state: target });
   }
   function key(event: KeyboardEvent<HTMLElement>, id: SceneRectId) {
-    if (id === 'webcam' && followingObs) return;
+    if (id === 'webcam' && webcamLocked) return;
     const step = 0.01;
     const deltas: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],
@@ -234,6 +241,9 @@ export function SceneEditor({
         config={config}
         serviceConnected={connected}
         onFollowingChange={setFollowingObs}
+        onSourceChange={(source) => {
+          commit({ ...draft, webcamSource: source, webcam: { ...draft.webcam, enabled: false } });
+        }}
       />
       <div
         className="scene-canvas"
@@ -307,7 +317,7 @@ export function SceneEditor({
                   <input
                     type="checkbox"
                     checked={rect.enabled}
-                    disabled={!connected || (id === 'webcam' && followingObs)}
+                    disabled={!connected || (id === 'webcam' && webcamLocked)}
                     onChange={(event) => {
                       update(id, { ...rect, enabled: event.target.checked }, true);
                     }}
@@ -324,7 +334,7 @@ export function SceneEditor({
                     max={100}
                     step={1}
                     value={Math.round(rect[field] * 100)}
-                    disabled={!connected || !rect.enabled || (id === 'webcam' && followingObs)}
+                    disabled={!connected || !rect.enabled || (id === 'webcam' && webcamLocked)}
                     onChange={(event) => {
                       const value = Number(event.target.value);
                       if (Number.isFinite(value))

@@ -9,6 +9,7 @@ import {
   sitLedgeUpright,
 } from '../../motion/pose/library/sit';
 import { holdPose } from '../../motion/pose/runtime';
+import { peekAttentive, peekStandingVariants } from '../../motion/pose/library/peek';
 import type { StateRig } from '../../motion/states/types';
 
 const u = (value: number) => value / 600;
@@ -84,20 +85,8 @@ export const mascotStates: StateRig = {
       mouthY: 1,
       smile: -0.4,
     },
-    // Lean in toward a panel on the facing side, eyes up on the messages.
-    peek: {
-      bob: u(40),
-      shift: u(30),
-      lean: -0.38,
-      headTilt: -0.3,
-      footLX: -u(15),
-      footRX: u(40),
-      armR: -0.15,
-      gazeX: 1,
-      gazeY: -0.4,
-      browL: -0.6,
-      browR: -0.6,
-    },
+    // Chat reading stays standing; a seeded hold variant supplies the upper-body attitude.
+    peek: holdPose(peekAttentive),
     perch: { bob: u(90), footLX: -u(45), footRX: u(45), armL: -0.2, armR: -0.2 },
     // Leaning back against an edge behind (opposite the facing side). The torso and head tip
     // slightly toward the edge so the hair, the widest point, makes the contact (measured).
@@ -122,5 +111,6 @@ export const mascotStates: StateRig = {
   head: { x: 0, y: u(345) },
   holds: {
     sit: { floor: [sitFloorUpright, sitFloorSlouch], ledge: [sitLedgeUpright, sitLedgeSlouch] },
+    peek: { panel: peekStandingVariants },
   },
 };

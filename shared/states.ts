@@ -177,7 +177,7 @@ export const bodyCueSchema = z
     decidedBy: decidedBySchema,
     priority: z.number().int().min(0).max(4),
     state: bodyStateSchema,
-    /** Where; null for stand (home). */
+    /** Where; Stand may hold a local floor spot, while null means the configured home. */
     spot: spotSchema.nullable(),
     /** The state and spot this cue leaves, so every client plays the same transition. */
     from: z.object({ state: bodyStateSchema, spot: spotSchema.nullable() }).strict().nullable(),

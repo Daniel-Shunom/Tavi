@@ -103,6 +103,7 @@ export function Studio({
   const c = state.config;
   const scenePosition = state.performance.body?.spot?.approach ??
     state.performance.movement?.to ?? { x: c.x, y: c.y };
+  const livePosition = useRef<{ x: number; y: number } | null>(null);
   const character = catalog[c.character];
   const script = state.performance.script;
   useEffect(() => {
@@ -263,7 +264,14 @@ export function Studio({
           </span>
           <div className="portrait-space">
             <div className="portrait-halo" aria-hidden="true" />
-            <Avatar state={state} serverNow={serverNow} presentation="portrait" />
+            <Avatar
+              state={state}
+              serverNow={serverNow}
+              presentation="portrait"
+              onPosition={(point) => {
+                livePosition.current = point;
+              }}
+            />
             <button
               className="avatar-touch-target"
               aria-label={`Wave to ${c.name}`}
@@ -342,7 +350,13 @@ export function Studio({
               </select>
             </div>
           </div>
-          <BodyStateDock state={state} send={send} connected={connected} position={scenePosition} />
+          <BodyStateDock
+            state={state}
+            send={send}
+            connected={connected}
+            position={scenePosition}
+            getPosition={() => livePosition.current ?? scenePosition}
+          />
           <div className="gesture-dock" role="group" aria-label="Try an expression">
             {coreCues
               .filter((entry) => supports(character, entry.cue))

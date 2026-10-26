@@ -39,11 +39,14 @@ export function Avatar({
   captions = presentation === 'overlay'
     ? state.config.captions.overlay
     : state.config.captions.studio,
+  onPosition,
 }: {
   state: State;
   serverNow?: () => number;
   presentation?: 'overlay' | 'portrait';
   captions?: boolean;
+  /** Imperative frame callback; lets controls sample the live ground point without rerenders. */
+  onPosition?: (position: Point) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -53,8 +56,8 @@ export function Avatar({
   const front = useRef<HTMLCanvasElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   const stateLayer = useRef<HTMLDivElement>(null);
-  const latest = useRef({ state, serverNow, captions });
-  latest.current = { state, serverNow, captions };
+  const latest = useRef({ state, serverNow, captions, onPosition });
+  latest.current = { state, serverNow, captions, onPosition };
   const [error, setError] = useState('');
   const characterId = state.config.character;
   // Recolours are baked into the character file, so they reload the renderer (on commit).
@@ -266,6 +269,8 @@ export function Avatar({
         const previous = position;
         position =
           output.position ?? fallbackStep(position, goal.to, dt, NOMINAL_SPEED, reducedMotion);
+        const groundPosition = output.groundPosition ?? position;
+        latest.current.onPosition?.(groundPosition);
         // Teleports (anchor jumps, restored views) must not whip attachment springs.
         if (Math.hypot(position.x - previous.x, position.y - previous.y) > 0.08) layer?.reset();
         if (output.facing !== undefined) facing = output.facing;
@@ -346,6 +351,8 @@ export function Avatar({
           element.dataset['retracted'] = String(current.retracted);
           element.dataset['decidedBy'] = current.performance.script?.decidedBy.kind ?? 'none';
           element.dataset['ready'] = 'true';
+          element.dataset['groundX'] = String(groundPosition.x);
+          element.dataset['groundY'] = String(groundPosition.y);
         }
         // Rotation, mirroring and the ground-line mask apply to the whole body (Rive canvas plus
         // attachment canvases) around the character's feet; captions sit outside and never mirror.

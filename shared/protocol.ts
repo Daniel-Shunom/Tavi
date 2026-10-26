@@ -206,7 +206,14 @@ export const commandSchema = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('quiet'), value: z.boolean() }).strict(),
   /** Streamer-chosen body state from the studio (Sit, Nap, Peek at chat, Perch, Lean, Stand). */
-  z.object({ type: z.literal('state'), state: z.enum(requestableStates) }).strict(),
+  z
+    .object({
+      type: z.literal('state'),
+      state: z.enum(requestableStates),
+      /** Live ground position for the manual Stand action; home is a separate destination. */
+      position: pointSchema.optional(),
+    })
+    .strict(),
   /** Typed streamer speech from the studio. Microphone transcription will use the same path. */
   z.object({ type: z.literal('say'), text }).strict(),
   /** Clearly-labelled simulated chat for testing without Twitch. */

@@ -55,6 +55,7 @@ import {
   sleepingStates,
   type BodyCue,
   type BodyStateId,
+  type Spot,
 } from '../shared/states.js';
 
 export interface CompanionOptions {
@@ -397,6 +398,15 @@ export class Companion {
           priority: priorities.manual,
           sourceEventId: this.id('studio'),
           prefer: 'ledge',
+          ...(command.state === 'stand'
+            ? {
+                standAt:
+                  command.position ??
+                  this.current.performance.body?.spot?.approach ??
+                  this.current.performance.movement?.to ??
+                  this.home(),
+              }
+            : {}),
           ...(command.state === 'peek' ? { until: this.now() + 60_000 } : {}),
         });
         return;
@@ -862,6 +872,8 @@ export class Companion {
       reason?: string;
       /** The caller sets the movement itself (placement changes). */
       keepMovement?: boolean;
+      /** Explicit manual Stand holds this ground point instead of returning home. */
+      standAt?: Point;
     },
   ): boolean {
     const now = this.now();
@@ -879,21 +891,31 @@ export class Companion {
       !options.wake
     )
       return false;
-    if (state === 'stand' && from === 'stand') return false;
-    const spot = resolveSpot(state, {
-      scene: this.current.config.scene,
-      home: this.home(),
-      current: current ? { state: current.state, spot: current.spot } : undefined,
-      pick: options.pick ?? hash01(options.sourceEventId),
-      prefer: options.prefer,
-    });
+    if (state === 'stand' && from === 'stand' && !options.standAt && !current?.spot) return false;
+    const standAt = options.standAt ? clampPoint(options.standAt) : null;
+    const spot: Spot | null = standAt
+      ? { surface: 'floor', ...standAt, approach: standAt, side: 1 }
+      : resolveSpot(state, {
+          scene: this.current.config.scene,
+          home: this.home(),
+          current: current ? { state: current.state, spot: current.spot } : undefined,
+          pick: options.pick ?? hash01(options.sourceEventId),
+          prefer: options.prefer,
+        });
     if (state !== 'stand' && !spot) {
       this.perform({
         note: `${bodyStates[state].label}: no place for that in this scene. Check the scene layout.`,
       });
       return false;
     }
-    if (state === from && sameSpot(spot, current?.spot)) return false;
+    if (
+      state === from &&
+      sameSpot(spot, current?.spot) &&
+      (!standAt ||
+        (this.current.performance.movement?.to.x === standAt.x &&
+          this.current.performance.movement.to.y === standAt.y))
+    )
+      return false;
     const currentPosition =
       current?.spot?.approach ?? this.current.performance.movement?.to ?? this.home();
     if (state === 'peek' && atSpotApproach(currentPosition, spot)) return false;

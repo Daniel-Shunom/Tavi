@@ -88,6 +88,7 @@ export function createHookLayer(
   let active = new Set<string>();
   let lastTarget: { x: number; y: number } | null = null;
   let presenceId: string | null = null;
+  let bodyId: string | null = null;
   let handlingPresence = false;
   const feet = Object.keys(manifest.nodes).some((handle) => handle.startsWith('foot-'));
   // Facial poses from the manifest: the face layer drives brows, lids, mouth and gaze for every
@@ -163,6 +164,16 @@ export function createHookLayer(
 
       // Body state: sync the cue; a settled cue on mount/reconnect places us at its spot.
       const motion = layer;
+      const bodyCue = input.body?.cue;
+      if (bodyCue?.id !== bodyId) {
+        bodyId = bodyCue?.id ?? null;
+        if (bodyCue?.state === 'stand' && bodyCue.source === 'manual' && bodyCue.spot) {
+          // A manual Stand is a local stop. Its explicit ground point is shared with OBS and
+          // reconnects; do not turn this request into a walk back to configured home.
+          layer.locomotion.stop(now, bodyCue.spot.approach);
+          lastTarget = { ...input.locomotion.target };
+        }
+      }
       const playerFrame = (): PlayerFrame => ({
         now,
         stage,
@@ -269,13 +280,14 @@ export function createHookLayer(
       const frame = layer.update(now, face);
       facing = frame.placement.facing < 0 ? -1 : 1;
       const state: PlayerResult | null = bodyStates ? bodyStates.evaluate(playerFrame()) : null;
-      if (state) applyStateKey(frame.pose, state.key);
+      if (state) applyStateKey(frame.pose, state.key, facing);
       const bound = rig.bind(frame);
       const p = frame.placement;
       const output: MotionOutput = {
         tracks: bound.tracks,
         nodes: bound.nodes,
         position: { x: p.x, y: p.y },
+        groundPosition: { x: frame.shadow.x, y: frame.shadow.y },
         facing: p.facing < 0 ? -1 : 1,
         facingScaleX: p.facing,
         shadow: frame.shadow,

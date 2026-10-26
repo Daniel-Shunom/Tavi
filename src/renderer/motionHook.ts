@@ -90,6 +90,8 @@ export interface MotionOutput {
   offset?: Partial<Offset>;
   /** If set, the character's normalized position this frame (locomotion owns movement). */
   position?: Point;
+  /** Ground point under locomotion, before body-state ledge lifts and pose offsets. */
+  groundPosition?: Point;
   /** -1 faces left, 1 faces right. The renderer mirrors exactly when this changes. */
   facing?: -1 | 1;
   /** Continuous horizontal orientation. Passes smoothly through zero during authored turns. */

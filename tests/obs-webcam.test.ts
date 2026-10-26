@@ -119,6 +119,21 @@ async function fakeObs(authenticate = false) {
 }
 
 describe('OBS webcam discovery', () => {
+  it.each(['legacy', 'manual'] as const)(
+    'only trusts explicitly declared manual geometry on startup (%s)',
+    async (source) => {
+      const scene = {
+        ...defaults.scene,
+        ...(source === 'manual' ? { webcamSource: 'manual' as const } : {}),
+      };
+      const app = await createApp({ ...defaults, scene });
+      cleanups.unshift(() => app.close());
+      const response = await app.inject({ method: 'GET', url: '/api/state' });
+      expect(response.json<unknown>()).toMatchObject({
+        config: { scene: { webcam: { enabled: source === 'manual' } } },
+      });
+    },
+  );
   it('authenticates, imports cropped camera bounds, and invalidates them when the active scene has no camera', async () => {
     const fake = await fakeObs(true);
     const applied: (SceneRect | null)[] = [];

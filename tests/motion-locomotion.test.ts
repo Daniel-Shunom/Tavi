@@ -263,6 +263,23 @@ describe('locomotion', () => {
     expect(travelledBack).toBe(true);
   });
 
+  it('settles a manual stop at the supplied live ground point without drifting home', () => {
+    const loco = new Locomotion(7);
+    const caps = { feet: true, turnStyle: 'authored' as const, authored: ['walk'] as const };
+    loco.place(0.3, 0.82);
+    loco.moveTo({ x: 0.8, at: 0, gait: 'walk', beats: 'none' });
+    for (let i = 0; i < 120; i++) loco.update(i ? 1 / 60 : 0, i / 60, profile, stage, caps);
+    const position = { ...loco.position };
+    expect(position.x).toBeGreaterThan(0.3);
+    loco.stop(2, position);
+    for (let i = 120; i <= 360; i++) {
+      const frame = loco.update(1 / 60, i / 60, profile, stage, caps);
+      expect(frame.x).toBeCloseTo(position.x, 8);
+      expect(frame.y).toBeCloseTo(position.y, 8);
+    }
+    expect(loco.busy).toBe(false);
+  });
+
   it('chooses gait from distance and personality', () => {
     const shy = motionProfile({ ...settings, personality: 'shy' });
     const playful = motionProfile({ ...settings, personality: 'playful' });

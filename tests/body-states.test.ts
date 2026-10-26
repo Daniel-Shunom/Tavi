@@ -307,6 +307,26 @@ describe('companion body states', () => {
     await c.instance.handle({ type: 'retract', value: true });
     expect(c.instance.state.performance.body).toBeNull();
   });
+  it('stands beside chat without returning to or changing configured home', async () => {
+    const c = companion();
+    await c.instance.handle({ type: 'state', state: 'peek' });
+    const position = c.instance.state.performance.body?.spot?.approach;
+    expect(position).toBeDefined();
+    await c.instance.handle({ type: 'state', state: 'stand' });
+    expect(c.instance.state.performance.body?.state).toBe('stand');
+    expect(c.instance.state.performance.body?.spot?.approach).toEqual(position);
+    expect(c.instance.state.performance.movement?.to).toEqual(position);
+    expect({ x: c.instance.state.config.x, y: c.instance.state.config.y }).toEqual(home);
+  });
+  it('uses the live click position to stop a manual walk in place', async () => {
+    const c = companion();
+    await c.instance.handle({ type: 'move', kind: 'move-to', to: { x: 0.8, y: 0.85 } });
+    const position = { x: 0.48, y: 0.82 };
+    await c.instance.handle({ type: 'state', state: 'stand', position });
+    expect(c.instance.state.performance.body?.spot?.approach).toEqual(position);
+    expect(c.instance.state.performance.movement?.to).toEqual(position);
+    expect({ x: c.instance.state.config.x, y: c.instance.state.config.y }).toEqual(home);
+  });
   it('a manual state is not overridden by automatic triggers for two minutes', async () => {
     const c = companion();
     await c.instance.handle({ type: 'state', state: 'perch' });

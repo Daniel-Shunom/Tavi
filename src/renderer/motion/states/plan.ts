@@ -231,7 +231,7 @@ function heldKeyBase(state: BodyStateId, spot: Spot | null, context: PlanContext
       return sleepy(key(rig, 'lie', { rot: lie.rot, dy: lie.dy }));
     }
     case 'peek':
-      return key(rig, 'peek', { rot: 7 });
+      return key(rig, 'peek');
     case 'perch':
       return key(rig, 'perch', { lift: gap });
     case 'lean':
