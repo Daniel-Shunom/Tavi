@@ -85,7 +85,7 @@ export async function createSheetRig(
           { name: 'tavi/browTiltL', time: clamp01((p.browTiltL + 1) / 2), mix: 1 },
           { name: 'tavi/browTiltR', time: clamp01((p.browTiltR + 1) / 2), mix: 1 },
           { name: 'tavi/mouthOpen', time: clamp01(p.mouthOpen), mix: 1 },
-          { name: 'tavi/viseme', time: step(p.viseme), mix: 1 },
+          { name: 'tavi/mouthWide', time: clamp01((p.mouthWide + 1) / 2), mix: 1 },
           { name: 'tavi/handL', time: step(p.handL), mix: 1 },
           { name: 'tavi/handR', time: step(p.handR), mix: 1 },
           { name: 'tavi/armsFront', time: p.armsFront >= 0.5 ? 0.99 : 0.01, mix: 1 },

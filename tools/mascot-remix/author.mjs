@@ -6,7 +6,7 @@
 //   - control tracks `tavi/<channel>` keying each joystick axis from -1.25 to 1.25 (no in-memory
 //     patch needed for this file)
 //   - brow tilt (inner end up/down) via brow vertex keys: tavi/browTiltL, tavi/browTiltR
-//   - an open mouth with viseme shapes: tavi/mouthOpen, tavi/viseme
+//   - an opening mouth that morphs from the line: tavi/mouthOpen, tavi/mouthWide
 //   - hand poses on each forearm (rest, open, fist, point, thumb): tavi/handL, tavi/handR
 //   - arms drawn in front of the hair on demand: tavi/armsFront
 // The original art and animations are not changed. Source: "Mascot / Avatar Customization" by
@@ -50,7 +50,22 @@ export const lylaSpec = {
     front: '0:447',
   },
   /** The mouth line; the open mouth sits behind it at `y`. */
-  mouth: { line: '0:552', y: 47 },
+  /** The mouth line, its rest geometry, and the timelines that move it. */
+  mouth: {
+    line: '0:552',
+    x: -0.020858049,
+    y: 41.940498,
+    right: [18.316, -2.3575001],
+    middle: [-0.56199998, 2.3575001],
+    left: [-18.316, -2.3575001],
+    vertices: { right: '0:554', middle: '0:555', left: '0:2703' },
+    stroke: 4.3523202,
+    lineColor: 'FFEB0066',
+    /** Lower-lip drop when fully open (units). */
+    depth: 20,
+    smileTimeline: 'mouth smile frown',
+    positionTimelines: ['mouth X', 'mouth Y'],
+  },
   /** Brow path vertices: inner/outer end and their rest y. */
   brows: {
     L: { inner: '0:478', innerY: -4.513, outer: '0:476', outerY: 8.527 },
@@ -206,26 +221,69 @@ export function authorTavi(source, spec = lylaSpec) {
   insertAfterOpen(spec.arms.L.fore, block('hand-l', handL.content));
   insertAfterOpen(spec.arms.R.fore, block('hand-r', handR.content));
 
-  // --- 3. Open mouth with visemes (behind the mouth line) ---------------------------------------
-  const mouthIds = { group: id(), solo: id(), a: id(), o: id(), e: id(), u: id() };
-  const viseme = (key, name, parts) => `<Node name="${name}" id="${mouthIds[key]}">${parts}</Node>`;
+  // --- 3. Opening mouth (one mouth at a time) ------------------------------------------------
+  // The open mouth is a filled, lip-outlined copy of the mouth line whose lower lip separates as
+  // `tavi/mouthOpen` rises: at 0 it is flat and exactly on the line. The line's stroke hands over
+  // to it within the first 8% of opening (same geometry, so it reads as one mouth throughout).
+  // Its corners and upper lip copy the line's smile/frown keys, and its wrapper copies the line's
+  // position keys, so an open smile and an open frown both follow the curve. `tavi/mouthWide`
+  // scales the wrapper: -1 round (O/U) .. 0 neutral .. 1 wide (E).
+  const m = spec.mouth;
+  const mouthIds = {
+    wrap: id(),
+    shape: id(),
+    path: id(),
+    right: id(),
+    top: id(),
+    left: id(),
+    bottom: id(),
+  };
+  const lipStroke = `<Stroke thickness="${String(m.stroke)}" cap="round" join="round" name="lips" id="${id()}"><SolidColor colorValue="${m.lineColor}" name="Color" id="${id()}"/></Stroke>`;
   insertAfterElement(
-    spec.mouth.line,
+    m.line,
     block(
       'mouth-open',
-      `<Node x="0" y="${String(spec.mouth.y)}" scaleX="0.6" scaleY="0" name="tavi/mouthOpen" id="${mouthIds.group}">` +
-        `<Solo activeComponentId="${mouthIds.a}" name="tavi/visemes" id="${mouthIds.solo}">` +
-        viseme(
-          'a',
-          'A',
-          ellipse('tongue', 0, 5, 14, 7, TONGUE) + ellipse('open', 0, 0, 30, 20, MOUTH),
-        ) +
-        viseme('o', 'O', ellipse('open', 0, 1, 16, 19, MOUTH)) +
-        viseme('e', 'E', capsule('open', 0, -1, 34, 10, MOUTH)) +
-        viseme('u', 'U', ellipse('open', 0, 1, 10, 11, MOUTH)) +
-        `</Solo></Node>`,
+      `<Node x="${String(m.x)}" y="${String(m.y)}" name="tavi/mouth" id="${mouthIds.wrap}">` +
+        `<Shape opacity="0" name="tavi/mouthInterior" id="${mouthIds.shape}">` +
+        `<PointsPath isClosed="true" name="Path" id="${mouthIds.path}">` +
+        `<CubicDetachedVertex x="${String(m.right[0])}" y="${String(m.right[1])}" name="R" id="${mouthIds.right}"/>` +
+        `<CubicDetachedVertex inDistance="11.687" outRotation="3.1415927" outDistance="11.686" x="${String(m.middle[0])}" y="${String(m.middle[1])}" name="upper lip" id="${mouthIds.top}"/>` +
+        `<StraightVertex x="${String(m.left[0])}" y="${String(m.left[1])}" name="L" id="${mouthIds.left}"/>` +
+        `<CubicDetachedVertex inRotation="3.1415927" inDistance="11.687" outDistance="11.686" x="${String(m.middle[0])}" y="${String(m.middle[1])}" name="lower lip" id="${mouthIds.bottom}"/>` +
+        `</PointsPath>` +
+        lipStroke +
+        fill(MOUTH) +
+        `</Shape></Node>`,
     ),
   );
+  /** Copies a timeline's keys on `from` onto `to` (fresh ids), inside that timeline. */
+  const mirrorKeys = (timeline, pairs) => {
+    const start = rml.search(new RegExp(`<LinearAnimation [^>]*?name="${timeline}"`));
+    if (start < 0) throw new Error('timeline not found: ' + timeline);
+    const end = rml.indexOf('</LinearAnimation>', start);
+    const body = rml.slice(start, end);
+    let copies = '';
+    for (const [from, to] of pairs) {
+      const match = new RegExp(
+        `<KeyedObject objectId="${from}"[^>]*>[\\s\\S]*?</KeyedObject>`,
+      ).exec(body);
+      if (!match) continue;
+      copies += match[0]
+        .replace(`objectId="${from}"`, `objectId="${to}"`)
+        .replace(/ id="[^"]*"/g, () => ` id="${id()}"`);
+    }
+    if (copies)
+      rml =
+        rml.slice(0, end) +
+        block(`mirror-${timeline.toLowerCase().replace(/[^a-z]+/g, '-')}`, copies) +
+        rml.slice(end);
+  };
+  mirrorKeys(m.smileTimeline, [
+    [m.vertices.right, mouthIds.right],
+    [m.vertices.middle, mouthIds.top],
+    [m.vertices.left, mouthIds.left],
+  ]);
+  for (const timeline of m.positionTimelines) mirrorKeys(timeline, [[m.line, mouthIds.wrap]]);
 
   // --- 4. Arms in front of the hair (draw rules on each shoulder group) -------------------------
   const armRules = {};
@@ -291,32 +349,57 @@ export function authorTavi(source, spec = lylaSpec) {
       anim('tavi/browTilt' + side, tilt(brow.inner, brow.innerY, brow.outer, brow.outerY)),
     );
   }
-  // Open mouth: 0 closed .. 1 fully open (the viseme shape scales up from nothing).
+  // Open mouth: 0 closed (only the line) .. 1 fully open. Hand-over in the first 8%: the line
+  // fades out while the open mouth, still flat on the same curve, fades in.
   tracks.push(
     anim(
       'tavi/mouthOpen',
-      keyed(mouthIds.group, {
-        scaleY: [
-          [0, 0],
-          [60, 1],
+      keyed(m.line, {
+        opacity: [
+          [0, 1],
+          [5, 0],
+          [60, 0],
         ],
-        scaleX: [
-          [0, 0.6],
-          [60, 1],
-        ],
-      }),
+      }) +
+        keyed(mouthIds.shape, {
+          opacity: [
+            [0, 0],
+            [5, 1],
+            [60, 1],
+          ],
+        }) +
+        keyed(mouthIds.bottom, {
+          y: [
+            [0, m.middle[1]],
+            [60, m.middle[1] + m.depth],
+          ],
+          inDistance: [
+            [0, 11.687],
+            [60, 14],
+          ],
+          outDistance: [
+            [0, 11.686],
+            [60, 14],
+          ],
+        }),
     ),
   );
-  // Discrete selections: pose k is held from frame 10k (scrub to (10k + 5) / 60 s).
+  // Mouth width: frame 0 round (O/U), 30 neutral, 60 wide (E).
   tracks.push(
     anim(
-      'tavi/viseme',
-      keyedIds(mouthIds.solo, 'activeComponentId', [
-        [0, mouthIds.a],
-        [10, mouthIds.o],
-        [20, mouthIds.e],
-        [30, mouthIds.u],
-      ]),
+      'tavi/mouthWide',
+      keyed(mouthIds.wrap, {
+        scaleX: [
+          [0, 0.55],
+          [30, 1],
+          [60, 1.25],
+        ],
+        scaleY: [
+          [0, 1.2],
+          [30, 1],
+          [60, 0.85],
+        ],
+      }),
     ),
   );
   for (const [side, hand] of [

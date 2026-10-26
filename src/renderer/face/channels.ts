@@ -46,7 +46,7 @@ export const faceChannels = [
   'handR',
   'armsFront',
   'mouthOpen',
-  'viseme',
+  'mouthWide',
   'browTiltL',
   'browTiltR',
   'pupilX',
@@ -88,7 +88,7 @@ export const channelGroup: Record<FaceChannel, ChannelGroup> = {
   handR: 'body',
   armsFront: 'body',
   mouthOpen: 'mouth',
-  viseme: 'mouth',
+  mouthWide: 'mouth',
   browTiltL: 'brows',
   browTiltR: 'brows',
   pupilX: 'eyes',
@@ -96,12 +96,7 @@ export const channelGroup: Record<FaceChannel, ChannelGroup> = {
 };
 
 /** Pose indices and switches: taken from the dominant cue, never blended or sprung. */
-export const discreteChannels: ReadonlySet<FaceChannel> = new Set([
-  'handL',
-  'handR',
-  'armsFront',
-  'viseme',
-]);
+export const discreteChannels: ReadonlySet<FaceChannel> = new Set(['handL', 'handR', 'armsFront']);
 
 /** Channels mirrored when a pose turns toward the attention target on the other side. */
 export const sidedChannels: ReadonlySet<FaceChannel> = new Set([

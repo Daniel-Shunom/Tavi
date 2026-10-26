@@ -1,7 +1,8 @@
 // Lyla v2: the mascot remixed with the Rive CLI from alisketch's "Mascot / Avatar Customization"
 // (CC BY 4.0; source in art/mascot-remix/, additions authored by tools/mascot-remix/author.mjs).
 // Same art, clips and acting as the mascot, plus authored controls the original lacks: elbows
-// (forearm bones), hand poses, arms in front of the hair, brow tilt, an open mouth with visemes.
+// (forearm bones), hand poses, arms in front of the hair, brow tilt, a mouth that opens from its line
+// (mouthOpen) and changes width (mouthWide).
 // The file keeps its component names and authors the `tavi/*` control tracks itself, so it needs
 // no in-memory index patch.
 import type { ManifestInput } from '../manifest';
@@ -13,7 +14,7 @@ export const mascotV2ControlTracks = {
   'ctl.brow-tilt-l': 'tavi/browTiltL',
   'ctl.brow-tilt-r': 'tavi/browTiltR',
   'ctl.mouth-open': 'tavi/mouthOpen',
-  'ctl.viseme': 'tavi/viseme',
+  'ctl.mouth-wide': 'tavi/mouthWide',
   'ctl.hand-l': 'tavi/handL',
   'ctl.hand-r': 'tavi/handR',
   'ctl.arms-front': 'tavi/armsFront',

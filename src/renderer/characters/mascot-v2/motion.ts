@@ -21,7 +21,7 @@ export const mascotV2Motion: CharacterMotionRig = {
         { track: 'ctl.brow-tilt-l', time: clamp01((p.browTiltL + 1) / 2), mix: 1 },
         { track: 'ctl.brow-tilt-r', time: clamp01((p.browTiltR + 1) / 2), mix: 1 },
         { track: 'ctl.mouth-open', time: clamp01(p.mouthOpen), mix: 1 },
-        { track: 'ctl.viseme', time: step(p.viseme), mix: 1 },
+        { track: 'ctl.mouth-wide', time: clamp01((p.mouthWide + 1) / 2), mix: 1 },
         { track: 'ctl.hand-l', time: step(p.handL), mix: 1 },
         { track: 'ctl.hand-r', time: step(p.handR), mix: 1 },
         { track: 'ctl.arms-front', time: p.armsFront >= 0.5 ? 0.99 : 0.01, mix: 1 },

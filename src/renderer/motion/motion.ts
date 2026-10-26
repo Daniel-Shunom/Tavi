@@ -68,7 +68,7 @@ const moodFallback: Partial<Record<MoodId, string>> = {
 const MAX_HIP_RISE = 0.004;
 
 /** Pose indices and switches: never interpolated (a spring would pass through other poses). */
-const discrete: ReadonlySet<Channel> = new Set(['handL', 'handR', 'armsFront', 'viseme']);
+const discrete: ReadonlySet<Channel> = new Set(['handL', 'handR', 'armsFront']);
 
 export class MotionLayer {
   readonly seed: number;

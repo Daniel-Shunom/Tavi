@@ -20,7 +20,7 @@ import {
   type FaceValues,
 } from './channels';
 import { clampToRig, sampleFacePose, type CharacterFace } from './pose';
-import { stepSpring, type SpringState } from './spring';
+import { stepDampedSpring, stepSpring, type SpringState } from './spring';
 
 export interface FaceCue {
   expression: ExpressionId;
@@ -224,7 +224,10 @@ export class FaceLayer {
       }
       const spring = this.springs.get(name);
       if (!spring) continue;
-      stepSpring(spring, goal, halfLives[group], dt);
+      if (name === 'mouthOpen')
+        // Openings pop slightly past the target and settle (about 6% overshoot).
+        stepDampedSpring(spring, goal, 0.06, dt, 0.68);
+      else stepSpring(spring, goal, name === 'mouthWide' ? 0.05 : halfLives[group], dt);
       if (Math.abs(spring.value) > 1e-5) out[name] = spring.value;
     }
     const def = dominant ? this.face.poses[dominant.expression] : undefined;
