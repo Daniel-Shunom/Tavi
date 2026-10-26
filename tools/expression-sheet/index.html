@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tavi expression sheet</title>
+    <style>
+      :root {
+        --bg: #f3f1ec;
+        --card: #ffffff;
+        --ink: #1f1b24;
+        --muted: #6b6474;
+        --line: #e2ddd5;
+        --accent: #d81b60;
+        --stage: #dfe3ea;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+      body {
+        margin: 0;
+        padding: 24px 16px 48px;
+        background: var(--bg);
+      }
+      header {
+        max-width: 1280px;
+        margin: 0 auto 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px 32px;
+        align-items: end;
+        justify-content: space-between;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: -0.01em;
+      }
+      header p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        max-width: 60ch;
+      }
+      .controls {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+        font-size: 13px;
+      }
+      .controls label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      select,
+      button {
+        font: inherit;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--ink);
+      }
+      button {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+        cursor: pointer;
+      }
+      main {
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      section {
+        margin-bottom: 28px;
+      }
+      h2 {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 0 0 12px;
+      }
+      .player {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: start;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .player canvas,
+      .card canvas {
+        background: var(--stage);
+        border-radius: 10px;
+        display: block;
+      }
+      .player .meta {
+        font-size: 13px;
+        color: var(--muted);
+        min-width: 200px;
+      }
+      .player .meta strong {
+        color: var(--ink);
+        font-size: 16px;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px;
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 8px;
+      }
+      .card h3 {
+        margin: 2px 0 2px;
+        font-size: 15px;
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .card h3 small {
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 11px;
+        align-self: center;
+      }
+      .card p {
+        grid-column: 1 / -1;
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .card .small {
+        justify-self: center;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #17151b;
+          --card: #221f27;
+          --ink: #f2eef6;
+          --muted: #a59eae;
+          --line: #35303d;
+          --stage: #2b2f38;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Tavi expression sheet</h1>
+        <p>
+          Every face pose on the mascot rig, large and at overlay size (220 px tall), rendered
+          through the face layer (springs, overlap, living holds) at 1.2 s into the hold. Body clips
+          are omitted so the face is judged on its own.
+        </p>
+      </div>
+      <div class="controls">
+        <label
+          >Intensity
+          <select id="intensity">
+            <option value="0.25">Subtle (0.25)</option>
+            <option value="0.6" selected>Typical (0.6)</option>
+            <option value="1">Strong (1.0)</option>
+          </select>
+        </label>
+      </div>
+    </header>
+    <main>
+      <section>
+        <h2>Transition player</h2>
+        <div class="player">
+          <canvas id="player-large" width="320" height="320"></canvas>
+          <canvas id="player-small" width="180" height="230"></canvas>
+          <div class="meta">
+            <strong id="player-label">content → innocent</strong>
+            <div class="controls" style="margin: 10px 0">
+              <label
+                >A
+                <select id="from"></select
+              ></label>
+              <label
+                >B
+                <select id="to"></select
+              ></label>
+              <button id="play" type="button">Play A → B</button>
+            </div>
+            <div id="player-time">t = 0.00 s</div>
+            <p>A holds for 1.6 s, then B takes over. Brows lead, the mouth trails by ~75 ms.</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2>Face poses</h2>
+        <div class="grid" id="grid"></div>
+      </section>
+    </main>
+    <canvas id="render" width="320" height="320" style="position: absolute; left: -9999px"></canvas>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
