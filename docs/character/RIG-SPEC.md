@@ -114,6 +114,15 @@ needed (`patch: { artboard }`).
 | Clips (authored)  | `hands on hips`, `thoughtful`, `blink 2/3/4`, `wave`, `wave Non Looping`, `celebration`, `testing`, `back and forth`, `blink_IDLE`, `Timeline 2`                                                                                                           | `hands-on-hips`, …                                  | Body-language clips the acting and motion layers request by role                                                                                                                                       |
 | Appearance clips  | `hair Pink/Orange/Brown`, `clothing green/black/light green`, `glasses blue/white/grey`                                                                                                                                                                    | `hair.pink`, …                                      | Colour options                                                                                                                                                                                         |
 
+The turnaround (`tools/mascot-remix/steps/turn.mjs`, called from `author.mjs`) adds the control
+animations `tavi/turnHead` and `tavi/turnBody` (`ctl.turn-head`, `ctl.turn-body`): frame 0 a
+three-quarter view toward screen left, 30 facing the camera, 60 toward screen right. The head
+track slides the face plane's constraint targets (features, glasses and bangs follow; the skin
+and side locks get slack and stay), squashes the far eye, lens and brow, hides the far ear and
+temple, and draws in the hair. The body track narrows the shirt halves and hips and tucks the far
+arm and leg. It keys only properties nothing else keys (no clip, joystick, gait or variant build
+edit), and the manifest declares `turnStyle: 'authored'`.
+
 The binding (`characters/mascot-v2/motion.ts`) samples discrete selections at `(10k + 5) / 60`
 s, and samples `armsFront` at 0.01 or 0.99. Body-state geometry (`characters/mascot/states.ts`,
 seat height and sole contacts) is shared because the skeleton is identical. A variant that
