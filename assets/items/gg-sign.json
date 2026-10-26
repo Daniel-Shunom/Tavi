@@ -1,0 +1,64 @@
+{
+  "id": "gg-sign",
+  "name": "GG sign",
+  "category": "prop",
+  "slot": "hand.r",
+  "viewBox": [0, 0, 100, 140],
+  "anchor": [50, 118],
+  "size": 1.0,
+  "tints": {
+    "primary": {
+      "label": "Board",
+      "default": "#fff4e0"
+    },
+    "ink": {
+      "label": "Letters",
+      "default": "#7c4dff"
+    }
+  },
+  "springs": {
+    "board": {
+      "pivot": [50, 118],
+      "stiffness": 60,
+      "damping": 5,
+      "inertia": 0.002,
+      "maxAngle": 10,
+      "hang": 0.2
+    }
+  },
+  "layers": [
+    {
+      "d": "M46 56 L54 56 L54 138 C54 140 46 140 46 138 Z",
+      "fill": "#b97a4d",
+      "spring": "board"
+    },
+    {
+      "d": "M50 56 L54 56 L54 138 C54 140 52 140 50 139 Z",
+      "fill": "#8e5a37",
+      "spring": "board"
+    },
+    {
+      "d": "M10 8 C10 4 12 2 16 2 L84 2 C88 2 90 4 90 8 L90 60 C90 64 88 66 84 66 L16 66 C12 66 10 64 10 60 Z",
+      "fill": {
+        "tint": "primary"
+      },
+      "spring": "board"
+    },
+    {
+      "d": "M90 52 L90 60 C90 64 88 66 84 66 L16 66 C12 66 10 64 10 60 L10 58 C12 61 14 62 18 62 L82 62 C86 62 89 58 90 52 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.2
+      },
+      "spring": "board"
+    },
+    {
+      "d": "M44 20 C40 14 24 14 22 30 C20 46 32 52 40 48 C44 46 46 42 46 36 L34 36 M78 20 C74 14 58 14 56 30 C54 46 66 52 74 48 C78 46 80 42 80 36 L68 36",
+      "stroke": {
+        "tint": "ink"
+      },
+      "strokeWidth": 7,
+      "spring": "board"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tavi attachment preview</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: system-ui, sans-serif;
+        --bg: #e9e4f5;
+        --panel: #fffdf5;
+        --ink: #2a1634;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        min-height: 100vh;
+      }
+      body.shot {
+        display: block;
+        background: transparent;
+      }
+      body.shot aside {
+        display: none;
+      }
+      #stage {
+        position: relative;
+        min-height: 100vh;
+        background: linear-gradient(#e6e1fb, #efe8de);
+      }
+      body.shot #stage {
+        width: 360px;
+        height: 400px;
+        min-height: 0;
+      }
+      #stage canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      aside {
+        background: var(--panel);
+        padding: 16px;
+        overflow: auto;
+        max-height: 100vh;
+        box-sizing: border-box;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 12px;
+      }
+      h2 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 18px 0 6px;
+        opacity: 0.7;
+      }
+      label {
+        display: grid;
+        grid-template-columns: 90px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        font-size: 13px;
+        margin: 4px 0;
+      }
+      select,
+      button {
+        font: inherit;
+        font-size: 13px;
+      }
+      .tints label {
+        grid-template-columns: 1fr auto;
+      }
+      #error {
+        color: #b00020;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="stage">
+      <canvas id="back"></canvas>
+      <canvas id="rive"></canvas>
+      <canvas id="front"></canvas>
+    </main>
+    <aside>
+      <h1>Attachments</h1>
+      <p style="font-size: 12px">
+        Live character with rig-following slots. Character: “Mascot / Avatar Customization” by
+        alisketch (CC BY 4.0).
+      </p>
+      <h2>Motion</h2>
+      <label
+        >Clip
+        <select id="clip"></select>
+      </label>
+      <label
+        >Stage
+        <select id="move">
+          <option value="still">Still</option>
+          <option value="walk">Walk across</option>
+          <option value="enter">Entrance loop</option>
+        </select>
+      </label>
+      <h2>Character colours</h2>
+      <label>Hair <input id="hair" type="color" value="#d80b4c" /></label>
+      <label>Outfit <input id="outfit" type="color" value="#276065" /></label>
+      <h2>Slots</h2>
+      <div id="slots"></div>
+      <h2>Tints</h2>
+      <div id="tints" class="tints"></div>
+      <div id="error"></div>
+    </aside>
+    <script type="module" src="./preview.ts"></script>
+  </body>
+</html>

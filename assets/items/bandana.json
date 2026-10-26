@@ -1,0 +1,60 @@
+{
+  "id": "bandana",
+  "name": "Bandana",
+  "category": "neckwear",
+  "slot": "neck",
+  "viewBox": [0, 0, 100, 80],
+  "anchor": [50, 18],
+  "size": 1.0,
+  "tints": {
+    "primary": {
+      "label": "Cloth",
+      "default": "#2f7de1"
+    },
+    "dots": {
+      "label": "Pattern",
+      "default": "#ffffff"
+    }
+  },
+  "springs": {
+    "point": {
+      "pivot": [50, 24],
+      "stiffness": 70,
+      "damping": 6,
+      "inertia": 0.003,
+      "maxAngle": 12,
+      "hang": 0.6
+    }
+  },
+  "layers": [
+    {
+      "d": "M12 22 C30 28 70 28 88 22 C80 40 64 58 50 68 C36 58 20 40 12 22 Z",
+      "fill": {
+        "tint": "primary"
+      },
+      "spring": "point"
+    },
+    {
+      "d": "M50 68 C64 58 80 40 88 22 C84 34 72 48 60 58 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.25
+      },
+      "spring": "point"
+    },
+    {
+      "d": "M29.6 34 A2.4 2.4 0 1 1 34.4 34 A2.4 2.4 0 1 1 29.6 34 Z M47.6 36 A2.4 2.4 0 1 1 52.4 36 A2.4 2.4 0 1 1 47.6 36 Z M65.6 34 A2.4 2.4 0 1 1 70.4 34 A2.4 2.4 0 1 1 65.6 34 Z M38.6 46 A2.4 2.4 0 1 1 43.4 46 A2.4 2.4 0 1 1 38.6 46 Z M56.6 46 A2.4 2.4 0 1 1 61.4 46 A2.4 2.4 0 1 1 56.6 46 Z M47.6 56 A2.4 2.4 0 1 1 52.4 56 A2.4 2.4 0 1 1 47.6 56 Z",
+      "fill": {
+        "tint": "dots"
+      },
+      "spring": "point"
+    },
+    {
+      "d": "M10 18 C28 26 72 26 90 18 L90 24 C72 31 28 31 10 24 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.12
+      }
+    }
+  ]
+}

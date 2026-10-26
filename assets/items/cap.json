@@ -1,0 +1,84 @@
+{
+  "id": "cap",
+  "name": "Ball cap",
+  "category": "hat",
+  "slot": "head.top",
+  "viewBox": [0, 0, 100, 60],
+  "anchor": [50, 17],
+  "size": 0.92,
+  "tints": {
+    "primary": {
+      "label": "Crown",
+      "default": "#e5484d"
+    },
+    "secondary": {
+      "label": "Brim",
+      "default": "#fff4e0"
+    }
+  },
+  "layers": [
+    {
+      "d": "M8 42 C8 20 26 10 50 10 C74 10 92 20 92 42 Z",
+      "fill": {
+        "tint": "primary"
+      }
+    },
+    {
+      "d": "M92 42 C92 26 82 16 68 12 C78 20 82 30 80 42 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.22
+      }
+    },
+    {
+      "d": "M50 10 L50 42 M30 13 C26 22 25 32 26 42 M70 13 C74 22 75 32 74 42",
+      "stroke": {
+        "tint": "primary",
+        "shade": -0.2
+      },
+      "strokeWidth": 1.4
+    },
+    {
+      "d": "M20 26 C26 18 36 14 46 13 C38 17 30 22 25 30 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": 0.4,
+        "alpha": 0.7
+      }
+    },
+    {
+      "d": "M45 9 A5 3 0 1 1 55 9 A5 3 0 1 1 45 9 Z",
+      "fill": {
+        "tint": "primary",
+        "shade": -0.1
+      }
+    },
+    {
+      "d": "M4 42 C4 38 20 36 50 36 C80 36 96 38 96 42 C96 52 80 57 50 57 C20 57 4 52 4 42 Z",
+      "fill": {
+        "tint": "secondary"
+      }
+    },
+    {
+      "d": "M4 44 C8 52 24 57 50 57 C76 57 92 52 96 44 C94 49 78 53 50 53 C22 53 6 49 4 44 Z",
+      "fill": {
+        "tint": "secondary",
+        "shade": -0.25
+      }
+    },
+    {
+      "d": "M34 22 L66 22 L66 33 L34 33 Z",
+      "fill": {
+        "tint": "secondary"
+      }
+    },
+    {
+      "d": "M40 25 L44 30 L48 25 M52 25 L56 30 L60 25",
+      "stroke": {
+        "tint": "primary"
+      },
+      "strokeWidth": 1.6
+    }
+  ],
+  "notes": "Front-facing cap; the brim reads as a curved visor over the hairline."
+}
