@@ -76,3 +76,15 @@ describe('rig patch', () => {
       expect(tracks.has(channel.track)).toBe(true);
   });
 });
+
+describe('mascot-v2 carries the motion rig natively', () => {
+  it('has every named node and control track the gait/locomotion binding uses', () => {
+    const v2 = new Uint8Array(readFileSync('src/renderer/characters/mascot-v2/mascot-v2.riv'));
+    const scan = scanRiv(v2).objects;
+    const names = new Set(scan.map((o) => o.props.get(4)).filter((n) => typeof n === 'string'));
+    const clips = new Set(scan.filter((o) => o.typeKey === 31).map((o) => o.props.get(55)));
+    for (const node of Object.values(lylaRig.nodes)) expect(names.has(node.name)).toBe(true);
+    for (const channel of Object.values(lylaRig.channels))
+      expect(clips.has(channel.track)).toBe(true);
+  });
+});
