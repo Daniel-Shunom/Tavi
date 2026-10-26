@@ -119,6 +119,25 @@ try {
   await expect
     .poll(async () => (await state(page)).config.wardrobe.attachments['head.top'])
     .toBeUndefined();
+  // Contact shadow: visible while standing, shrinking while airborne during a drop entrance.
+  const spot = page.locator('.portrait-space .avatar-shadow');
+  await page.waitForTimeout(1500);
+  const standing = Number(await spot.getAttribute('data-opacity'));
+  if (!(standing > 0.1)) throw new Error(`Shadow not visible while standing: ${String(standing)}`);
+  await page.getByLabel('Entrance and exit style').selectOption('drop');
+  await page.getByRole('button', { name: 'Tuck away', exact: true }).click();
+  await page.waitForTimeout(2500);
+  await page.getByRole('button', { name: 'Bring Tavi back', exact: true }).click();
+  let smallest = Infinity;
+  for (let i = 0; i < 40; i++) {
+    const opacity = Number(await spot.getAttribute('data-opacity'));
+    if (opacity > 0.02)
+      smallest = Math.min(smallest, Number(await spot.getAttribute('data-scale')));
+    await page.waitForTimeout(60);
+  }
+  if (!(smallest < 0.9))
+    throw new Error(`Shadow did not shrink during the drop: ${String(smallest)}`);
+  await page.getByLabel('Entrance and exit style').selectOption('random');
   if (errors.length) throw new Error(errors.join('\n'));
   console.log(
     'Expression browser checks passed: six core reactions, studio/overlay agreement, cancel, conversation caption, provider label, retract/restore choreography, reconnect without replay.',

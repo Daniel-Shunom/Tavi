@@ -1672,3 +1672,14 @@ input[type='range'] {
   height: 28px;
   margin-top: 4px;
 }
+.avatar-shadow {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(8 6 18 / 0.85),
+    rgb(8 6 18 / 0.35) 55%,
+    transparent
+  );
+  pointer-events: none;
+}

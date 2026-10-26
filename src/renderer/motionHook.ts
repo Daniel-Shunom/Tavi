@@ -51,6 +51,9 @@ export interface MotionInput {
     nodes: readonly string[];
     inputs: readonly string[];
     locomotion: CharacterManifest['locomotion'];
+    /** Soles above the artboard bottom (fraction of artboard height); the renderer already
+     *  compensates, so placement and shadow y are the floor. */
+    soleOffset: number;
   };
 }
 export interface MotionOutput {
@@ -71,6 +74,11 @@ export interface MotionOutput {
    * When absent during climb choreographies the renderer masks at the character's home line.
    */
   clipBelow?: number | null;
+  /**
+   * Soft contact shadow on the ground under the feet: normalized position like `position`,
+   * scale 1 = standing, opacity 0..1. Shrinks and fades in the air; 0 while below the edge.
+   */
+  shadow?: { x: number; y: number; scale: number; opacity: number };
   /**
    * Set when the motion layer performs the entrance/exit itself; the renderer then skips its
    * slide-and-fade fallback and uses `hidden` (0 visible .. 1 gone) only for opacity.
