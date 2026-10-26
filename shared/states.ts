@@ -104,7 +104,7 @@ export const bodyStates = {
   },
   nap: {
     label: 'Nap',
-    meaning: 'Lies down on the floor and sleeps (z z z). Wakes with a stretch.',
+    meaning: 'Lies down where it is sitting and sleeps (z z z). Wakes with a stretch.',
     useWhen: 'Very long quiet stretches, or the streamer says to take a nap.',
     avoidWhen: 'Anything is happening.',
     initiative: true,
@@ -308,7 +308,12 @@ export function resolveSpot(state: BodyStateId, context: SpotContext): Spot | nu
       return resolveSpot('sit', { ...context, prefer: context.prefer ?? 'floor' });
     }
     case 'nap': {
-      // Never lies on a ledge: naps on the floor, at home or below the current ledge.
+      // Keep a seated ledge position for sleep; otherwise nap on the floor at the same x.
+      if (
+        context.current?.spot?.surface === 'ledge' &&
+        ['sit', 'doze'].includes(context.current.state)
+      )
+        return context.current.spot;
       const x = context.current?.spot?.approach.x ?? home.x;
       return floorSpot(scene, home, Math.min(bounds.maxX - 0.1, Math.max(bounds.minX + 0.1, x)));
     }

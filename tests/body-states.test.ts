@@ -33,7 +33,7 @@ describe('scene spots', () => {
     expect(resolveSpot('sit', { scene, home, prefer: 'ledge' })?.surface).toBe('floor');
     expect(resolveSpot('perch', { scene, home })).toBeNull();
   });
-  it('perches on top of the webcam and naps on the floor, never on a ledge', () => {
+  it('perches on top of the webcam and naps at the same ledge where it sat', () => {
     expect(resolveSpot('perch', { scene: defaultScene, home })?.surface).toBe('top');
     const ledge = resolveSpot('sit', { scene: defaultScene, home, prefer: 'ledge' });
     const nap = resolveSpot('nap', {
@@ -41,8 +41,7 @@ describe('scene spots', () => {
       home,
       current: { state: 'doze', spot: ledge },
     });
-    expect(nap?.surface).toBe('floor');
-    expect(nap?.y).toBeCloseTo(home.y);
+    expect(nap).toEqual(ledge);
   });
   it('dozes where it already sits', () => {
     const ledge = resolveSpot('sit', { scene: defaultScene, home, prefer: 'ledge' });

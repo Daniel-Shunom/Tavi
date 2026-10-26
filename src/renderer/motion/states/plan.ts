@@ -228,7 +228,7 @@ function heldKeyBase(state: BodyStateId, spot: Spot | null, context: PlanContext
       );
     case 'nap': {
       const lie = solveLie(rig.lieContacts.head, rig.lieContacts.feet);
-      return sleepy(key(rig, 'lie', { rot: lie.rot, dy: lie.dy }));
+      return sleepy(key(rig, 'lie', { rot: lie.rot, dy: lie.dy, lift: ledge ? gap : 0 }));
     }
     case 'peek':
       return key(rig, 'peek');
@@ -268,6 +268,7 @@ export function enterPlan(state: BodyStateId, spot: Spot | null, context: PlanCo
       return b.build();
     }
     case 'nap':
+      if (spot?.surface === 'ledge') return lieDownOnLedge(b, held);
       sitDownFloor(b, rig);
       lieDown(b, rig, held);
       return b.build();
@@ -295,6 +296,11 @@ function lieDown(b: Builder, rig: StateRig, lie: KeyPose) {
   b.to({ ...lie, sleep: 0.6 }, 1.2, 'inOut');
   b.to({ ...lie, pose: addPose(lie.pose, { squash: 0.3, hairSquash: 0.05 }), sleep: 0.8 }, 0.1);
   b.to(lie, 0.5, 'out');
+}
+function lieDownOnLedge(b: Builder, lie: KeyPose) {
+  b.to({ ...lie, sleep: 0.6 }, 1.2, 'inOut');
+  b.to({ ...lie, pose: addPose(lie.pose, { squash: 0.3, hairSquash: 0.05 }), sleep: 0.8 }, 0.1);
+  return b.to(lie, 0.5, 'out').build();
 }
 
 /** From the state back to standing at the spot's approach point. */
@@ -326,6 +332,18 @@ export function exitPlan(
       else standFromFloor(b, rig, false, held);
       return b.build();
     case 'nap':
+      if (ledge) {
+        const seated = heldKey('doze', spot, context);
+        if (wake === 'urgent')
+          b.to(
+            { ...seated, sleep: 0, pose: addPose(seated.pose, { browL: -0.8, browR: -0.8 }) },
+            0.12,
+            'out',
+          );
+        else b.to({ ...seated, sleep: 0.2 }, 0.8);
+        dropFromLedge(b, rig, gap, seated);
+        return b.build();
+      }
       wakeFromLie(b, rig, wake ?? 'normal', true);
       return b.build();
     case 'peek':
@@ -411,6 +429,8 @@ export function shortcutPlan(
     lieDown(b, rig, end);
     return b.build();
   }
+  if ((from === 'sit' || from === 'doze') && to === 'nap' && spot?.surface === 'ledge')
+    return lieDownOnLedge(b, end);
   if (from === 'nap' && (to === 'sit' || to === 'doze') && floor) {
     wakeFromLie(b, rig, wake ?? 'normal', false);
     if (to === 'doze') b.to(end, 2.0);
