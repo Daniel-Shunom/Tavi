@@ -1,0 +1,65 @@
+name: Windows installer
+# Builds the unsigned Tavi Studio NSIS installer and uploads it as a workflow artifact.
+# No secrets are used and nothing is published: code signing is not configured yet.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'server/**'
+      - 'shared/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/windows-installer.yml'
+permissions:
+  contents: read
+concurrency:
+  group: windows-installer-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # This Node runtime is copied into the installer; use an LTS line.
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - run: npm ci
+      - run: npm ci
+        working-directory: desktop
+      - name: Rust lint and tests
+        working-directory: desktop/src-tauri
+        shell: bash
+        run: |
+          # tauri-build needs the frontend folder to exist before the release build creates it.
+          mkdir -p ../resources/service/dist
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+      - name: Build installer
+        working-directory: desktop
+        run: npm run release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tavi-studio-windows-x64-unsigned
+          path: |
+            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+            desktop/src-tauri/target/release/bundle/nsis/*-setup.exe.sha256
+          if-no-files-found: error
+          retention-days: 14

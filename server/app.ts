@@ -11,11 +11,23 @@ import type { WebSocket } from 'ws';
 import { decodeFrame } from './decode.js';
 import { TwitchIntegration, type TwitchOptions } from './twitch/integration.js';
 import { chatReaction } from './twitch/reactions.js';
+const localOrigins = [
+  'http://127.0.0.1:5173',
+  'http://localhost:5173',
+  'http://127.0.0.1:4318',
+  'http://localhost:4318',
+];
+/**
+ * `extraOrigins` lets a packaged service listening on a non-default port (TAVI_PORT) trust
+ * its own studio origin; the default 4318/5173 origins are always trusted.
+ */
 export async function createApp(
   config?: Config,
   save?: (config: Config) => Promise<void>,
   twitchOptions: TwitchOptions = {},
+  extraOrigins: readonly string[] = [],
 ) {
+  const trustedOrigins = new Set([...localOrigins, ...extraOrigins]);
   const app = Fastify({ logger: false, bodyLimit: 16384 });
   await app.register(websocket, { options: { maxPayload: 16384 } });
   let state: State = initialState(config);
@@ -49,15 +61,7 @@ export async function createApp(
     },
   });
   function isTrusted(origin: string | undefined) {
-    return (
-      !!origin &&
-      [
-        'http://127.0.0.1:5173',
-        'http://localhost:5173',
-        'http://127.0.0.1:4318',
-        'http://localhost:4318',
-      ].includes(origin)
-    );
+    return !!origin && trustedOrigins.has(origin);
   }
   app.get('/api/twitch', (_, reply) => {
     reply.header('Cache-Control', 'no-store');
@@ -88,15 +92,7 @@ export async function createApp(
   app.get('/api/state', () => Promise.resolve(state));
   app.get('/ws', { websocket: true }, (socket, request) => {
     const origin = request.headers.origin;
-    if (
-      origin &&
-      ![
-        'http://127.0.0.1:5173',
-        'http://localhost:5173',
-        'http://127.0.0.1:4318',
-        'http://localhost:4318',
-      ].includes(origin)
-    ) {
+    if (origin && !trustedOrigins.has(origin)) {
       socket.close(1008, 'Untrusted origin');
       return;
     }
