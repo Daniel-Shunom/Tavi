@@ -1,0 +1,5 @@
+name: mascot-remix
+logs:
+  file: build/rive.log
+  problems: build/problems.log
+main: "MasterArtboard"

@@ -8,7 +8,8 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
 const base = process.env.TAVI_SHEET_URL ?? 'http://127.0.0.1:5173';
-const out = 'test-results/expression-sheet';
+const out =
+  'test-results/expression-sheet' + (process.env.CHARACTER ? '-' + process.env.CHARACTER : '');
 const only = process.argv.slice(2);
 const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
@@ -20,7 +21,11 @@ const page = await browser.newPage({
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-await page.goto(base + '/tools/expression-sheet/?paused');
+await page.goto(
+  base +
+    '/tools/expression-sheet/?paused' +
+    (process.env.CHARACTER ? '&character=' + process.env.CHARACTER : ''),
+);
 await page.waitForFunction(() => document.body.dataset.ready || document.body.dataset.error, null, {
   timeout: 120000,
 });

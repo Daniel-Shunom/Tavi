@@ -10,3 +10,6 @@ test-results/
 experiments/
 docs/PERSONALITY.md
 .claude/
+
+# Rive CLI art sources (third-party and generated RML)
+art/

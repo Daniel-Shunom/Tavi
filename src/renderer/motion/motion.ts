@@ -67,6 +67,9 @@ const moodFallback: Partial<Record<MoodId, string>> = {
 /** Hips may rise at most this far above standing (BH) while grounded. */
 const MAX_HIP_RISE = 0.004;
 
+/** Pose indices and switches: never interpolated (a spring would pass through other poses). */
+const discrete: ReadonlySet<Channel> = new Set(['handL', 'handR', 'armsFront', 'viseme']);
+
 export class MotionLayer {
   readonly seed: number;
   private settings: MotionSettings;
@@ -343,7 +346,8 @@ export class MotionLayer {
       pose[key] = Math.max(min, Math.min(max, pose[key]));
     // Smooth every channel except blinks (which must stay crisp): critical springs, no ringing.
     for (const key of Object.keys(pose) as Channel[]) {
-      if (key === 'blinkL' || key === 'blinkR' || key.startsWith('foot')) continue;
+      if (key === 'blinkL' || key === 'blinkR' || key.startsWith('foot') || discrete.has(key))
+        continue;
       let spring = this.smoothers.get(key);
       if (!spring) {
         spring = new CriticalSpring(
