@@ -107,6 +107,7 @@ export function userPrompt(context: DecisionContext): string {
         `<chat author="${quote(event.author ?? 'viewer').slice(0, 40)}"${simulated}>${quote(event.text)}</chat>${marker}`,
       );
   }
+  if (context.layout) lines.push('', `Where things are on screen: ${context.layout}`);
   lines.push(
     '',
     context.canMove

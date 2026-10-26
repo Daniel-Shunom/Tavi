@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { State } from '../../shared/protocol';
 import type { Target } from '../../shared/expressions';
-import { anchors, locomotionTarget, type Point } from '../../shared/locomotion';
+import { locomotionTarget, type Point } from '../../shared/locomotion';
 import { hiddenAmount } from '../../shared/presence';
 import { wardrobePolicy } from '../../shared/wardrobe';
 import { loadAttachments } from './attachments/bundle';
@@ -22,10 +22,14 @@ import {
   type MotionOutput,
 } from './motionHook';
 import { Performer, smooth } from './timeline';
+import { headPoint, resolveAttention, type AttentionVector } from '../../shared/attention';
+import { AttentionSmoother } from './attentionInput';
 import { drawStateEffects } from './motion/states/effects';
 
 /** Rough walking speed used to estimate arrival for timed visits (normalized units/second). */
 const NOMINAL_SPEED = 0.22;
+/** Body height of the overlay character in canvas units (220 px of 720). */
+const REFERENCE_BODY = 220 / 720;
 
 export function Avatar({
   state,
@@ -78,6 +82,7 @@ export function Avatar({
     let position: Point = { x: latest.current.state.config.x, y: latest.current.state.config.y };
     let pointer: Point | null = null;
     let facing: -1 | 1 = 1;
+    const smoother = new AttentionSmoother();
     const rig = attachmentRigs[manifest.id];
     const layer: AttachmentLayer | null = rig
       ? createAttachmentLayer({
@@ -111,10 +116,9 @@ export function Avatar({
     }
     const observer = new ResizeObserver(resize);
     function trackPointer(event: PointerEvent) {
-      pointer = {
-        x: event.clientX / Math.max(1, innerWidth),
-        y: event.clientY / Math.max(1, innerHeight),
-      };
+      // Host-relative CSS pixels; mapped into canvas coordinates around the portrait's head.
+      const box = host.current?.getBoundingClientRect();
+      pointer = box ? { x: event.clientX - box.left, y: event.clientY - box.top } : null;
     }
     if (presentation === 'portrait') addEventListener('pointermove', trackPointer);
     function stop() {
@@ -149,17 +153,36 @@ export function Avatar({
             current.quiet || current.retracted || reducedMotion,
           ),
         );
-        // Which side of the character an attention target is on.
-        const targetX = (target: Target) =>
-          target === 'chat'
-            ? anchors.chat.x
-            : target === 'streamer'
-              ? anchors.webcam.x
-              : target === 'pointer'
-                ? (pointer?.x ?? 0.5)
-                : position.x;
-        const reference = presentation === 'portrait' ? 0.5 : position.x;
-        const side = (target: Target): -1 | 1 => (targetX(target) < reference ? -1 : 1);
+        // Scene-aware attention: one resolver for every layer (shared/attention.ts). Directions
+        // are computed in overlay-canvas coordinates from Tavi's live position, so the studio
+        // portrait looks the same way as the overlay.
+        const portraitSize = Math.min(height * 0.9, width / 0.7);
+        const pointerCanvas =
+          presentation === 'portrait' && pointer
+            ? (() => {
+                const unitPx = portraitSize / REFERENCE_BODY;
+                const headPx = { x: width * 0.5, y: height * 0.96 - 0.8 * portraitSize };
+                const head = headPoint(position, REFERENCE_BODY);
+                return {
+                  x: head.x + (pointer.x - headPx.x) / unitPx,
+                  y: head.y + (pointer.y - headPx.y) / unitPx,
+                };
+              })()
+            : null;
+        const attentionInput = {
+          scene: config.scene,
+          position,
+          bodyHeight: REFERENCE_BODY,
+          facing,
+          pointer: pointerCanvas,
+        };
+        const resolved = new Map<Target, AttentionVector | null>();
+        const attend = (target: Target) => {
+          if (!resolved.has(target)) resolved.set(target, resolveAttention(target, attentionInput));
+          return resolved.get(target) ?? null;
+        };
+        // Screen side, for host transforms (lean, shift), which are applied in screen space.
+        const side = (target: Target): -1 | 1 => attend(target)?.side ?? facing;
         const pose = composePose(layers, manifest, {
           reducedMotion,
           energy: config.energy,
@@ -186,9 +209,7 @@ export function Avatar({
             dt,
             time: clock,
             layers,
-            attention: pose.attention
-              ? { ...pose.attention, side: side(pose.attention.target) }
-              : null,
+            attention: smoother.update(pose.attention, attend, facing, dt),
             persona: {
               attitude: config.attitude,
               initiative: config.initiative,
@@ -301,6 +322,11 @@ export function Avatar({
           element.dataset['layers'] = layers
             .map((layer) => `${layer.expression}:${layer.weight.toFixed(2)}`)
             .join(' ');
+          const looking = pose.attention ? attend(pose.attention.target) : null;
+          element.dataset['attention'] =
+            pose.attention && looking
+              ? `${pose.attention.target}:${looking.side < 0 ? 'left' : 'right'}`
+              : 'none';
           element.dataset['retracted'] = String(current.retracted);
           element.dataset['decidedBy'] = current.performance.script?.decidedBy.kind ?? 'none';
           element.dataset['ready'] = 'true';

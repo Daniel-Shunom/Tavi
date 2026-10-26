@@ -154,7 +154,10 @@ export function createHookLayer(
       // Attention: look toward the target's side.
       layer.attend(
         input.attention
-          ? { x: 0.55 * input.attention.side * input.attention.weight, y: 0.05 }
+          ? {
+              x: 0.6 * input.attention.gaze.x * input.attention.weight,
+              y: 0.5 * input.attention.gaze.y * input.attention.weight,
+            }
           : null,
       );
 

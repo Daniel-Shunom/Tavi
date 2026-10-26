@@ -19,7 +19,26 @@ export interface MotionInput {
   time: number;
   /** Active expression layers with intensity, phase and envelope weight. */
   layers: readonly ActiveLayer[];
-  attention: { target: Target; weight: number; side: -1 | 1 } | null;
+  /**
+   * Scene-aware attention from shared/attention.ts (the single resolver).
+   * - `side`: body-local side (screen side x facing), for face/gaze channels drawn before the
+   *   body is mirrored.
+   * - `screenSide`, `dx`, `dy`, `distance`: from Tavi's head to the target in overlay-canvas
+   *   units (y down), for turns, pointing and lean.
+   * - `gaze`: smoothed body-local direction (-1..1, y down: negative looks up).
+   * - `behind`: the target is opposite the current facing (turn the head first).
+   */
+  attention: {
+    target: Target;
+    weight: number;
+    side: -1 | 1;
+    screenSide: -1 | 1;
+    dx: number;
+    dy: number;
+    distance: number;
+    gaze: { x: number; y: number };
+    behind: boolean;
+  } | null;
   persona: {
     attitude: 'gentle' | 'cheeky' | 'spicy';
     initiative: 'reserved' | 'occasional' | 'outgoing';
