@@ -413,8 +413,8 @@ export const corePoses: ActingPoses = {
       squash: -0.55,
       headY: -0.01,
       lean: -0.05,
-      armL: 0.35,
-      armR: 0.35,
+      armL: 0.15,
+      armR: 0.15,
       bob: -0.01,
     },
     strong: {
@@ -425,8 +425,8 @@ export const corePoses: ActingPoses = {
       squash: -0.8,
       headY: -0.016,
       lean: -0.09,
-      armL: 0.6,
-      armR: 0.6,
+      armL: 0.3,
+      armR: 0.3,
       bob: -0.02,
     },
     onset: {

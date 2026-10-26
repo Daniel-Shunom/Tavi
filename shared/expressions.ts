@@ -498,6 +498,20 @@ const definitions = {
     similar: ['bored', 'content'],
     selectable: true,
   },
+  blush: {
+    channel: 'emote',
+    label: 'Blush',
+    meaning: 'Bashfully pleased: a shy closed-eye smile, head tucked, hand behind the head.',
+    useWhen: 'A sincere compliment to Tavi, a sweet message from chat, being thanked.',
+    avoidWhen:
+      'Being called out or caught (embarrassed or innocent fit better). Not for teasing back.',
+    intensity: { min: 0.2, max: 1, default: 0.6 },
+    duration: 2.2,
+    layersWith: face,
+    priority: 2,
+    similar: ['embarrassed', 'soft-smile'],
+    selectable: true,
+  },
   // Gestures -----------------------------------------------------------------
   wave: {
     channel: 'gesture',

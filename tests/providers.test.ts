@@ -50,7 +50,8 @@ describe('prompt generation', () => {
     const prompt = systemPrompt(context);
     expect(prompt).toContain('- skeptical [emote');
     expect(prompt).toContain('Avoid when:');
-    expect(prompt).not.toContain('- point [');
+    // The mascot now acts out pointing with its arm (acting/faces.ts).
+    expect(prompt).toContain('- point [gesture');
     const bot = systemPrompt({
       ...context,
       character: capabilitiesOf(manifestSchema.parse(testCharacter)),
