@@ -237,15 +237,23 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
   // (characters/variants/rigs/mascotV2.ts), so narrow the shirt halves and move the arms inside.
   const shirtX = attr(b.shirt, 'x', 0),
     pantsSX = attr(b.pants, 'scaleX', 1);
+  const shirtRotation = attr(b.shirt, 'rotation', 0),
+    pantsRotation = attr(b.pants, 'rotation', 0);
   let body =
-    keyed(b.shirt, { x: (t) => shirtX + 2 * t }) +
-    keyed(b.pants, { scaleX: (t) => pantsSX * (1 - 0.08 * Math.abs(t)) });
+    keyed(b.shirt, {
+      x: (t) => shirtX + 4 * t,
+      rotation: (t) => shirtRotation + 0.2 * t,
+    }) +
+    keyed(b.pants, {
+      scaleX: (t) => pantsSX * (1 - 0.28 * Math.abs(t)),
+      rotation: (t) => pantsRotation + 0.1 * t,
+    });
   for (const half of b.shirtHalves) {
     const halfX = attr(half, 'x', 0),
       halfSX = attr(half, 'scaleX', 1);
     body += keyed(half, {
-      x: (t) => halfX * (1 - 0.16 * Math.abs(t)),
-      scaleX: (t) => halfSX * (1 - 0.16 * Math.abs(t)),
+      x: (t) => halfX * (1 - 0.3 * Math.abs(t)),
+      scaleX: (t) => halfSX * (1 - 0.36 * Math.abs(t)),
     });
   }
   for (const [side, sign] of SIDES) {
@@ -254,13 +262,16 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
       armSX = attr(arm, 'scaleX', 1),
       armSY = attr(arm, 'scaleY', 1);
     body += keyed(arm, {
-      x: (t) => armX - sign * (2 * near(sign, t) + 9 * far(sign, t)),
-      scaleX: (t) => armSX * (1 + 0.06 * near(sign, t) - 0.04 * far(sign, t)),
-      scaleY: (t) => armSY * (1 + 0.06 * near(sign, t) - 0.04 * far(sign, t)),
+      x: (t) => armX - sign * (4 * near(sign, t) + 20 * far(sign, t)),
+      scaleX: (t) => armSX * (1 + 0.1 * near(sign, t) - 0.25 * far(sign, t)),
+      scaleY: (t) => armSY * (1 + 0.08 * near(sign, t) - 0.14 * far(sign, t)),
     });
     const leg = b.legs[side];
     const legX = attr(leg, 'x', 0);
-    body += keyed(leg, { x: (t) => legX - sign * (1 * near(sign, t) + 4 * far(sign, t)) });
+    body += keyed(leg, {
+      x: (t) => legX - sign * (5 * near(sign, t) + 14 * far(sign, t)),
+      scaleX: (t) => 1 - 0.22 * far(sign, t) + 0.06 * near(sign, t),
+    });
   }
 
   const track = (name, content) =>
