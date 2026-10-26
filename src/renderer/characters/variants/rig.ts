@@ -12,6 +12,8 @@ export interface Selector {
   under?: string;
   /** For gradients: which stop (0 = first in the file). Omit for every stop / solid fills. */
   stop?: number;
+  /** Parts another workstream may rebuild (e.g. the mouth): skipped when absent, never fatal. */
+  optional?: boolean;
 }
 
 export type ColorRole =
@@ -134,7 +136,7 @@ export interface ResolvedRig {
 /** Resolves selectors to component indices; every selector must match something. */
 export function resolveRig(rig: VariantRig, index: RigIndex): ResolvedRig {
   const need = (selector: Selector, found: number[]) => {
-    if (!found.length)
+    if (!found.length && !selector.optional)
       throw new Error(
         `${rig.character} variant rig: nothing matches ${selector.name}` +
           (selector.under ? ` under ${selector.under}` : ''),
