@@ -106,6 +106,12 @@ export const manifestSchema = z
      */
     soleOffset: z.number().min(0).max(0.5).default(0),
     /**
+     * How a change of direction reads: "cheat" keeps a front-facing body and shows direction with
+     * head, gaze, lean and steps (no mirroring); "mirror-hidden" mirrors inside a tiny pivot hop;
+     * "authored" lets an authored side-facing cycle cover the swap.
+     */
+    turnStyle: z.enum(['cheat', 'mirror-hidden', 'authored']).default('cheat'),
+    /**
      * Locomotion capability. "procedural": no authored walk; the motion layer synthesizes steps.
      * "clip": an authored walk cycle track, optionally with speed/direction state machine inputs.
      */

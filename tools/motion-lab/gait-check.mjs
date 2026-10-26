@@ -30,11 +30,16 @@ for (const character of ['v1', 'v2']) {
     await page.evaluate(() => window.lab.pause());
     await page.evaluate(() => window.lab.walk(0.15, 'walk'));
     await page.evaluate(() => window.lab.advance(14));
-    await page.evaluate((g) => window.lab.walk(0.85, g), gait);
+    // 'reverse': walk right, then reverse mid-walk (dense sampling around the turn).
+    const reverse = gait === 'reverse';
+    const step = reverse ? 0.05 : 0.15;
+    await page.evaluate((g) => window.lab.walk(0.85, g === 'reverse' ? 'walk' : g), gait);
+    if (reverse) await page.evaluate(() => window.lab.advance(1.6));
+    if (reverse) await page.evaluate(() => window.lab.walk(0.1, 'walk'));
     const shots = [];
-    for (let t = 0; t < 7.2; t += 0.15) {
+    for (let t = 0; t < (reverse ? 1.8 : 7.2); t += step) {
       shots.push((await page.screenshot({ clip })).toString('base64'));
-      await page.evaluate(() => window.lab.advance(0.15));
+      await page.evaluate((dt) => window.lab.advance(dt), step);
     }
     await page.evaluate(() => window.lab.resume());
     summary[`${gait}-${character}`] = {
@@ -45,7 +50,7 @@ for (const character of ['v1', 'v2']) {
     const html = `<body style="margin:0;display:grid;grid-template-columns:repeat(6,1fr);background:#fff">${shots
       .map(
         (s, i) =>
-          `<div style="position:relative"><img src="data:image/png;base64,${s}" style="width:100%"><span style="position:absolute;left:2px;top:0;font:10px sans-serif">${(i * 0.15).toFixed(2)}s</span></div>`,
+          `<div style="position:relative"><img src="data:image/png;base64,${s}" style="width:100%"><span style="position:absolute;left:2px;top:0;font:10px sans-serif">${(i * (gait === 'reverse' ? 0.05 : 0.15)).toFixed(2)}s</span></div>`,
       )
       .join('')}</body>`;
     const sheet = await browser.newPage({ viewport: { width: 1800, height: 400 } });

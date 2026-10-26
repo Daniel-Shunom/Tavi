@@ -120,7 +120,7 @@ export function createHookLayer(
       };
       const now = input.time;
       if (!layer) {
-        layer = new MotionLayer(SEED, settings, stage, { feet });
+        layer = new MotionLayer(SEED, settings, stage, { feet, turnStyle: manifest.turnStyle });
         const start = input.locomotion.position;
         layer.place(start.x, start.y);
         if (input.retracted && !input.presence.transition)

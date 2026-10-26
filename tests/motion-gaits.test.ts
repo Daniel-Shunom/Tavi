@@ -143,9 +143,11 @@ describe('every gait travels on the floor', () => {
     }
   });
 
-  it('skip ends with a twirl (facing passes through zero) and trudge with a slump', () => {
+  it('skip ends with a twirl beat and trudge with a slump', () => {
     const skip = travel('skip');
-    expect(skip.some((f) => f.beat === 'twirl and bounce' && Math.abs(f.facing) < 0.2)).toBe(true);
+    // Cheat turn style (default): the twirl never mirrors the body; it is a bounce with flourish.
+    expect(skip.some((f) => f.beat === 'twirl and bounce')).toBe(true);
+    expect(skip.every((f) => f.facing === 1)).toBe(true);
     expect(travel('trudge').some((f) => f.beat === 'slump, hmph')).toBe(true);
   });
 });
