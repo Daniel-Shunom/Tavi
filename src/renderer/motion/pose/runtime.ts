@@ -4,7 +4,7 @@
 import { lylaV2Proxy } from '../../characters/mascot/pose';
 import type { Pose } from '../types';
 import type { ProxyRig } from './proxy';
-import { sampleBeat } from './sample';
+import { keyPlacements, sampleBeat, solvedKey } from './sample';
 import { beatDuration, type Beat } from './schema';
 
 /** The skeleton every library beat is solved on. */
@@ -46,4 +46,12 @@ export function beatFrame(
 /** Seconds of keyed motion (the living hold after it is open-ended). */
 export function beatLength(beat: Beat) {
   return beatDuration(beat);
+}
+
+/** The held pose of a hold beat: its last key with the hands solved (no life). */
+export function holdPose(beat: Beat, rig: ProxyRig = authoringRig): Partial<Pose> {
+  const last = beat.keys[beat.keys.length - 1];
+  const place = keyPlacements(beat)[beat.keys.length - 1];
+  if (!last || !place) return {};
+  return solvedKey(rig, last, place);
 }

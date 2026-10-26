@@ -2,7 +2,10 @@
 import type { Beat } from '../schema';
 import { climbUp } from './climb';
 import { dustKnees } from './dust';
+import { sitFloorSlouch, sitFloorUpright, sitLedgeSlouch, sitLedgeUpright } from './sit';
 
 export const beats: Readonly<Record<string, Beat>> = Object.fromEntries(
-  [climbUp, dustKnees].map((beat) => [beat.id, beat]),
+  [climbUp, dustKnees, sitFloorUpright, sitFloorSlouch, sitLedgeUpright, sitLedgeSlouch].map(
+    (beat) => [beat.id, beat],
+  ),
 );

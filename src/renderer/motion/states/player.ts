@@ -6,12 +6,16 @@
 import { settledAfter, sleepingStates, type BodyCue, type Spot } from '../../../../shared/states';
 import { fbm1 } from '../core/noise';
 import { random } from '../core/random';
+import { authoringRig } from '../pose/runtime';
+import { sampleBeat } from '../pose/sample';
+import { beatDuration } from '../pose/schema';
 import type { Channel, Pose, Stage } from '../types';
 import {
   addPose,
   enterPlan,
   exitPlan,
   heldKey,
+  holdBeat,
   lerpKey,
   sampleTimeline,
   shortcutPlan,
@@ -115,7 +119,7 @@ export class BodyStatePlayer {
     return this.cue?.spot ?? null;
   }
 
-  private context(spot: Spot | null, frame: PlayerFrame): PlanContext {
+  private context(spot: Spot | null, frame: PlayerFrame, seed = this.cue?.seed ?? 0): PlanContext {
     const gap =
       spot && (spot.surface === 'ledge' || spot.surface === 'top')
         ? Math.max(0, (spot.approach.y - spot.y) / frame.stage.bodyHeight)
@@ -124,7 +128,13 @@ export class BodyStatePlayer {
       spot?.edgeX !== undefined
         ? (Math.abs(spot.edgeX - frame.position.x) * frame.stage.aspect) / frame.stage.bodyHeight
         : 0.3;
-    return { rig: this.rig, gap, edgeDistance, reducedMotion: frame.reducedMotion };
+    return {
+      rig: this.rig,
+      gap,
+      edgeDistance,
+      reducedMotion: frame.reducedMotion,
+      variant: seed,
+    };
   }
 
   /**
@@ -146,6 +156,7 @@ export class BodyStatePlayer {
     if (cue?.id === this.cue?.id) return { place: null };
     const now = frame.now;
     this.blendFrom = this.cue || this.phase !== 'idle' ? { key: this.last, at: now } : null;
+    const previousSeed = this.cue?.seed ?? 0;
     this.cue = cue;
     this.exit = this.enter = this.shortcut = null;
     if (!cue) {
@@ -175,7 +186,7 @@ export class BodyStatePlayer {
       this.shortcut = shortcut;
       this.phase = 'shortcut';
     } else {
-      this.exit = exitPlan(from, fromSpot, this.context(fromSpot, frame), cue.wake);
+      this.exit = exitPlan(from, fromSpot, this.context(fromSpot, frame, previousSeed), cue.wake);
       this.phase = 'exit';
     }
     return { place: null };
@@ -277,9 +288,14 @@ export class BodyStatePlayer {
     let key = held;
     const ledge = spot?.surface === 'ledge';
     const amp = frame.reducedMotion ? 0.5 : 1;
+    // Authored holds (pose beats) carry their own living hold, with planted hands re-solved.
+    const beat = holdBeat(cue.state, spot, context);
+    if (beat)
+      key = { ...held, pose: sampleBeat(beat, beatDuration(beat) + t, authoringRig, seed).pose };
     switch (cue.state) {
       case 'sit': {
-        add({ lean: 0.035 * fbm1(seed + 1, t * 0.1), headTilt: 0.03 * fbm1(seed + 2, t * 0.13) });
+        if (!beat)
+          add({ lean: 0.035 * fbm1(seed + 1, t * 0.1), headTilt: 0.03 * fbm1(seed + 2, t * 0.13) });
         if (ledge) {
           // Leg-swing bouts (pendulum period by personality), then still for a while.
           const period = { cozy: 1.3, shy: 1.1, playful: 0.9 }[frame.personality];
@@ -293,7 +309,7 @@ export class BodyStatePlayer {
           });
           // Looks down into the webcam at the streamer now and then.
           add({ gazeY: 0.7, headTilt: 0.05 }, bump(t, seed, 'look-down', 28, 2.5));
-        } else {
+        } else if (!beat) {
           const knees = frame.reducedMotion ? 0 : bump(t, seed, 'knees', 17, 1.2);
           const bounce = Math.sin(2 * Math.PI * 3 * t) * u(6) * knees;
           add({ footLX: bounce, footRX: -bounce });

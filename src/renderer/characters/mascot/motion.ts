@@ -8,6 +8,8 @@ import type { CharacterMotionRig } from '../../motion/hook';
 import type { MotionFrame } from '../../motion/types';
 import { lylaPatch, lylaRig } from './motionRig';
 import { mascotStates } from './states';
+import { foldElbows } from '../../motion/pose/ik';
+import { lylaV2Proxy } from './pose';
 
 /** Artboard units per body height (the 600-unit artboard is drawn at the body height). */
 const UNITS = 600;
@@ -66,52 +68,58 @@ const clipTracks: Readonly<Record<string, { track: string; seconds: number; loop
 };
 export const mascotClipTracks = [...new Set(Object.values(clipTracks).map((clip) => clip.track))];
 
+/** Shoulders, hips, head and face of the Lyla skeleton (shared with Lyla v2, which adds elbows). */
+export function bindMascotBody(frame: MotionFrame): ReturnType<CharacterMotionRig['bind']> {
+  const p = frame.pose;
+  const scaleY = frame.placement.scaleY,
+    // Narrow through |facing| ~ 0 so the renderer's mirror swap is hidden mid-turn.
+    scaleX = frame.placement.scaleX * Math.max(0.2, Math.abs(frame.placement.facing));
+  // Body clips first: the control tracks after them own the face and squash.
+  const clips = frame.clips.flatMap((clip) => {
+    const entry = clipTracks[clip.role];
+    if (!entry || clip.mix <= 0.001) return [];
+    const time = clip.time / entry.seconds;
+    const normalized = entry.loop ? time - Math.floor(time) : Math.min(1, time);
+    return [{ track: entry.track, time: normalized, mix: Math.min(1, clip.mix) }];
+  });
+  return {
+    tracks: [
+      ...gaitTracks(frame),
+      ...clips,
+      sample('faceX', p.gazeX * 0.85),
+      sample('faceY', p.gazeY * 0.85),
+      sample('blinkLeft', -1 + 2 * p.blinkL),
+      sample('blinkRight', -1 + 2 * p.blinkR),
+      sample('browLeft', p.browL),
+      sample('browRight', p.browR),
+      sample('lidLeft', 1 - 2 * p.squintL),
+      sample('lidRight', 1 - 2 * p.squintR),
+      sample('mouthX', p.mouthX),
+      sample('mouthY', p.mouthY),
+      sample('mouthCurve', -p.smile),
+      sample('squash', Math.max(-1.2, Math.min(1.2, p.squash))),
+      sample('hairSwing', p.hairSwing),
+      sample('hairSwoop', p.hairSwoop),
+      sample('hairSquash', p.hairSquash),
+    ],
+    nodes: {
+      head: { rotation: p.headTilt, y: p.headY * UNITS },
+      upper: { rotation: p.lean },
+      // Host-level squash (hops, landings) applied at the hips so the feet stay planted.
+      body: { x: p.shift * UNITS, y: p.bob * UNITS, scaleX, scaleY },
+      'arm-l': { rotation: p.armL },
+      'arm-r': { rotation: -p.armR },
+      'foot-l': { x: p.footLX * UNITS, y: -p.footLY * UNITS },
+      'foot-r': { x: p.footRX * UNITS, y: -p.footRY * UNITS },
+    },
+  };
+}
+
 export const mascotMotion: CharacterMotionRig = {
   patch: lylaPatch,
   states: mascotStates,
-  bind(frame: MotionFrame) {
-    const p = frame.pose;
-    const scaleY = frame.placement.scaleY,
-      // Narrow through |facing| ~ 0 so the renderer's mirror swap is hidden mid-turn.
-      scaleX = frame.placement.scaleX * Math.max(0.2, Math.abs(frame.placement.facing));
-    // Body clips first: the control tracks after them own the face and squash.
-    const clips = frame.clips.flatMap((clip) => {
-      const entry = clipTracks[clip.role];
-      if (!entry || clip.mix <= 0.001) return [];
-      const time = clip.time / entry.seconds;
-      const normalized = entry.loop ? time - Math.floor(time) : Math.min(1, time);
-      return [{ track: entry.track, time: normalized, mix: Math.min(1, clip.mix) }];
-    });
-    return {
-      tracks: [
-        ...gaitTracks(frame),
-        ...clips,
-        sample('faceX', p.gazeX * 0.85),
-        sample('faceY', p.gazeY * 0.85),
-        sample('blinkLeft', -1 + 2 * p.blinkL),
-        sample('blinkRight', -1 + 2 * p.blinkR),
-        sample('browLeft', p.browL),
-        sample('browRight', p.browR),
-        sample('lidLeft', 1 - 2 * p.squintL),
-        sample('lidRight', 1 - 2 * p.squintR),
-        sample('mouthX', p.mouthX),
-        sample('mouthY', p.mouthY),
-        sample('mouthCurve', -p.smile),
-        sample('squash', Math.max(-1.2, Math.min(1.2, p.squash))),
-        sample('hairSwing', p.hairSwing),
-        sample('hairSwoop', p.hairSwoop),
-        sample('hairSquash', p.hairSquash),
-      ],
-      nodes: {
-        head: { rotation: p.headTilt, y: p.headY * UNITS },
-        upper: { rotation: p.lean },
-        // Host-level squash (hops, landings) applied at the hips so the feet stay planted.
-        body: { x: p.shift * UNITS, y: p.bob * UNITS, scaleX, scaleY },
-        'arm-l': { rotation: p.armL },
-        'arm-r': { rotation: -p.armR },
-        'foot-l': { x: p.footLX * UNITS, y: -p.footLY * UNITS },
-        'foot-r': { x: p.footRX * UNITS, y: -p.footRY * UNITS },
-      },
-    };
-  },
+  // This file has no elbows: bent-arm poses (pose beats, v2 acting) fold the elbow into the
+  // shoulder so the straight arm points where the hand would be (pose/ik.ts foldElbows).
+  bind: (frame) =>
+    bindMascotBody({ ...frame, pose: { ...frame.pose, ...foldElbows(lylaV2Proxy, frame.pose) } }),
 };

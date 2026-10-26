@@ -3,6 +3,8 @@
 // cue, rig and stage always give the same plan, so studio and overlay agree.
 import type { BodyStateId, Spot } from '../../../../shared/states';
 import { G_BH } from '../core/physics';
+import { holdPose } from '../pose/runtime';
+import type { Beat } from '../pose/schema';
 import type { Pose } from '../types';
 import { restKey, type ContactPoint, type KeyName, type KeyPose, type StateRig } from './types';
 
@@ -114,6 +116,16 @@ export interface PlanContext {
   /** Horizontal distance from the soles to a lean edge (BH). */
   edgeDistance: number;
   reducedMotion: boolean;
+  /** Posture variant (from the cue seed) when the state has several authored holds. */
+  variant?: number;
+}
+
+/** The authored hold beat for a state at a spot, if the rig has one (variant by seed). */
+export function holdBeat(state: BodyStateId, spot: Spot | null, context: PlanContext): Beat | null {
+  const surface = spot?.surface ?? 'floor';
+  const options = context.rig.holds?.[state]?.[surface];
+  if (!options?.length) return null;
+  return options[Math.abs(Math.round(context.variant ?? 0)) % options.length] ?? null;
 }
 
 class Builder {
@@ -198,6 +210,11 @@ function sleepy(k: KeyPose): KeyPose {
 
 /** The held key pose of a state at a spot (without hold life). */
 export function heldKey(state: BodyStateId, spot: Spot | null, context: PlanContext): KeyPose {
+  const base = heldKeyBase(state, spot, context);
+  const hold = holdBeat(state, spot, context);
+  return hold ? { ...base, pose: holdPose(hold) } : base;
+}
+function heldKeyBase(state: BodyStateId, spot: Spot | null, context: PlanContext): KeyPose {
   const { rig, gap } = context;
   const ledge = spot?.surface === 'ledge';
   switch (state) {
@@ -242,11 +259,11 @@ export function enterPlan(state: BodyStateId, spot: Spot | null, context: PlanCo
       if (spot?.surface === 'ledge') {
         jumpUp();
         b.to(key(rig, null, { lift: gap, pose: { gazeY: 0.6, lean: 0.08 } }), 0.3);
-        const seated = key(rig, 'sitLedge', { lift: gap - rig.seatHeight });
+        const seated = heldKey('sit', spot, context);
         b.to({ ...seated, pose: addPose(seated.pose, { squash: 0.15 }) }, 0.6, 'inOut');
         b.to({ ...seated, pose: addPose(seated.pose, { squash: 0.4 }) }, 0.08, 'out');
         b.to(seated, 0.25, 'out');
-      } else sitDownFloor(b, rig);
+      } else sitDownFloor(b, rig, heldKey('sit', spot, context));
       if (state === 'doze') b.to(held, 2.0);
       return b.build();
     }
@@ -266,8 +283,7 @@ export function enterPlan(state: BodyStateId, spot: Spot | null, context: PlanCo
       return b.to(held, 0.1, 'out').build();
   }
 }
-function sitDownFloor(b: Builder, rig: StateRig) {
-  const sit = key(rig, 'sitFloor');
+function sitDownFloor(b: Builder, rig: StateRig, sit = key(rig, 'sitFloor')) {
   b.to(key(rig, null, { pose: { gazeY: 0.4, headTilt: 0.05, armL: 0.15, armR: 0.15 } }), 0.35);
   // Lower (controlled), seat contact with a small overshoot and squash, then settle.
   b.to({ ...sit, pose: addPose(sit.pose, { bob: 8 / 600, squash: 0.25 }) }, 0.7, 'inOut');
@@ -301,13 +317,13 @@ export function exitPlan(
       if (wake === 'urgent')
         b.to({ ...seated, pose: addPose(seated.pose, { browL: -0.6, browR: -0.6 }) }, 0.15, 'out');
       else b.to(seated, 0.8);
-      if (ledge) dropFromLedge(b, rig, gap);
-      else standFromFloor(b, rig, wake === 'urgent');
+      if (ledge) dropFromLedge(b, rig, gap, seated);
+      else standFromFloor(b, rig, wake === 'urgent', seated);
       return b.build();
     }
     case 'sit':
-      if (ledge) dropFromLedge(b, rig, gap);
-      else standFromFloor(b, rig, false);
+      if (ledge) dropFromLedge(b, rig, gap, held);
+      else standFromFloor(b, rig, false, held);
       return b.build();
     case 'nap':
       wakeFromLie(b, rig, wake ?? 'normal', true);
@@ -324,8 +340,7 @@ export function exitPlan(
       return b.to(restKey, 0.5, 'out').build();
   }
 }
-function standFromFloor(b: Builder, rig: StateRig, fast: boolean) {
-  const sit = key(rig, 'sitFloor');
+function standFromFloor(b: Builder, rig: StateRig, fast: boolean, sit = key(rig, 'sitFloor')) {
   const k = fast ? 0.6 : 1;
   // Flexion-momentum: lean forward and load, then rise past standing a touch, then settle.
   b.to(
@@ -335,8 +350,12 @@ function standFromFloor(b: Builder, rig: StateRig, fast: boolean) {
   b.to(key(rig, null, { pose: { squash: -0.3, lean: 0.05 } }), 0.6 * k, 'out');
   b.to(restKey, 0.4 * k, 'out');
 }
-function dropFromLedge(b: Builder, rig: StateRig, gap: number) {
-  const seated = key(rig, 'sitLedge', { lift: gap - rig.seatHeight });
+function dropFromLedge(
+  b: Builder,
+  rig: StateRig,
+  gap: number,
+  seated = key(rig, 'sitLedge', { lift: gap - rig.seatHeight }),
+) {
   const pushed = {
     ...seated,
     lift: seated.lift + 0.02,

@@ -9,6 +9,10 @@
 import { clamp01, easeOutCubic, lerp, smootherstep } from '../core/curves';
 import { G_BH, airtime, fallTime, hopHeight } from '../core/physics';
 import { pick, rngFor } from '../core/random';
+import { climbUp } from '../pose/library/climb';
+import { dustKnees as dustKneesBeat } from '../pose/library/dust';
+import { beatFrame, beatLength } from '../pose/runtime';
+import type { Beat } from '../pose/schema';
 import type { MotionProfile } from '../profile';
 import type { Pose, Stage } from '../types';
 import { resolveGait } from './gaits/library';
@@ -111,6 +115,23 @@ const settle = (duration: number): Step => ({
   fn: (_t, k) => ({ lift: 0, pose: { squash: 0.15 * Math.sin(k * Math.PI) } }),
 });
 
+/**
+ * An authored pose beat (src/renderer/motion/pose/library/) as an act step: key poses with hand
+ * targets solved on the skeleton, the edge clip and the root lift come from the beat's data.
+ */
+export function beatAct(name: string, beat: Beat): Step {
+  const length = beatLength(beat);
+  return {
+    kind: 'act',
+    name,
+    duration: length,
+    fn: (_t, k) => {
+      const f = beatFrame(beat, k * length);
+      return { pose: f.pose, lift: f.lift, clip: f.clip, scaleX: f.scaleX, scaleY: f.scaleY };
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Drop: fall, splat, get up, dust off the knees, straighten into idle.
 
@@ -182,41 +203,9 @@ const getUp: Step = {
   },
 };
 
-// Knee pats (front view): a deep knee bend with the head down, arms swinging in and down to the
-// thighs with alternating pats and a small body bob per pat (inward arm swings hide behind the
-// body on this rig, so each arm swings out and pats back against the side of the thigh), brows down ("hmph") then relaxing.
-// No torso lean: on a front-facing 2D character a lean reads as a sideways tilt.
-const dustKnees: Step = {
-  kind: 'act',
-  name: 'dust off knees',
-  duration: 1.25,
-  fn: (t) => {
-    const bend = win(t, 0, 0.22, 0.85, 0.18);
-    const pats = (phase: number) => {
-      const p = (t - 0.25) * 4.5 + phase;
-      return t > 0.25 && t < 0.95 ? Math.max(0, Math.sin(p * Math.PI * 2)) : 0;
-    };
-    const left = pats(0),
-      right = pats(0.5);
-    const hmph = win(t, 0, 0.15, 0.75, 0.3);
-    return {
-      lift: 0,
-      scaleY: 1 - 0.04 * (left + right) * bend,
-      pose: {
-        bob: (0.04 + 0.008 * (left + right)) * bend,
-        gazeY: 0.75 * bend,
-        headTilt: 0.04 * (left - right) * bend,
-        // Swing out, then slap back against the thigh: the silhouette change is what reads.
-        armL: (0.55 * left - 0.08) * bend,
-        armR: (0.55 * right - 0.08) * bend,
-        browL: 0.55 * hmph,
-        browR: 0.55 * hmph,
-        smile: -0.25 * hmph,
-        squash: 0.3 * bend,
-      },
-    };
-  },
-};
+// Knee pats: bend at the hips and knees with a look down, open hands patting the sides of the
+// legs in alternation with the elbows bent, a "hmph", then a look up (pose/library/dust.ts).
+const dustKnees: Step = beatAct('dust off knees', dustKneesBeat);
 
 const straighten: Step = {
   kind: 'act',
@@ -316,8 +305,9 @@ const slowBlink: Step = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// Climb: hands appear first, a straining pull with a look around, a second pull, a leg swings
-// over, hop up, brush the hands, idle.
+// Climb: hands slap onto the top of the edge with the eyes peeking over ("Kilroy"), hang and look
+// around, pull with the elbows flaring, walk the hands in, press up on straight arms, hook a foot
+// over, mantle into a crouch and stand (pose/library/climb.ts); then brush the hands.
 
 const climbClip = (
   name: string,
@@ -332,81 +322,7 @@ const climbClip = (
 
 const climbSteps: Step[] = [
   { kind: 'spawnBelow' },
-  climbClip('hands appear', 0.45, (_t, k) => ({
-    lift: lerp(-1.25, -1.02, easeOutCubic(k)),
-    pose: { armL: 2.6, armR: 2.6 },
-  })),
-  climbClip('first pull', 0.55, (_t, k) => ({
-    lift: lerp(-1.02, -0.55, 1 - (1 - k) * (1 - k)),
-    pose: {
-      armL: lerp(2.6, 1.7, k),
-      armR: lerp(2.6, 1.7, k),
-      squash: -0.4 * Math.sin(k * Math.PI),
-      browL: 0.6,
-      browR: 0.6,
-      squintL: 0.4,
-      squintR: 0.4,
-      smile: -0.3,
-    },
-  })),
-  climbClip('look around', 0.75, (t) => ({
-    lift: -0.55 + 0.01 * Math.sin(t * 6),
-    pose: {
-      armL: 1.7,
-      armR: 1.7,
-      gazeX: 0.75 * Math.sin(Math.min(1, t / 0.65) * Math.PI * 2),
-      headTilt: 0.06 * Math.sin(Math.min(1, t / 0.65) * Math.PI * 2),
-      browL: -0.4,
-      browR: -0.4,
-    },
-  })),
-  climbClip('second pull', 0.45, (_t, k) => ({
-    lift: lerp(-0.55, -0.22, 1 - (1 - k) * (1 - k)),
-    pose: {
-      armL: lerp(1.7, 0.9, k),
-      armR: lerp(1.7, 0.9, k),
-      squash: -0.4 * Math.sin(k * Math.PI),
-      browL: 0.6,
-      browR: 0.6,
-      smile: -0.3,
-    },
-  })),
-  climbClip('leg over', 0.42, (_t, k) => ({
-    lift: lerp(-0.22, -0.08, k),
-    pose: {
-      shift: 0.02 * Math.sin(k * Math.PI),
-      lean: -0.1 * Math.sin(k * Math.PI),
-      footRY: 0.06 * Math.sin(k * Math.PI),
-      footRX: 0.04 * Math.sin(k * Math.PI),
-      armL: 0.9 * (1 - k),
-      armR: 0.9 * (1 - k),
-    },
-  })),
-  {
-    kind: 'act',
-    name: 'hop up',
-    duration: airtime(0.12),
-    physical: true,
-    fn: (t, k) => {
-      const air = hopHeight(t, airtime(0.12));
-      return {
-        lift: lerp(-0.08, 0, k) + air,
-        clip: k < 0.4,
-        scaleY: k > 0.85 ? 1 - 0.12 * ((k - 0.85) / 0.15) : 1 + 0.08 * Math.sin(k * Math.PI),
-        pose: { armL: 0.4 * Math.sin(k * Math.PI), armR: 0.4 * Math.sin(k * Math.PI) },
-      };
-    },
-  },
-  {
-    kind: 'act',
-    name: 'land',
-    duration: 0.25,
-    fn: (_t, k) => ({
-      lift: 0,
-      scaleY: 1 - 0.12 * (1 - smootherstep(k)),
-      pose: { bob: 0.01 * (1 - k) },
-    }),
-  },
+  beatAct('climb', climbUp),
   brushHands,
   { kind: 'expression', id: 'happy' },
   settle(0.3),

@@ -6,6 +6,8 @@ import {
 } from '../src/renderer/motion/systems/choreography';
 import { Locomotion } from '../src/renderer/motion/systems/locomotion';
 import { motionProfile } from '../src/renderer/motion/profile';
+import { lylaV2Proxy } from '../src/renderer/characters/mascot/pose';
+import { joints } from '../src/renderer/motion/pose/proxy';
 import type { MotionSettings, Stage } from '../src/renderer/motion/types';
 
 const stage: Stage = { aspect: 16 / 9, bodyHeight: 220 / 720, margin: 0.02 };
@@ -43,15 +45,22 @@ describe('choreography', () => {
       (f) => f.beat === 'splat' && f.scaleY < 0.75 && (f.pose.blinkL ?? 0) > 0.9,
     );
     expect(splat.length / 60).toBeGreaterThanOrEqual(0.35);
-    // Knee pats: arms reaching down with at least 2 pats per side, alternating.
+    // Knee pats: open hands patting the sides of the legs, alternating, at least 2 per side
+    // (hand heights through the proxy skeleton: a pat is a local low of a hand).
     const dust = frames.filter((f) => f.beat === 'dust off knees');
-    let patsL = 0,
-      prev = 0;
-    for (const f of dust) {
-      const v = f.pose.armL ?? 0;
-      if (v > 0.3 && prev <= 0.3) patsL++;
-      prev = v;
-    }
+    const lows = (side: 'L' | 'R') => {
+      const ys = dust.map((f) => {
+        const j = joints(lylaV2Proxy, f.pose);
+        return side === 'L' ? j.handL.y : j.handR.y;
+      });
+      return ys.filter(
+        (y, i) =>
+          i > 0 && i < ys.length - 1 && y < (ys[i - 1] ?? 0) - 1e-5 && y <= (ys[i + 1] ?? 0),
+      ).length;
+    };
+    const patsL = lows('L');
+    expect(lows('R')).toBeGreaterThanOrEqual(2);
+    expect(dust.some((f) => f.pose.handL === 1 && f.pose.handR === 1)).toBe(true);
     expect(patsL).toBeGreaterThanOrEqual(2);
     expect(frames.some((f) => f.beat === 'get up')).toBe(true);
     const doneAt = frames.findIndex((f) => f.done) / 60;
