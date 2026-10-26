@@ -64,8 +64,13 @@ export interface MotionOutput {
   offset?: Partial<Offset>;
   /** If set, the character's normalized position this frame (locomotion owns movement). */
   position?: Point;
-  /** -1 faces left, 1 faces right (renderers may mirror). */
+  /** -1 faces left, 1 faces right. The renderer mirrors exactly when this changes. */
   facing?: -1 | 1;
+  /**
+   * Normalized y of a ground line below which the body is cut (climb, hop-off). null = no mask.
+   * When absent during climb choreographies the renderer masks at the character's home line.
+   */
+  clipBelow?: number | null;
   /**
    * Set when the motion layer performs the entrance/exit itself; the renderer then skips its
    * slide-and-fade fallback and uses `hidden` (0 visible .. 1 gone) only for opacity.
