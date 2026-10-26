@@ -152,7 +152,11 @@ interface Foot {
 }
 
 const G = 9.8; // body heights / s^2 (a chibi is roughly a metre tall)
+/** Facing flip duration; the swap happens at the narrowest point (|facing| ~ 0). */
 const TURN = 0.16;
+/** Crouch/squash anticipation before the flip, and settle after it. */
+const TURN_LEAD = 0.1;
+const TURN_TAIL = 0.06;
 
 export class Locomotion {
   private rng: Rng;
@@ -212,6 +216,30 @@ export class Locomotion {
       this.target = { x: this.x, y: this.y };
       this.enter('settling', at);
     }
+  }
+
+  /** Turn in place to face a direction (e.g. back toward the camera after arriving). */
+  turnTo(direction: 1 | -1, at: number) {
+    if (direction === this.facingTo || this.state !== 'idle') return;
+    this.beginTurn(direction, at, false);
+  }
+
+  private moveAfterTurn = false;
+
+  private beginTurn(direction: number, now: number, thenMove: boolean) {
+    this.facingFrom = this.facingTo;
+    this.facingTo = direction;
+    this.turnStart = now + TURN_LEAD;
+    this.moveAfterTurn = thenMove;
+    this.needsReplant = true;
+    this.enter('turning', now);
+  }
+
+  /** Turn progress 0..1 while turning (0 otherwise), for renderers and debugging. */
+  turnProgress(now: number) {
+    return this.state === 'turning'
+      ? clamp01((now - this.stateStart) / (TURN_LEAD + TURN + TURN_TAIL))
+      : 0;
   }
 
   /** Pick a nearby point to amble to; deterministic per seed. */
@@ -284,18 +312,9 @@ export class Locomotion {
         if (!caps.feet && this.gait !== 'hop') this.gait = 'hop';
         this.speedScale = command.speed ?? 1;
         const direction = Math.sign(this.target.x - this.x) || this.facingTo;
-        if (direction !== this.facingTo && this.state !== 'moving') {
-          this.facingFrom = this.facingAt(now);
-          this.facingTo = direction;
-          this.turnStart = now;
-          this.enter('turning', now);
-        } else if (this.state === 'moving') {
-          if (direction !== this.facingTo) {
-            this.facingFrom = this.facingAt(now);
-            this.facingTo = direction;
-            this.turnStart = now;
-          }
-        } else this.enter('anticipate', now);
+        // Reversing always plays a readable turn first, never a mid-stride flip.
+        if (direction !== this.facingTo) this.beginTurn(direction, now, true);
+        else if (this.state !== 'moving') this.enter('anticipate', now);
       }
     }
 
@@ -307,11 +326,23 @@ export class Locomotion {
     let desired = 0;
 
     switch (this.state) {
-      case 'turning':
-        // Squash through the narrow point so the flip reads as a turn, not a pop.
-        scaleY = 1 + 0.05 * (1 - Math.abs(facing));
-        if (now - this.stateStart >= TURN) this.enter('anticipate', now);
+      case 'turning': {
+        // Crouch (anticipation), flip at the narrowest point with a squash, head and hair lag.
+        const t = now - this.stateStart;
+        const crouch = Math.sin(clamp01(t / (TURN_LEAD + TURN * 0.5)) * Math.PI);
+        const narrow = 1 - Math.abs(facing);
+        pose.bob = 0.007 * crouch;
+        pose.squash = 0.35 * crouch;
+        scaleY = 1 + 0.05 * narrow;
+        pose.headTilt = -0.08 * this.facingTo * narrow;
+        pose.hairSwing = 0.25 * this.facingTo * narrow;
+        pose.gazeX = 0.5 * this.facingTo * clamp01((t - TURN_LEAD) / TURN);
+        if (t >= TURN_LEAD + TURN + TURN_TAIL) {
+          if (this.moveAfterTurn) this.enter('anticipate', now);
+          else this.enter('idle', now);
+        }
         break;
+      }
       case 'anticipate': {
         const length = (0.16 * Math.max(0.3, profile.anticipation)) / tempo;
         const k = Math.sin(clamp01((now - this.stateStart) / length) * Math.PI);

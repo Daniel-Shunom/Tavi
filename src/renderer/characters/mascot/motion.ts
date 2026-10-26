@@ -41,7 +41,8 @@ export const mascotMotion: CharacterMotionRig = {
   bind(frame: MotionFrame) {
     const p = frame.pose;
     const scaleY = frame.placement.scaleY,
-      scaleX = frame.placement.scaleX;
+      // Narrow through |facing| ~ 0 so the renderer's mirror swap is hidden mid-turn.
+      scaleX = frame.placement.scaleX * Math.max(0.2, Math.abs(frame.placement.facing));
     return {
       tracks: [
         sample('faceX', p.gazeX * 0.85),
