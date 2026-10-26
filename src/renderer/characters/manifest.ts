@@ -101,6 +101,11 @@ export const manifestSchema = z
     /** Width of the drawn box relative to its height. */
     aspect: z.number().positive().default(0.8),
     /**
+     * Height of the soles above the artboard bottom, as a fraction of the artboard height.
+     * Renderers shift the drawing down by this so `placement.y` is the floor.
+     */
+    soleOffset: z.number().min(0).max(0.5).default(0),
+    /**
      * Locomotion capability. "procedural": no authored walk; the motion layer synthesizes steps.
      * "clip": an authored walk cycle track, optionally with speed/direction state machine inputs.
      */

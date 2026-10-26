@@ -40,6 +40,7 @@ export function Avatar({
   const canvas = useRef<HTMLCanvasElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLCanvasElement>(null);
+  const shadow = useRef<HTMLDivElement>(null);
   const front = useRef<HTMLCanvasElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   const latest = useRef({ state, serverNow, captions });
@@ -204,6 +205,7 @@ export function Avatar({
               nodes: Object.keys(manifest.nodes),
               inputs: Object.keys(manifest.inputs),
               locomotion: manifest.locomotion,
+              soleOffset: manifest.soleOffset,
             },
           });
         const previous = position;
@@ -320,6 +322,30 @@ export function Avatar({
           bubble.current.style.left = `${String(placement.x)}px`;
           bubble.current.style.top = `${String(placement.y - placement.height * 0.92)}px`;
         }
+        // Contact shadow: behind the body and back attachments, inside the clipped, mirrored body.
+        const spot = shadow.current;
+        if (spot) {
+          const groundX =
+            presentation === 'portrait'
+              ? centerX + ((output.shadow?.x ?? position.x) - position.x) * width
+              : (output.shadow?.x ?? position.x) * width;
+          const groundY =
+            bottomY + ((output.shadow?.y ?? position.y) - position.y) * height + offset.y * unit;
+          const shade = output.shadow ?? {
+            scale: 1,
+            opacity: handledPresence ? 0 : 0.35 * (1 - hidden) * (1 - peek),
+          };
+          const bodyHeight = size * offset.scale;
+          const w = 0.44 * bodyHeight * shade.scale,
+            h = 0.07 * bodyHeight * shade.scale;
+          spot.style.width = `${w.toFixed(1)}px`;
+          spot.style.height = `${h.toFixed(1)}px`;
+          spot.style.left = `${(groundX - w / 2).toFixed(1)}px`;
+          spot.style.top = `${(groundY - h / 2).toFixed(1)}px`;
+          spot.style.opacity = shade.opacity.toFixed(3);
+          spot.dataset['opacity'] = shade.opacity.toFixed(3);
+          spot.dataset['scale'] = shade.scale.toFixed(3);
+        }
         view.draw(dt, { ...placement, rotation: 0 });
         frame = view.requestFrame(draw);
       } catch (reason) {
@@ -395,6 +421,7 @@ export function Avatar({
   return (
     <div className="avatar-renderer" ref={host} data-renderer={getCharacter(characterId).renderer}>
       <div className="avatar-body" ref={body}>
+        <div ref={shadow} className="avatar-shadow" aria-hidden="true" />
         <canvas ref={back} className="avatar-layer" aria-hidden="true" />
         <canvas ref={canvas} aria-label={`${state.config.name}, animated companion`} />
         <canvas ref={front} className="avatar-layer" aria-hidden="true" />
