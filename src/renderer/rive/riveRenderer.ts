@@ -18,6 +18,9 @@ import type { TransformSource } from '../attachments/layer';
 import type { CharacterAttachments } from '../characters/attachmentRigs';
 import { assetUrl } from '../characters/assets';
 import { motionRigs } from '../characters/motionRigs';
+import { variantRigs } from '../characters/variantRigs';
+import { applyVariant } from '../characters/variants/apply';
+import { isOriginal } from '../../../shared/variants';
 import { patchRiv } from '../motion/rive/patch';
 import type { CharacterManifest } from '../characters/manifest';
 import { drawFrame } from '../placement';
@@ -121,6 +124,7 @@ export async function createRiveRenderer(
     // Motion rig extension (runtime names + control tracks), applied in memory; the .riv is unchanged.
     // One load path: motion rig names, attachment slot names, then recolour/hide, all in memory.
     const rig = motionRigs[manifest.id];
+    const variantRig = variantRigs[manifest.id];
     let patched = rig ? patchRiv(data, rig.patch) : data;
     const attachments = options.attachments;
     if (attachments) {
@@ -148,6 +152,11 @@ export async function createRiveRenderer(
         force(glasses.animation);
       }
     }
+    // Character variant (skin, eyes, hair colour, build, face shape): in-memory edits that keep
+    // every name, track and joystick (characters/variants/apply.ts).
+    const variant = options.look?.variant;
+    if (variantRig && variant && !isOriginal(variant))
+      patched = applyVariant(patched, variantRig, variant);
     file = await runtime.load(patched, undefined, false);
     renderer = runtime.makeRenderer(canvas, true);
     board = file.artboardByName(manifest.artboard);
@@ -212,7 +221,7 @@ export async function createRiveRenderer(
     }
     const activeBoard = board,
       activeRenderer = renderer;
-    if (attachments) world = riveTransformSource(activeBoard);
+    if (attachments || variantRig) world = riveTransformSource(activeBoard);
     const characterBounds = bounds(activeBoard);
     function apply(handle: string, position: number, mix: number) {
       const clip = tracks.get(handle);

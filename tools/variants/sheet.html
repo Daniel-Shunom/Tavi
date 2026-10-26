@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tavi variant sheet</title>
+    <style>
+      :root {
+        --bg: #f3f1ec;
+        --ink: #1f1b24;
+        --muted: #6b6474;
+        --line: #e2ddd5;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+      body {
+        margin: 0;
+        padding: 20px 16px 48px;
+        background: var(--bg);
+      }
+      h2 {
+        margin: 24px 0 4px;
+      }
+      .note {
+        margin: 0 0 12px;
+        color: var(--muted);
+        max-width: 80ch;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+        overflow-x: auto;
+      }
+      .label {
+        width: 150px;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-self: center;
+      }
+      .label span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      figure {
+        margin: 0;
+        flex: none;
+      }
+      figcaption {
+        font-size: 11px;
+        color: var(--muted);
+        text-align: center;
+      }
+      canvas {
+        display: block;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module" src="./sheet.ts"></script>
+  </body>
+</html>
