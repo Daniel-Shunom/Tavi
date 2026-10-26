@@ -165,7 +165,8 @@ export function createHookLayer(
       // Body state: sync the cue; a settled cue on mount/reconnect places us at its spot.
       const motion = layer;
       const bodyCue = input.body?.cue;
-      if (bodyCue?.id !== bodyId) {
+      const bodyCueChanged = bodyCue?.id !== bodyId;
+      if (bodyCueChanged) {
         bodyId = bodyCue?.id ?? null;
         if (bodyCue?.state === 'stand' && bodyCue.source === 'manual' && bodyCue.spot) {
           // A manual Stand is a local stop. Its explicit ground point is shared with OBS and
@@ -194,6 +195,10 @@ export function createHookLayer(
         if (place) {
           layer.place(place.x, place.y);
           lastTarget = { ...input.locomotion.target };
+        }
+        if (bodyCueChanged) {
+          const faceAtSpot = bodyStates.facingOnArrival();
+          if (faceAtSpot) motion.locomotion.turnTo(faceAtSpot, now);
         }
       }
 
