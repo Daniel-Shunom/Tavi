@@ -15,7 +15,7 @@ function App() {
   const connection = useConnection();
   return overlay ? (
     <main className="overlay-surface">
-      <Avatar state={connection.state} />
+      <Avatar state={connection.state} serverNow={connection.serverNow} />
     </main>
   ) : (
     <Studio {...connection} />
