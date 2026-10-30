@@ -21,8 +21,8 @@ A customizable, expressive chibi companion that hangs out in a streamer's OBS ca
 
 <p>
   <a href="#a-look-around"><b>A look around</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="#run-the-proof-of-concept"><b>Run it</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="#what-works-now"><b>What works</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/RUNNING.md"><b>Run it</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/STATUS.md"><b>What works</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#connect-twitch"><b>Connect Twitch</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#documentation"><b>Docs</b></a>
 </p>
@@ -74,56 +74,6 @@ Tavi is a customizable animated companion for livestreamers. It lives in an OBS 
 
 We used Codex as a collaborative coding partner to explore the existing React, TypeScript, Rive, and Node service architecture, then implement and refine features across the studio, shared behavior contracts, character renderer, and OBS overlay. Codex helped trace behavior from the UI through the validated commands and renderer, and supported iterative UI and motion work. We kept the product boundaries explicit in the code and documentation: Twitch reactions are rule-based, demo inputs are labeled, and AI integration is not described as live functionality.
 
-## Run the proof of concept
-
-Requirements: Node.js 22.12+ (use the same Node major across machines), npm, and Python 3.10+ for skill verification.
-
-```powershell
-npm ci
-python tools/skills.py
-npm run dev
-```
-
-Open http://127.0.0.1:5173 for the cinematic landing page, or visit http://127.0.0.1:5173/studio to customize the character, try gestures, and compare cozy, playful, and shy personalities in the reaction playground. Character changes are saved by the Node service to `.data/character.json` and synchronized with all connected previews.
-
-In OBS, add a Browser Source with URL `http://127.0.0.1:5173/overlay`, width 1280 and height 720. Keep the local service running. The overlay contains only the character with a transparent background. The studio's webcam/chat panels are placement guides, not OBS source detection. Peeking currently happens at the canvas edge.
-
-To run the production build:
-
-```powershell
-npm run build
-npm start
-```
-
-Landing page: http://127.0.0.1:4318. Studio: http://127.0.0.1:4318/studio. OBS overlay: http://127.0.0.1:4318/overlay.
-
-## What works now
-
-- Shared layered chibi rig with skin, hair, outfit, hairstyle, and accessory options.
-- Blink/breathe animation and wave, smile, surprise, point, and peek gestures.
-- Scene anchors and position adjustments, tuck away, and quiet mode.
-- Local saved configuration and server-authoritative WebSocket synchronization.
-- Deterministic reaction playground demonstrating personality differences.
-
-Microphone capture, transcription, and AI decisions are not connected yet. Live Twitch chat is available through the Connect Twitch panel. The UI labels all simulated inputs. Quiet mode suppresses simulated reactions while retaining explicit manual controls. Nonzero chat engagement levels are not yet a probabilistic policy; zero disables demo chat reactions.
-
-## Repository layout
-
-- `src/`: React studio and PixiJS/Tween.js renderer.
-- `shared/`: validated configuration, commands, and demo behavior boundary.
-- `server/`: Fastify/WebSocket service and local configuration persistence.
-- `tests/`: behavior and real WebSocket integration tests.
-- `desktop/`: Tauri shell maintained by the other agent; see its README.
-- `.agents/skills/`: vendored project-local agent skills.
-- `.agents/skills.lock.json`: pinned sources and SHA-256 hashes.
-- `tools/skills.py`: dependency-free skill verification and restoration.
-
-## Reproduce the tooling
-
-Commit `.agents/` together with the application and `package-lock.json`. A normal clone already includes all 11 project skills and supporting files; no global skill install is needed. Verify with `python tools/skills.py`. Restore missing files with `python tools/skills.py --restore` (network required). Modified files are reported and never overwritten automatically. Updates are deliberate changes to both vendored files and the lockfile. Upstream notices are retained under `.agents/licenses/` and within skill folders. Poteto skills are pending identification of the intended source repository.
-
-Application dependencies use `npm ci` from the lockfile. Agent skills may reference live external guidance or optional CLIs, so pinned skill files reproduce the instructions, not external services or model behavior.
-
 ## Connect Twitch
 
 The registered public Client ID is built into `shared/twitch.ts`; it is not a secret. Start Tavi and click **Connect Twitch**. Open the displayed Twitch authorization link in your browser and approve read-chat access. The registered Twitch app must use the **Public** client type. This device-code flow does not use a callback URL or client secret. If Tauri does not open the link yet, use **Copy authorization link** and paste it into your system browser. The desktop owner can integrate that link with Tauri's external-browser opener.
@@ -138,12 +88,16 @@ Twitch UI smoke check: with the dev server running, execute `node tools/twitch-b
 
 ## Documentation
 
-|                                                       |                                                                                |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [Landing page vision](docs/LANDING-VISION.md)         | The story the landing page tells, and how Tavi moves through it.               |
-| [Landing page notes](docs/LANDING-NEXT.md)            | Loading, motion language, idle life and the page descent as built.             |
-| [Development](docs/DEVELOPMENT.md)                    | Validation, formatting, typing, browser smoke checks and pull request reviews. |
-| [Companion stage UI experiment](docs/STUDIO-STAGE.md) | The studio's stage layout and its browser check.                               |
-| [Plan](docs/PLAN.md)                                  | The four-day build and four-day refinement targets.                            |
-| [OBS and webcam](docs/OBS-WEBCAM.md)                  | Placing Tavi in OBS beside a webcam.                                           |
-| [Desktop app](desktop/README.md)                      | The Tauri shell and its packaging.                                             |
+|                                                       |                                                                                              |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [Run the proof of concept](docs/RUNNING.md)           | Install, run the landing page and studio, add the OBS overlay, and run the production build. |
+| [What works now](docs/STATUS.md)                      | What the current build does, and what is not connected yet.                                  |
+| [Repository layout](docs/REPOSITORY-LAYOUT.md)        | Where the studio, renderer, service, tests and tooling live.                                 |
+| [Reproduce the tooling](docs/TOOLING.md)              | Vendored agent skills, the lockfile, and how to verify or restore them.                      |
+| [Landing page vision](docs/LANDING-VISION.md)         | The story the landing page tells, and how Tavi moves through it.                             |
+| [Landing page notes](docs/LANDING-NEXT.md)            | Loading, motion language, idle life and the page descent as built.                           |
+| [Development](docs/DEVELOPMENT.md)                    | Validation, formatting, typing, browser smoke checks and pull request reviews.               |
+| [Companion stage UI experiment](docs/STUDIO-STAGE.md) | The studio's stage layout and its browser check.                                             |
+| [Plan](docs/PLAN.md)                                  | The four-day build and four-day refinement targets.                                          |
+| [OBS and webcam](docs/OBS-WEBCAM.md)                  | Placing Tavi in OBS beside a webcam.                                                         |
+| [Desktop app](desktop/README.md)                      | The Tauri shell and its packaging.                                                           |
