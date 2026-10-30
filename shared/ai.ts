@@ -1,15 +1,29 @@
 // Public, non-secret AI provider status shared by the service and the studio.
 import { z } from 'zod';
 
-export const providerIds = ['rules', 'openai', 'anthropic'] as const;
+export const providerIds = ['rules', 'chatgpt', 'openai', 'anthropic'] as const;
+export const chatgptStatusSchema = z.object({
+  phase: z.enum(['disconnected', 'authorizing', 'connected', 'error']),
+  email: z.string().nullable(),
+  models: z.array(z.object({ id: z.string(), name: z.string() })),
+  error: z.string().nullable(),
+});
+export type ChatGPTStatus = z.infer<typeof chatgptStatusSchema>;
 /** Supported account connection paths; OAuth is listed only when the provider documents it. */
 export const connectionMethods = [
+  {
+    id: 'chatgpt',
+    label: 'ChatGPT',
+    method: 'oauth',
+    availability: 'supported',
+    detail: 'Continue with ChatGPT. Uses your eligible plan allowance.',
+  },
   {
     id: 'openai',
     label: 'OpenAI API',
     method: 'api-key',
     availability: 'supported',
-    detail: 'The model API authenticates with an API key. ChatGPT sign-in is not API access.',
+    detail: 'Separate API billing with a service API key.',
   },
   {
     id: 'anthropic',

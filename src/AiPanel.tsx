@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Brain, Check, CircleAlert } from 'lucide-react';
-import { aiStatusSchema, providerIds, type AiStatus } from '../shared/ai';
+import {
+  aiStatusSchema,
+  chatgptStatusSchema,
+  providerIds,
+  type AiStatus,
+  type ChatGPTStatus,
+} from '../shared/ai';
 import { fetchService, isJudgingSession } from './judging/transport';
 
 /** Chooses which decision provider directs expressions. Keys stay on the service. */
@@ -11,6 +17,8 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [account, setAccount] = useState<ChatGPTStatus | null>(null);
+  const [authorizationUrl, setAuthorizationUrl] = useState('');
   const read = useCallback(async () => {
     const response = await fetchService('/api/ai', { cache: 'no-store' });
     if (!response.ok) throw new Error('Could not read AI status.');
@@ -22,9 +30,19 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
     let timer: ReturnType<typeof setTimeout>;
     async function poll() {
       try {
-        const next = await read();
+        const [next, accountResponse] = await Promise.all([
+          read(),
+          isJudgingSession() ? Promise.resolve(null) : fetch('/api/chatgpt', { cache: 'no-store' }),
+        ]);
+        const nextAccount = accountResponse
+          ? chatgptStatusSchema.parse(await accountResponse.json())
+          : null;
         if (!disposed) {
           setStatus(next);
+          if (nextAccount) {
+            setAccount(nextAccount);
+            if (nextAccount.phase !== 'authorizing') setAuthorizationUrl('');
+          }
           setError('');
         }
       } catch {
@@ -69,9 +87,88 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
     }
   }
   const chosen = status?.providers.find((entry) => entry.id === provider);
+  async function accountAction(action: 'connect' | 'disconnect') {
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch('/api/chatgpt/' + action, {
+        method: 'POST',
+        headers: { 'x-tavi-request': 'studio' },
+      });
+      if (!response.ok) throw new Error('Account action failed.');
+      if (action === 'connect') {
+        const result = (await response.json()) as { authorizationUrl: string };
+        const url = new URL(result.authorizationUrl);
+        if (url.origin !== 'https://auth.openai.com' || url.pathname !== '/api/accounts/authorize')
+          throw new Error('Invalid authorization URL.');
+        setAuthorizationUrl(url.href);
+        window.open(url.href, '_blank', 'noopener,noreferrer');
+      } else {
+        setAccount(chatgptStatusSchema.parse(await response.json()));
+        setAuthorizationUrl('');
+      }
+      setStatus(await read());
+      setDirty(false);
+      const fresh = await fetch('/api/chatgpt', { cache: 'no-store' });
+      setAccount(chatgptStatusSchema.parse(await fresh.json()));
+    } catch {
+      setError('Could not update ChatGPT. Disconnect and try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
   const isAi = status?.active.kind === 'ai';
   return (
     <div className="ai-panel">
+      {!isJudgingSession() ? <div className="chatgpt-account">
+        <p className="helper-note" role="status">
+          {account?.phase === 'connected'
+            ? account.email
+            : account?.phase === 'authorizing'
+              ? 'Finish sign-in in your browser.'
+              : 'Power Tavi with your ChatGPT plan.'}
+        </p>
+        {account?.phase !== 'connected' && account?.phase !== 'authorizing' ? (
+          <button
+            type="button"
+            className="primary-button"
+            disabled={!serviceConnected || busy}
+            onClick={() => void accountAction('connect')}
+          >
+            Continue with ChatGPT
+          </button>
+        ) : null}
+        {account?.phase === 'authorizing' && authorizationUrl ? (
+          <a
+            className="primary-button"
+            href={authorizationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open sign-in
+          </a>
+        ) : null}
+        {account?.phase === 'connected' ||
+        account?.phase === 'authorizing' ||
+        account?.phase === 'error' ? (
+          <button
+            type="button"
+            className="small-button"
+            disabled={!serviceConnected || busy}
+            onClick={() => void accountAction('disconnect')}
+          >
+            {account.phase === 'authorizing' ? 'Cancel sign-in' : 'Disconnect ChatGPT'}
+          </button>
+        ) : null}
+        <p className="helper-note">
+          Uses your plan allowance. Selected chat context goes to OpenAI.
+        </p>
+        {account?.error ? (
+          <p className="error-banner" role="alert">
+            {account.error}
+          </p>
+        ) : null}
+      </div> : null}
       <p className="ai-active" role="status">
         <Brain size={15} />
         <span>
@@ -79,12 +176,7 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
         </span>
         <span className={`ai-badge ${isAi ? 'live' : ''}`}>{isAi ? 'AI' : 'Not AI'}</span>
       </p>
-      {isJudgingSession() && (
-        <p className="helper-note">
-          Rules preview. AI connections are available in the desktop app.
-        </p>
-      )}
-      <fieldset disabled={!serviceConnected || busy || isJudgingSession()} className="ai-controls">
+      <fieldset disabled={!serviceConnected || busy} className="ai-controls">
         <label className="field">
           Decision provider
           <select
@@ -108,7 +200,25 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
             ))}
           </select>
         </label>
-        {provider !== 'rules' ? (
+        {provider === 'chatgpt' ? (
+          <label className="field">
+            Model
+            <select
+              name="ai-model"
+              value={model}
+              onChange={(event) => {
+                setModel(event.target.value);
+                setDirty(true);
+              }}
+            >
+              {account?.models.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : provider !== 'rules' ? (
           <label className="field">
             Model
             <input
@@ -137,7 +247,7 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
       {chosen && !chosen.configured && chosen.hint ? (
         <p className="helper-note">{chosen.hint}</p>
       ) : null}
-      <details className="ai-connections" hidden={isJudgingSession()}>
+      <details className="ai-connections">
         <summary>Account connection options</summary>
         <ul>
           {status?.connections.map((connection) => (

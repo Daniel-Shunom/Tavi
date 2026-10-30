@@ -28,8 +28,8 @@ fn trusted_external(url: &Url) -> bool {
         && url.port().is_none()
         && url.username().is_empty()
         && url.password().is_none()
-        && url.host_str() == Some("www.twitch.tv")
-        && url.path() == "/activate"
+        && ((url.host_str() == Some("www.twitch.tv") && url.path() == "/activate")
+            || (url.host_str() == Some("auth.openai.com") && url.path() == "/api/accounts/authorize"))
 }
 
 pub fn classify(url: &Url, origin: &str) -> Target {
@@ -72,6 +72,8 @@ mod tests {
     fn other_external_urls_are_blocked() {
         for url in [
             "https://www.twitch.tv/somebody",
+            "https://auth.openai.com.evil.example/api/accounts/authorize",
+            "https://auth.openai.com/api/accounts/oauth/token",
             "http://www.twitch.tv/activate",
             "https://twitch.tv.evil.example/activate",
             "https://user@www.twitch.tv/activate",
@@ -92,5 +94,9 @@ mod tests {
             navigation(&Url::parse("http://127.0.0.1:4318/overlay").unwrap(), ORIGIN),
             Target::InApp
         );
+    }
+    #[test]
+    fn chatgpt_authorization_opens_in_browser() {
+        assert_eq!(check("https://auth.openai.com/api/accounts/authorize?client_id=dynamic_agent_client"), Target::Browser);
     }
 }

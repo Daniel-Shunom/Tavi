@@ -4,6 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import staticFiles from '@fastify/static';
 import { createApp } from '../server/app.js';
+import { AiManager, selectionSchema } from '../server/ai/manager.js';
 import { configSchema, defaults } from '../shared/protocol.js';
 import { listenDesktop } from './listen.js';
 const directory = resolve(process.env['TAVI_DATA_DIR'] ?? '.data');
@@ -20,6 +21,16 @@ try {
   if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
     console.warn('Could not read saved character; using defaults.');
 }
+const ai = new AiManager();
+try {
+  const saved = JSON.parse(await readFile(resolve(directory, 'ai.json'), 'utf8')) as {
+    provider?: unknown;
+  };
+  const provider = selectionSchema.shape.provider.safeParse(saved.provider);
+  if (provider.success) ai.select({ provider: provider.data });
+} catch {
+  // First launch or invalid non-secret selection: use the default provider.
+}
 const app = await createApp(
   config,
   async (value) => {
@@ -29,6 +40,14 @@ const app = await createApp(
   },
   {},
   () => (port ? [`http://127.0.0.1:${String(port)}`, `http://localhost:${String(port)}`] : []),
+  {
+    ai,
+    saveAi: async (selection) => {
+      await mkdir(directory, { recursive: true });
+      await writeFile(resolve(directory, 'ai.tmp'), JSON.stringify(selection));
+      await rename(resolve(directory, 'ai.tmp'), resolve(directory, 'ai.json'));
+    },
+  },
 );
 await app.register(staticFiles, {
   root: resolve(dirname(fileURLToPath(import.meta.url)), 'dist'),

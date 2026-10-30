@@ -1,7 +1,5 @@
 # ChatGPT connection
 
-> Integration status: this is a development handoff for work outside the current main revision. Its implementation is not included in this revision; use it as development evidence, not as a claim that these controls are available here.
-
 Studio → Decision provider → **Continue with ChatGPT**. Finish consent in the system browser and return to Tavi. A successful connection activates ChatGPT automatically; choose another available model with **Use this**. Disconnect removes local credentials and attempts remote revocation. No app API key or client secret is used.
 
 This powers bounded expression/caption decisions from selected recent chat context. Speech, microphone input, and external donations remain separate features. Rules take over when the account is unavailable, a request fails, or the existing per-minute/session budget is exhausted.
@@ -32,11 +30,3 @@ Next acceptance: open Studio ? Decision provider ? Continue with ChatGPT, author
 Final checks: all 19 ChatGPT tests, production build, desktop TypeScript, and targeted ESLint passed. Desktop/mobile controls passed in Chromium against the built service on port 4318. Screenshots: `.impeccable/review/chatgpt/`. Chrome opened at `http://127.0.0.1:4318/studio#brain`. The Vite page's load event timed out in one browser run; verification used the production-served app successfully. Existing unrelated whitespace in skills lock/art files still causes the repository-wide `git diff --check` to fail; auth files pass targeted lint.
 
 Session ID: `01a17704-cc9a-7d01-822a-754a6062ab3c`
-
-## Sign-in diagnostic follow-up
-
-The earlier encryption failure was produced by an invalid base64 test input; a valid DPAPI roundtrip passes. No encryption fix was established. The live sign-in cause remains unknown because the original callback swallowed its error. The callback now returns safe, specific failure messages for registration, code exchange, identity verification, plan permission, model catalog, secure storage, and activation. Raw provider responses and tokens remain hidden. The local service was restarted. All 19 auth tests, build, skills verification passed. Retry consent to identify the real failing step.
-
-## Confirmed code-exchange cause
-
-The development service had been launched inside the tool network sandbox. A credential-free POST to the official token endpoint failed there with TypeError / EACCES. The same probe outside the sandbox reached OpenAI and returned HTTP 400 (expected for an empty grant). Restarted the local service with elevated network permission using npm start. This resolves the observed outbound-access blocker; user-driven consent and inference remain pending. Future tool-launched services that contact OpenAI must run outside the network sandbox.

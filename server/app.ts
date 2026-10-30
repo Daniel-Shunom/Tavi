@@ -16,12 +16,14 @@ import { itemCatalogFrom } from '../shared/wardrobe.js';
 import { TwitchIntegration, type TwitchOptions } from './twitch/integration.js';
 import { Companion } from './companion.js';
 import { AiManager, selectionSchema, type Selection } from './ai/manager.js';
+import { ChatGPTConnection } from './ai/chatgpt.js';
 import { z } from 'zod';
 import { obsConnectSchema } from '../shared/obs.js';
 import { ObsWebcam } from './obs/webcam.js';
 
 export interface AppOptions {
   ai?: AiManager;
+  chatgpt?: ChatGPTConnection;
   catalog?: CharacterCatalog;
   /** Persists the non-secret provider/model selection. */
   saveAi?: (selection: ReturnType<AiManager['selection']>) => Promise<void>;
@@ -61,6 +63,17 @@ export async function createApp(
   const app = Fastify({ logger: false, bodyLimit: 16384 });
   await app.register(websocket, { options: { maxPayload: 16384 } });
   const ai = options.ai ?? new AiManager();
+  const chatgpt =
+    options.chatgpt ??
+    new ChatGPTConnection({
+      onConnected: async () => {
+        ai.select({ provider: 'chatgpt' });
+        await options.saveAi?.(ai.selection());
+      },
+    });
+  ai.attachChatGPT(chatgpt);
+  // Start without waiting on a remote catalog; the desktop health check stays local.
+  const accountReady = chatgpt.initialize();
   const initial = config ?? defaults;
   const companion = new Companion({
     config:
@@ -113,6 +126,10 @@ export async function createApp(
       if (!active()) return;
       void companion.chat(chat);
       twitchOptions.onMessage?.(chat);
+    },
+    onEvent: (event) => {
+      companion.streamEvent(event);
+      twitchOptions.onEvent?.(event);
     },
   });
   function isTrusted(origin: string | undefined) {
@@ -189,6 +206,31 @@ export async function createApp(
     return reply.code(404).send({ error: 'Unknown Twitch action.' });
   });
   // AI provider status and selection. Keys are configured on the service only and never returned.
+  app.get('/api/chatgpt', (_, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return chatgpt.status();
+  });
+  app.post('/api/chatgpt/:action', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!studioOnly(request))
+      return reply.code(403).send({ error: 'Open this action from Tavi Studio.' });
+    await accountReady;
+    const action = (request.params as { action: string }).action;
+    try {
+      if (action === 'connect') return await chatgpt.connect();
+      if (action === 'disconnect') {
+        if (ai.selection().provider === 'chatgpt') {
+          ai.select({ provider: 'rules' });
+          await options.saveAi?.(ai.selection());
+        }
+        await chatgpt.disconnect();
+        return chatgpt.status();
+      }
+    } catch {
+      return reply.code(400).send({ error: 'Could not update ChatGPT. Disconnect and try again.' });
+    }
+    return reply.code(404).send({ error: 'Unknown ChatGPT action.' });
+  });
   app.get('/api/ai', (_, reply) => {
     reply.header('Cache-Control', 'no-store');
     return Promise.resolve(ai.status());
@@ -201,11 +243,22 @@ export async function createApp(
     if (!parsed.success)
       return reply.code(400).send({ error: 'Choose a known provider and a valid model name.' });
     const selection: Selection = parsed.data;
+    if (selection.provider === 'chatgpt') {
+      if (!chatgpt.configured) return reply.code(400).send({ error: 'Connect ChatGPT first.' });
+      if (selection.model) {
+        try {
+          await chatgpt.selectModel(selection.model);
+        } catch {
+          return reply.code(400).send({ error: 'Choose an available ChatGPT model.' });
+        }
+      }
+    }
     const status = ai.select(selection);
     await options.saveAi?.(ai.selection());
     return status;
   });
   app.addHook('onClose', () => {
+    chatgpt.close();
     obs.close();
     twitch.close();
     companion.close();

@@ -21,7 +21,7 @@ export interface AiSettings {
     effort: 'low' | 'medium' | 'high';
   };
   /** Which provider to use. Keys never leave the service. */
-  active: 'rules' | 'openai' | 'anthropic';
+  active: 'rules' | 'chatgpt' | 'openai' | 'anthropic';
   timeoutMs: number;
   maxPerMinute: number;
   maxPerSession: number;
@@ -50,7 +50,8 @@ export function settingsFromEnv(env: NodeJS.ProcessEnv = process.env): AiSetting
       baseURL: env['ANTHROPIC_BASE_URL'],
       effort: effort === 'medium' || effort === 'high' ? effort : 'low',
     },
-    active: active === 'openai' || active === 'anthropic' ? active : 'rules',
+    active:
+      active === 'openai' || active === 'anthropic' || active === 'chatgpt' ? active : 'rules',
     timeoutMs: number(env['TAVI_AI_TIMEOUT_MS'], 8000),
     maxPerMinute: number(env['TAVI_AI_MAX_PER_MINUTE'], 8),
     maxPerSession: number(env['TAVI_AI_MAX_PER_SESSION'], 400),
@@ -73,6 +74,11 @@ const defaultFactory: ProviderFactory = (id, settings) =>
     : new AnthropicProvider(settings.anthropic);
 
 export class AiManager {
+  private chatgpt: (DecisionProvider & { readonly configured: boolean }) | null = null;
+  attachChatGPT(provider: DecisionProvider & { readonly configured: boolean }) {
+    this.chatgpt = provider;
+    this.rebuild();
+  }
   readonly rules = new RulesProvider();
   private provider: DecisionProvider | null = null;
   private calls: number[] = [];
@@ -92,7 +98,12 @@ export class AiManager {
   }
   private rebuild() {
     const id = this.settings.active;
-    this.provider = id === 'rules' || !this.configured(id) ? null : this.factory(id, this.settings);
+    this.provider =
+      id === 'chatgpt'
+        ? this.chatgpt
+        : id === 'rules' || !this.configured(id)
+          ? null
+          : this.factory(id, this.settings);
   }
   select(selection: Selection) {
     const settings = structuredClone(this.settings);
@@ -119,6 +130,7 @@ export class AiManager {
     };
   }
   get active(): ProviderInfo {
+    if (this.settings.active === 'chatgpt' && !this.chatgpt?.configured) return this.rules.info;
     return this.provider?.info ?? this.rules.info;
   }
   status(): AiStatus {
@@ -129,6 +141,12 @@ export class AiManager {
       connections: [...connectionMethods],
       providers: [
         { id: 'rules', label: 'Rules (not AI)', configured: true },
+        {
+          id: 'chatgpt',
+          label: 'ChatGPT',
+          configured: this.chatgpt?.configured ?? false,
+          model: this.chatgpt?.info.model ?? '',
+        },
         {
           id: 'openai',
           label: 'OpenAI-compatible',
@@ -160,7 +178,8 @@ export class AiManager {
    */
   async decide(context: DecisionContext, signal: AbortSignal): Promise<DecisionResult> {
     const started = this.now();
-    const provider = this.provider;
+    const provider =
+      this.settings.active === 'chatgpt' && !this.chatgpt?.configured ? null : this.provider;
     const fallback = async (reason: string): Promise<DecisionResult> => {
       const decision = await this.rules.decide(context);
       this.last = {
