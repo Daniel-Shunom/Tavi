@@ -36,6 +36,11 @@ export interface RenderFrame {
   inputs: Record<string, number | boolean>;
   /** Node handle -> additive transform. */
   nodes: Record<string, NodeTransform>;
+  /**
+   * Horizontal world position in body heights when a page moves the character itself
+   * (outside the renderer's placement), so cloth can follow the real travel.
+   */
+  travel?: number;
 }
 export interface Placement {
   /** Bottom-centre anchor in CSS pixels. */

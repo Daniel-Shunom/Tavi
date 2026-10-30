@@ -221,6 +221,8 @@ export async function createRiveRenderer(
     }
     const activeBoard = board,
       activeRenderer = renderer;
+    const postprocessor = rig?.createPostprocessor?.(activeBoard);
+    let travel: number | undefined;
     if (attachments || variantRig) world = riveTransformSource(activeBoard);
     const characterBounds = bounds(activeBoard);
     function apply(handle: string, position: number, mix: number) {
@@ -253,6 +255,16 @@ export async function createRiveRenderer(
       },
       applyFrame(frame: RenderFrame) {
         if (disposed) return;
+        travel = frame.travel;
+        // Report the renderer actually drawing, not an older async load that
+        // finishes after its Avatar effect has already been cancelled.
+        canvas.dataset['characterId'] = manifest.id;
+        canvas.dataset['characterAsset'] = assetUrl(manifest);
+        canvas.dataset['rigViews'] = rig?.screenSpaceViews ? 'authored-left-right' : 'legacy';
+        canvas.dataset['motionFoundation'] = frame.tracks
+          .filter((t) => t.track.startsWith('runtime.gait.') || t.track.startsWith('runtime.pose.'))
+          .map((t) => t.track)
+          .join(' ');
         // Nodes return to their setup pose before clips, so motion offsets add on top of the
         // animated values instead of replacing them (and never accumulate).
         for (const entry of nodes.values()) {
@@ -300,6 +312,7 @@ export async function createRiveRenderer(
         const ratio = Math.min(devicePixelRatio || 1, 2);
         machine?.advance(dt);
         activeBoard.advance(dt);
+        postprocessor?.update(dt, placement, travel);
         // eslint-disable-next-line @typescript-eslint/no-deprecated -- the pinned 2.45 runtime lacks beginFrame.
         activeRenderer.clear();
         activeRenderer.save();

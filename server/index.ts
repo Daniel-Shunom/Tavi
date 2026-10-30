@@ -69,7 +69,18 @@ const app = await createApp(
   },
 );
 if (existsSync(resolve('dist/index.html'))) {
-  await app.register(staticFiles, { root: resolve('dist') });
+  await app.register(staticFiles, {
+    root: resolve('dist'),
+    // `npm run build` writes .br/.gz copies (tools/precompress.mjs); hashed assets never change.
+    preCompressed: true,
+    cacheControl: false,
+    setHeaders: (response, path) => {
+      response.header(
+        'cache-control',
+        /[\\/]assets[\\/]/.test(path) ? 'public, max-age=31536000, immutable' : 'no-cache',
+      );
+    },
+  });
   app.get('/studio', async (_, reply) => reply.sendFile('index.html'));
   app.get('/overlay', async (_, reply) => reply.sendFile('index.html'));
 }

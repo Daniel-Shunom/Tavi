@@ -11,3 +11,8 @@ __pycache__/
 
 # Generated from art/mascot-remix by tools/mascot-remix/slim.mjs
 art/mascot-v2-export/
+
+# Recreated from the committed Rive authoring scripts before tests.
+art/tavi-rive-lab/**/scene.rml
+art/tavi-rive-lab/**/rive.yaml
+art/tavi-rive-lab/*/

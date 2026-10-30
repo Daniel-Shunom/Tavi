@@ -46,6 +46,10 @@ export function Avatar({
     : state.config.captions.studio,
   onPosition,
   directTracks,
+  directNodes,
+  directTravel,
+  onDraw,
+  frame = { height: 0.9, bottom: 0.96, fitWidth: true },
 }: {
   state: State;
   serverNow?: () => number;
@@ -55,6 +59,18 @@ export function Avatar({
   onPosition?: (position: Point) => void;
   /** Optional imperative Rive clips for authored page choreography. */
   directTracks?: () => TrackApplication[];
+  /** Node ownership for authored page foundations, applied after procedural offsets. */
+  directNodes?: () => RenderFrame['nodes'];
+  /** World travel in body heights when the page moves the character (cloth follow-through). */
+  directTravel?: () => number | undefined;
+  /** Capture after Rive flushes, before its WebGL drawing buffer is cleared. */
+  onDraw?: (layers: readonly HTMLCanvasElement[]) => void;
+  /**
+   * Portrait placement: the artboard's height and its soles line as fractions of the host box.
+   * A page that scrubs clips with root motion (hanging legs, hops) leaves room around the body by
+   * drawing it smaller and higher than the default portrait, which fills the box.
+   */
+  frame?: { height: number; bottom: number; fitWidth?: boolean };
 }) {
   const host = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -64,8 +80,28 @@ export function Avatar({
   const front = useRef<HTMLCanvasElement>(null);
   const bubble = useRef<HTMLDivElement>(null);
   const stateLayer = useRef<HTMLDivElement>(null);
-  const latest = useRef({ state, serverNow, captions, onPosition, directTracks });
-  latest.current = { state, serverNow, captions, onPosition, directTracks };
+  const latest = useRef({
+    state,
+    serverNow,
+    captions,
+    onPosition,
+    directTracks,
+    directNodes,
+    directTravel,
+    frame,
+    onDraw,
+  });
+  latest.current = {
+    state,
+    serverNow,
+    captions,
+    onPosition,
+    directTracks,
+    directNodes,
+    directTravel,
+    frame,
+    onDraw,
+  };
   const [error, setError] = useState('');
   const characterId = state.config.character;
   // Recolours are baked into the character file, so they reload the renderer (on commit).
@@ -169,12 +205,16 @@ export function Avatar({
         // Scene-aware attention: one resolver for every layer (shared/attention.ts). Directions
         // are computed in overlay-canvas coordinates from Tavi's live position, so the studio
         // portrait looks the same way as the overlay.
-        const portraitSize = Math.min(height * 0.9, width / 0.7);
+        const box = latest.current.frame;
+        const portraitSize = box.fitWidth
+          ? Math.min(height * box.height, width / 0.7)
+          : height * box.height;
+        const portraitBottom = height * box.bottom;
         const pointerCanvas =
           presentation === 'portrait' && pointer
             ? (() => {
                 const unitPx = portraitSize / REFERENCE_BODY;
-                const headPx = { x: width * 0.5, y: height * 0.96 - 0.8 * portraitSize };
+                const headPx = { x: width * 0.5, y: portraitBottom - 0.8 * portraitSize };
                 const head = headPoint(position, REFERENCE_BODY);
                 return {
                   x: head.x + (pointer.x - headPx.x) / unitPx,
@@ -312,12 +352,14 @@ export function Avatar({
         if (output.tracks) renderFrame.tracks.push(...output.tracks);
         for (const sample of latest.current.directTracks?.() ?? [])
           if (manifest.tracks[sample.track]) renderFrame.tracks.push(sample);
+        Object.assign(renderFrame.nodes, latest.current.directNodes?.());
+        const pageTravel = latest.current.directTravel?.();
+        if (pageTravel !== undefined) renderFrame.travel = pageTravel;
         view.setAppearance(config.appearance);
         view.applyFrame(renderFrame);
         // Placement in CSS pixels; manifest offsets are in 720p reference pixels.
         const scale = Math.min(width / 1280, height / 720);
-        const size =
-          presentation === 'portrait' ? Math.min(height * 0.9, width / 0.7) : 220 * scale;
+        const size = presentation === 'portrait' ? portraitSize : 220 * scale;
         const unit = presentation === 'portrait' ? size / 220 : scale;
         const offset = {
           x: pose.offset.x + (output.offset?.x ?? 0),
@@ -331,7 +373,7 @@ export function Avatar({
           scale: pose.offset.scale + (output.offset?.scale ?? 0),
         };
         const centerX = presentation === 'portrait' ? width * 0.5 : position.x * width;
-        const bottomY = presentation === 'portrait' ? height * 0.96 : position.y * height;
+        const bottomY = presentation === 'portrait' ? portraitBottom : position.y * height;
         const peek = pose.peek;
         const slide = handledPresence ? 0 : hidden;
         const placement = {
@@ -445,6 +487,8 @@ export function Avatar({
           if (element) element.dataset['bodyState'] = states?.status ?? 'stand';
         }
         view.draw(dt, { ...placement, rotation: 0 });
+        if (latest.current.onDraw && back.current && canvas.current && front.current)
+          latest.current.onDraw([back.current, canvas.current, front.current]);
         frame = view.requestFrame(draw);
       } catch (reason) {
         fail(reason);

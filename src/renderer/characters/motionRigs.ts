@@ -3,8 +3,10 @@
 import type { CharacterMotionRig } from '../motion/hook';
 import { mascotMotion } from './mascot/motion';
 import { mascotV2Motion } from './mascot-v2/motion';
+import { refinedMotion } from './tavi-refined/motion';
 
 export const motionRigs: Readonly<Record<string, CharacterMotionRig | undefined>> = {
   mascot: mascotMotion,
   'mascot-v2': mascotV2Motion,
+  'tavi-refined': refinedMotion,
 };
