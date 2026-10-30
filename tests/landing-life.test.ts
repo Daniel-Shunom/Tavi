@@ -12,7 +12,8 @@ const still: Omit<LifeInput, 'dt'> = {
 
 function live(life: TaviLife, seconds: number, input: Partial<LifeInput> = {}) {
   const frames: LifeFrame[] = [];
-  for (let i = 0; i < seconds * 30; i++) frames.push(life.update({ ...still, ...input, dt: 1 / 30 }));
+  for (let i = 0; i < seconds * 30; i++)
+    frames.push(life.update({ ...still, ...input, dt: 1 / 30 }));
   return frames;
 }
 const cues = (frames: LifeFrame[]) => [

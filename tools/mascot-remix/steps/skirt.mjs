@@ -8,7 +8,7 @@ export function attachSkirt(source) {
     const tags = /<(\/?)Shape\b[^>]*?(\/?)>/g;
     tags.lastIndex = match.index;
     let depth = 0;
-    for (let tag; (tag = tags.exec(rml)); ) {
+    for (let tag; (tag = tags.exec(rml));) {
       if (tag[2]) continue;
       depth += tag[1] ? -1 : 1;
       if (!depth) return [match.index, tags.lastIndex];

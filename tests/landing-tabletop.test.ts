@@ -31,9 +31,7 @@ const unit = measures.bodyPx * 0.8;
 const deskY = screen.top + ((0.4042329 + 0.001) / (0.4042329 - 0.1141471)) * screen.height;
 const tvY = deskY - TV_TOP * pxPerY;
 const worldX = (frame: TabletopFrame) => (frame.placement.x - screen.left) / scale - 0.2571352;
-const fastest = Math.max(
-  ...Object.values(GAITS).map((g) => (g.stride / 600) * unit * g.cycles),
-);
+const fastest = Math.max(...Object.values(GAITS).map((g) => (g.stride / 600) * unit * g.cycles));
 const quiet: Visitor = { x: null, y: null, speed: 0, idleFor: 0 };
 
 function simulate(seconds: number, fps: number, visitor = quiet, actor = new TabletopCompanion()) {
@@ -64,7 +62,7 @@ describe('landing tabletop companion', () => {
           const before = previous.gaits[0];
           if (gait && before && gait.foundation === before.foundation) {
             const phase = (gait.phase - before.phase + 1) % 1;
-            const stride = (({ walk: 60, sprint: 104, skip: 160 })[gait.foundation] / 600) * unit;
+            const stride = ({ walk: 60, sprint: 104, skip: 160 }[gait.foundation] / 600) * unit;
             expect(phase * stride).toBeCloseTo(moved, 4);
           }
         }

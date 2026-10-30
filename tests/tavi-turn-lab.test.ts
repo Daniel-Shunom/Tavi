@@ -129,18 +129,21 @@ describe('isolated Tavi three-quarter rig', () => {
       expect(assembly).toContain(`targetId="${foot ?? ''}"`);
       expect(assembly).toContain('name="tavi/footwear-attachment"');
     }
-    for (const shoe of ['0:13091','0:13183']) {
+    for (const shoe of ['0:13091', '0:13183']) {
       const start = source.search(new RegExp(`<Shape\\b[^>]*id="${shoe}"`));
-      const shape=source.slice(start,source.indexOf('</Shape>',start));
+      const shape = source.slice(start, source.indexOf('</Shape>', start));
       expect(shape).toContain('<Skin');
       expect(shape.match(/<CubicWeight /g)).toHaveLength(6);
       // The opening belongs to the ankle; toe, heel and sole to the foot.
       expect(shape.match(/indices="2" values="255"/g)).toHaveLength(3);
       expect(shape.match(/indices="1" values="255"/g)).toHaveLength(3);
     }
-    for (const [sock,shin] of [['0:13119','0:2520'],['0:13201','0:2495']]) {
+    for (const [sock, shin] of [
+      ['0:13119', '0:2520'],
+      ['0:13201', '0:2495'],
+    ]) {
       const start = source.search(new RegExp(`<Shape\\b[^>]*id="${sock ?? ''}"`));
-      expect(source.slice(start,source.indexOf('</Shape>',start))).toContain('<Skin');
+      expect(source.slice(start, source.indexOf('</Shape>', start))).toContain('<Skin');
       expect(source).toContain(`name="shin cuff attachment" targetId="${shin ?? ''}"`);
     }
   });
@@ -192,7 +195,8 @@ describe('isolated Tavi three-quarter rig', () => {
       expect(Math.max(...samples) - Math.min(...samples)).toBeLessThanOrEqual(6.5);
     }
     for (const id of ['29:102', '29:108']) {
-      const vertex = new RegExp(`<CubicDetachedVertex\\b[^>]*id="${id}"[^>]*>`).exec(source)?.[0] ?? '';
+      const vertex =
+        new RegExp(`<CubicDetachedVertex\\b[^>]*id="${id}"[^>]*>`).exec(source)?.[0] ?? '';
       const incoming = Number(/inRotation="([^"]+)"/.exec(vertex)?.[1]);
       const outgoing = Number(/outRotation="([^"]+)"/.exec(vertex)?.[1]);
       expect(Math.abs(outgoing - incoming)).toBeCloseTo(Math.PI, 6);
@@ -235,9 +239,11 @@ describe('isolated Tavi three-quarter rig', () => {
     for (const id of rear) expect(travel(id), id).toBeLessThanOrEqual(1e-6);
   });
   it('binds each rounded limb surface to its existing upper and lower bones', () => {
-    for (const [name,upper,lower] of [
-      ['armL','0:2079','0:2080'],['armR','0:2340','0:2341'],
-      ['legL','0:2519','0:2520'],['legR','0:2494','0:2495'],
+    for (const [name, upper, lower] of [
+      ['armL', '0:2079', '0:2080'],
+      ['armR', '0:2340', '0:2341'],
+      ['legL', '0:2519', '0:2520'],
+      ['legR', '0:2494', '0:2495'],
     ]) {
       const start = source.indexOf(`name="tavi/${name ?? ''}.surface"`);
       expect(start).toBeGreaterThan(0);
@@ -266,21 +272,24 @@ describe('isolated Tavi three-quarter rig', () => {
     expect(source).toContain('name="Elbow and knee review"');
   });
   it('draws only the near forearm in front while keeping its shoulder under the garment', () => {
-    const turn=keys(animation('tavi/turnBody'));
-    for (const [side,last] of [['L',1],['R',0]] as const) {
-      const start=source.indexOf(`name="tavi/near-forearm-${side}"`);
+    const turn = keys(animation('tavi/turnBody'));
+    for (const [side, last] of [
+      ['L', 1],
+      ['R', 0],
+    ] as const) {
+      const start = source.indexOf(`name="tavi/near-forearm-${side}"`);
       expect(start).toBeGreaterThan(0);
-      const shape=source.slice(start,source.indexOf('</Shape>',start));
+      const shape = source.slice(start, source.indexOf('</Shape>', start));
       expect(shape.match(/<CubicDetachedVertex /g)).toHaveLength(3);
       expect(shape).not.toContain('name="limb start"');
       expect(shape).toContain('name="bend entry"');
       expect(shape).toContain('placementValue="before"');
       expect(shape).toContain('drawableId="29:10"');
-      const id=/\bid="([^"]+)"/.exec(shape)?.[1];
-      const opacity=turn.get(`${id ?? ''}.opacity`);
-      expect(opacity?.find(([frame])=>frame===30)?.[1]).toBe(0);
+      const id = /\bid="([^"]+)"/.exec(shape)?.[1];
+      const opacity = turn.get(`${id ?? ''}.opacity`);
+      expect(opacity?.find(([frame]) => frame === 30)?.[1]).toBe(0);
       expect(opacity?.at(-1)?.[1]).toBe(last);
-      expect(opacity?.[0]?.[1]).toBe(1-last);
+      expect(opacity?.[0]?.[1]).toBe(1 - last);
     }
   });
 });

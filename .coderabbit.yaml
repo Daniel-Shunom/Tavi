@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+reviews:
+  profile: chill
+  path_filters:
+    - '!.agents/**'
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: 'src/**'
+      instructions: >-
+        Review accessibility, mobile layout, reduced-motion behavior, loading and
+        error states, and cleanup of browser graphics resources. Preserve the
+        approved Tavi visual direction and avoid speculative copy rewrites.
+    - path: 'src/renderer/**'
+      instructions: >-
+        Check that landing choreography does not alter Studio or OBS behavior.
+        Keep the renderer independent of Tauri and preserve deterministic motion.

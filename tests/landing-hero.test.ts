@@ -54,7 +54,8 @@ describe('hero performance', () => {
     expect(seated?.placement.stage).toBe('ledge');
     expect(seated?.placement.y).toBeLessThan(measures.screen?.top ?? 0);
     expect(seated?.finished).toBe(true);
-    const edge = (measures.screen?.top ?? 0) -
+    const edge =
+      (measures.screen?.top ?? 0) -
       ((0.4568334 - 0.4042329) / (0.4042329 - 0.1141471)) * (measures.screen?.height ?? 0);
     expect(seated?.placement.y).toBeCloseTo(edge + measures.bodyPx * 0.025);
   });

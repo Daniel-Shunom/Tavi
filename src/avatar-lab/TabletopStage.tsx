@@ -271,10 +271,15 @@ export function TabletopStage({ hero = false }: { hero?: boolean }) {
       renderer.domElement.remove();
     };
   }, [hero]);
-  if (hero) return <div className="avatar-tabletop-hero">
-    <div className="avatar-tabletop-canvas" ref={host} />
-    <p className="visually-hidden" role="status">{status}</p>
-  </div>;
+  if (hero)
+    return (
+      <div className="avatar-tabletop-hero">
+        <div className="avatar-tabletop-canvas" ref={host} />
+        <p className="visually-hidden" role="status">
+          {status}
+        </p>
+      </div>
+    );
   return (
     <section className="avatar-tabletop" aria-labelledby="tabletop-heading">
       <div className="avatar-lab-card-title">

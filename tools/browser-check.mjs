@@ -77,8 +77,11 @@ try {
   await page.getByRole('tab', { name: 'Placement' }).click();
   await page.getByLabel('Favorite perch').selectOption('chat');
   await expect
-    .poll(async () => (await (await page.request.get(base + '/api/state')).json()).config.x)
-    .toBe(0.82);
+    .poll(async () => {
+      const { config } = await (await page.request.get(base + '/api/state')).json();
+      return Math.abs(config.x - (config.scene.chat.x + config.scene.chat.w / 2));
+    })
+    .toBeLessThan(0.001);
   // Restore the pre-test character through the same validated public boundary.
   await page.evaluate(async (config) => {
     await new Promise((resolve, reject) => {

@@ -98,7 +98,12 @@ export class TabletopPerformance {
           : this.phase === 'brace'
             ? 'Tavi_Brace'
             : 'Tavi_LookAround',
-      clipTime: this.phase === 'walk' ? this.walkTime : this.phase === 'brace' ? this.elapsed : this.attentionTime,
+      clipTime:
+        this.phase === 'walk'
+          ? this.walkTime
+          : this.phase === 'brace'
+            ? this.elapsed
+            : this.attentionTime,
     };
   }
 }

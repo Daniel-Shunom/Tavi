@@ -41,7 +41,7 @@ function keyedProperties(body: string) {
       if (!prop[2]?.includes('<KeyFrameDouble')) continue;
       out.set(
         `${object[1] ?? ''}.${prop[1] ?? ''}`,
-        [...(prop[2] ?? '').matchAll(/<KeyFrameDouble value="([^"]+)"[^>]*?frame="(\d+)"/g)].map(
+        [...prop[2].matchAll(/<KeyFrameDouble value="([^"]+)"[^>]*?frame="(\d+)"/g)].map(
           (m) => [Number(m[2]), Number(m[1])] as [number, number],
         ),
       );
@@ -150,10 +150,13 @@ describe('Lyla v2 turnaround', () => {
       ['0:2560', 30],
       ['0:2505', 30],
     ] as const) {
-      const object = new RegExp(`<KeyedObject objectId="${id}"[^>]*>([\\s\\S]*?)</KeyedObject>`).exec(body)?.[1] ?? '';
+      const object =
+        new RegExp(`<KeyedObject objectId="${id}"[^>]*>([\\s\\S]*?)</KeyedObject>`).exec(
+          body,
+        )?.[1] ?? '';
       expect(object).toContain('property="invertDirection"');
       expect(object).toMatch(/<KeyFrameBool value="false" frame="0"/);
-      expect(object).toContain(`<KeyFrameBool value="true" frame="${switchFrame}"`);
+      expect(object).toContain(`<KeyFrameBool value="true" frame="${String(switchFrame)}"`);
     }
   });
 
@@ -179,7 +182,7 @@ describe('Lyla v2 turnaround', () => {
       // At the shirt hem these authored vertices face each other at the centre.
       const leftEdge = (leftX[i]?.[1] ?? 0) + 17.455006 * (leftScale[i]?.[1] ?? 0);
       const rightEdge = (rightX[i]?.[1] ?? 0) - 19.252001 * (rightScale[i]?.[1] ?? 0);
-      expect(leftEdge, `frame ${leftX[i]?.[0]}`).toBeGreaterThan(rightEdge);
+      expect(leftEdge, `frame ${String(leftX[i]?.[0])}`).toBeGreaterThan(rightEdge);
     }
   });
 

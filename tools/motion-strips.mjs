@@ -17,11 +17,31 @@ const turn = (facing) => [
   { track: 'ctl.turn-head', time: Math.min(0.999, (facing * 0.85 + 1) / 2), mix: 1 },
 ];
 const specs = {
-  'walk-right': (u) => ({ tracks: [{ track: 'runtime.gait.walk-right', time: u, mix: 1 }, ...turn(1)], mode: 6, side: 0 }),
-  'sprint-right': (u) => ({ tracks: [{ track: 'runtime.gait.sprint-right', time: u, mix: 1 }, ...turn(1)], mode: 6, side: 0 }),
-  'skip-right': (u) => ({ tracks: [{ track: 'runtime.gait.skip-right', time: u, mix: 1 }, ...turn(1)], mode: 6, side: 0 }),
-  'perch-front': (u) => ({ tracks: [{ track: 'runtime.pose.perch-front', time: u, mix: 1 }, ...turn(0)], mode: 6, side: 0 }),
-  'floor-front': (u) => ({ tracks: [{ track: 'runtime.pose.floor-front', time: u, mix: 1 }, ...turn(0)], mode: 6, side: 0 }),
+  'walk-right': (u) => ({
+    tracks: [{ track: 'runtime.gait.walk-right', time: u, mix: 1 }, ...turn(1)],
+    mode: 6,
+    side: 0,
+  }),
+  'sprint-right': (u) => ({
+    tracks: [{ track: 'runtime.gait.sprint-right', time: u, mix: 1 }, ...turn(1)],
+    mode: 6,
+    side: 0,
+  }),
+  'skip-right': (u) => ({
+    tracks: [{ track: 'runtime.gait.skip-right', time: u, mix: 1 }, ...turn(1)],
+    mode: 6,
+    side: 0,
+  }),
+  'perch-front': (u) => ({
+    tracks: [{ track: 'runtime.pose.perch-front', time: u, mix: 1 }, ...turn(0)],
+    mode: 6,
+    side: 0,
+  }),
+  'floor-front': (u) => ({
+    tracks: [{ track: 'runtime.pose.floor-front', time: u, mix: 1 }, ...turn(0)],
+    mode: 6,
+    side: 0,
+  }),
   'turn-front-right': (u) => ({ tracks: turn(u), mode: 0, side: 0 }),
 };
 
@@ -31,10 +51,7 @@ try {
   await page.goto(base + '/?motion-strips');
   const names = Object.keys(specs).filter((name) => !only || name === only);
   const samples = Object.fromEntries(
-    names.map((name) => [
-      name,
-      Array.from({ length: frames }, (_, i) => specs[name](i / frames)),
-    ]),
+    names.map((name) => [name, Array.from({ length: frames }, (_, i) => specs[name](i / frames))]),
   );
   const report = await page.evaluate(async (samples) => {
     const registry = await import('/src/renderer/characters/registry.ts');
@@ -49,7 +66,13 @@ try {
     const view = await rive.createRiveRenderer(canvas, manifest);
     view.resize(300, 300);
     const size = 300;
-    const placement = { x: size / 2, y: size * 0.92, width: size * 0.8, height: size * 0.8, rotation: 0 };
+    const placement = {
+      x: size / 2,
+      y: size * 0.92,
+      width: size * 0.8,
+      height: size * 0.8,
+      rotation: 0,
+    };
     const output = {};
     for (const [name, list] of Object.entries(samples)) {
       const cell = 180;
@@ -79,7 +102,10 @@ try {
         s.fillText((index / list.length).toFixed(2), index * cell + 6, 14);
       });
       // Reference lines: the ground and the head height of the first frame expose bob and drift.
-      for (const [context, width, scale] of [[s, strip.width, cell / size], [o, 360, 360 / size]]) {
+      for (const [context, width, scale] of [
+        [s, strip.width, cell / size],
+        [o, 360, 360 / size],
+      ]) {
         context.strokeStyle = 'rgba(220,60,60,.55)';
         context.beginPath();
         context.moveTo(0, placement.y * scale);
