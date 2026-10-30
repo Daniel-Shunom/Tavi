@@ -1,10 +1,74 @@
+<div align="center">
+
+<img src="docs/assets/readme/landing-hero.jpg" alt="The Tavi landing page: Tavi stands on a wooden table beside a vintage TV, above the headline “Your stream, with a little more life.”" width="100%" />
+
+<br />
+
 # Tavi
 
+<p><sub>STREAM COMPANION&nbsp;&nbsp;·&nbsp;&nbsp;TWITCH × CODEX HACKATHON</sub></p>
+
 A customizable, expressive chibi companion that hangs out in a streamer's OBS canvas. Built for the Twitch x Codex hackathon.
+
+<p>
+  <img alt="React" src="https://img.shields.io/badge/React-1f1a2b?style=flat-square&logo=react&logoColor=c9a9dc" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-1f1a2b?style=flat-square&logo=typescript&logoColor=c9a9dc" />
+  <img alt="Rive" src="https://img.shields.io/badge/Rive-animated%20rig-1f1a2b?style=flat-square" />
+  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-22.12%2B-1f1a2b?style=flat-square&logo=nodedotjs&logoColor=c9a9dc" />
+  <img alt="OBS" src="https://img.shields.io/badge/OBS-Browser%20Source-1f1a2b?style=flat-square&logo=obsstudio&logoColor=c9a9dc" />
+  <img alt="Twitch" src="https://img.shields.io/badge/Twitch-EventSub%20chat-1f1a2b?style=flat-square&logo=twitch&logoColor=c9a9dc" />
+</p>
+
+<p>
+  <a href="#a-look-around"><b>A look around</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#run-the-proof-of-concept"><b>Run it</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#what-works-now"><b>What works</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#connect-twitch"><b>Connect Twitch</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="#documentation"><b>Docs</b></a>
+</p>
+
+</div>
+
+<br />
 
 ## Project description
 
 Tavi is a customizable animated companion for livestreamers. It lives in an OBS Browser Source and can wave, emote, move between scene positions, tuck away, and react to chat with small, personality-aware gestures. Streamers can adjust Tavi's appearance, wardrobe, personality, and placement in the studio. Twitch chat reactions use bounded rules and cooldowns; the current build does not make AI-generated decisions or replies. The reaction playground is clearly labeled as a demo, so simulated events are not presented as live stream activity.
+
+## A look around
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/landing-chat.jpg" alt="Tavi sits on top of a phone showing stream chat, beside the headline “Not another thing to manage.”" /></td>
+    <td width="50%"><img src="docs/assets/readme/landing-room.jpg" alt="Tavi sits on a small lit room diorama beside the headline “A companion who knows where to look.”" /></td>
+  </tr>
+  <tr>
+    <td><p align="center"><sub><b>Reads the room.</b> Tavi follows you down the page, perching on each section and reading the chat as it lands.</sub></p></td>
+    <td><p align="center"><sub><b>Knows where to look.</b> Every stop is a small scene: what she watches, how she feels, where she sits.</sub></p></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/landing-studio.jpg" alt="Tavi sits on a desktop monitor showing Tavi Studio, beside the headline “Yours in a few minutes.”" /></td>
+    <td width="50%"><img src="docs/assets/readme/landing-closing.jpg" alt="Tavi stands beside the “Make Tavi yours” button on a dithered, gridded floor under the headline “Make a little you.”" /></td>
+  </tr>
+  <tr>
+    <td><p align="center"><sub><b>Yours in a few minutes.</b> Studio, staged on its own display, with Tavi on top.</sub></p></td>
+    <td><p align="center"><sub><b>Lands with you.</b> At the bottom she drops to the floor and wanders by the call to action.</sub></p></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/assets/readme/landing-phone.jpg" alt="The landing page on a phone: the hero, the chat phone and the Studio monitor, each with Tavi." width="100%" />
+  <br />
+  <sub><b>Made for small screens too.</b> The same story, laid out for a phone.</sub>
+</p>
+
+### Tavi Studio
+
+<p align="center">
+  <img src="docs/assets/readme/studio-app.jpg" alt="Tavi Studio: Tavi on a dark stage with gesture, pose, quiet mode and tuck-away controls, and the character tools below." width="100%" />
+  <br />
+  <sub><b>Companion studio.</b> Shape her look, try gestures and poses, set her personality, and copy the overlay URL for OBS.</sub>
+</p>
 
 ## How we used Codex
 
@@ -21,14 +85,6 @@ npm run dev
 ```
 
 Open http://127.0.0.1:5173 for the cinematic landing page, or visit http://127.0.0.1:5173/studio to customize the character, try gestures, and compare cozy, playful, and shy personalities in the reaction playground. Character changes are saved by the Node service to `.data/character.json` and synchronized with all connected previews.
-
-## Landing page vision
-
-The landing page introduces Tavi through a small, authored character story rather than a static product mockup. Its opening scene uses a face-on, real-time render of Poly Haven Television 01 and Wooden Table 02, both CC0 3D assets, against a pure white backdrop. The desk is nearly edge-on. The fictional stream and animated Rive character share a live texture on the TV's original curved glass mesh, so the bezel encloses the picture and its scanlines, reflections, and signal glitches. Static gives way to a brief, glitchy signal lock as Tavi tries to start the stream; once it resolves, the camera pulls back and reveals the title Tavi and Your stream companion in chat. Tavi transfers from the screen texture to the page character during the scroll exit. Asset details and the fallback front render are credited in `public/credits/television-01.md` and `public/credits/wooden-table-02.md`.
-
-As the visitor scrolls, Tavi notices them, climbs out of the screen, and follows along the page. She can hold onto the screen edge if the visitor scrolls ahead, with a short “Wait for me” bubble, then naturally reach an artificial ledge and sit beside the content. Her pose and expression can react to the section passing by. At the bottom, she jumps down and explores around the final content in a way that suggests the page components. Scrolling back up brings her back to the ledge; she does not climb back into the screen.
-
-Motion should be authored for Tavi's rig in Rive, with readable full-body weight, anticipation, contact, balance, and follow-through. The scroll choreography should remain legible at different viewport sizes and scroll speeds, and should coordinate character gaze, body orientation, expressions, and the page elements she is reacting to. The current implementation is an early, reviewable choreography pass; it establishes the stream opening, climb/brace, ledge, and scroll-driven transitions for continued art and motion refinement.
 
 In OBS, add a Browser Source with URL `http://127.0.0.1:5173/overlay`, width 1280 and height 720. Keep the local service running. The overlay contains only the character with a transparent background. The studio's webcam/chat panels are placement guides, not OBS source detection. Peeking currently happens at the canvas edge.
 
@@ -68,24 +124,6 @@ Commit `.agents/` together with the application and `package-lock.json`. A norma
 
 Application dependencies use `npm ci` from the lockfile. Agent skills may reference live external guidance or optional CLIs, so pinned skill files reproduce the instructions, not external services or model behavior.
 
-## Validate
-
-```powershell
-npm test
-npm run build
-python tools/skills.py
-```
-
-See `docs/PLAN.md` for the four-day build and four-day refinement targets. OBS rendering and the packaged Tauri app still require manual verification.
-
-## Formatting and typing
-
-`npm ci` installs the local Git pre-push hook through the prepare script. The hook runs Prettier automatically, blocks the push if tracked formatting changes need committing, and runs format checks, type-aware ESLint, strict TypeScript checks, tests, and skill verification. Run `npm run format` before committing to avoid that extra step. CI repeats checks and builds on pushes and pull requests.
-
-TypeScript enables strict mode, checked indexed access, exact optional properties, unused-code checks, and other strictness flags. ESLint rejects explicit `any` and unsafe operations on untyped values. Inbound WebSocket data is validated with Zod. Third-party declarations are skipped by the compiler; application code remains checked. Vendored skill files and the other agent's `desktop/` directory are excluded from root formatting and linting. Desktop formatting should be coordinated with its owner.
-
-Browser smoke check (with the dev server running): `npx playwright install chromium`, then `node tools/browser-check.mjs`. The check saves a screenshot under ignored `test-results/`. Fonts are bundled locally so the studio does not need external font requests.
-
 ## Connect Twitch
 
 The registered public Client ID is built into `shared/twitch.ts`; it is not a secret. Start Tavi and click **Connect Twitch**. Open the displayed Twitch authorization link in your browser and approve read-chat access. The registered Twitch app must use the **Public** client type. This device-code flow does not use a callback URL or client secret. If Tauri does not open the link yet, use **Copy authorization link** and paste it into your system browser. The desktop owner can integrate that link with Tauri's external-browser opener.
@@ -98,14 +136,14 @@ Live credentials are not needed for automated tests: Twitch HTTP and EventSub bo
 
 Twitch UI smoke check: with the dev server running, execute `node tools/twitch-browser-check.mjs`. It uses browser route fixtures and does not authorize an account or send chat.
 
-## Companion stage UI experiment
+## Documentation
 
-The studio keeps a large centered portrait visible above a separately scrolling tool deck. Use the lighting controls for Moonlight, Daydream, and Afterhours; click the character to wave. **More tools** reallocates space without covering the avatar. Appearance, personality, Twitch, playground, and stream setup remain mounted and accessible in the tool deck. Studio lighting and portrait positioning do not change the OBS canvas.
-
-With the dev server running, `node tools/stage-browser-check.mjs` checks that scrolling and expanding the tools never covers the avatar at desktop, laptop, mobile, and short-screen sizes, including keyboard tab navigation. Screenshots are saved in ignored `test-results/`.
-
-## Pull request reviews
-
-CodeRabbit is configured in `.coderabbit.yaml` to review ready pull requests automatically. Enable the CodeRabbit GitHub App for this repository in the CodeRabbit dashboard. Its standard PR integration does not require a GitHub Actions workflow or API secret. Review guidance covers accessibility, reduced motion, graphics cleanup, and Studio/OBS compatibility.
-
-The test command recreates local Rive authoring fixtures from committed sources before running Vitest. This uses Python and does not install or invoke the Rive CLI. Generated fixture directories stay untracked.
+|                                                       |                                                                                |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [Landing page vision](docs/LANDING-VISION.md)         | The story the landing page tells, and how Tavi moves through it.               |
+| [Landing page notes](docs/LANDING-NEXT.md)            | Loading, motion language, idle life and the page descent as built.             |
+| [Development](docs/DEVELOPMENT.md)                    | Validation, formatting, typing, browser smoke checks and pull request reviews. |
+| [Companion stage UI experiment](docs/STUDIO-STAGE.md) | The studio's stage layout and its browser check.                               |
+| [Plan](docs/PLAN.md)                                  | The four-day build and four-day refinement targets.                            |
+| [OBS and webcam](docs/OBS-WEBCAM.md)                  | Placing Tavi in OBS beside a webcam.                                           |
+| [Desktop app](desktop/README.md)                      | The Tauri shell and its packaging.                                             |
