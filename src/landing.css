@@ -1026,8 +1026,6 @@ html.landing-mode body #root {
     radial-gradient(ellipse 40% 60% at 50% 100%, rgb(214 190 236 / 0.2), transparent 70%);
   transform: translate(-50%, 0);
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 1.4s var(--ease-out) 200ms;
 }
 /* The same dithered light as the hero's, rising up the wall from the floor line behind the copy
    (painted by src/landing/dither.ts). It sits above the grid floor, so the two never overlap. */
@@ -1040,14 +1038,6 @@ html.landing-mode body #root {
   image-rendering: pixelated;
   transform: translateX(-50%);
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 1.4s var(--ease-out) 200ms;
-}
-[data-visible] > .closing-light,
-[data-visible] > .closing-dither,
-:not(.can-reveal) .closing-light,
-:not(.can-reveal) .closing-dither {
-  opacity: 1;
 }
 /* The closing floor: a fine grid with a dot at each crossing, laid back in perspective from the
    floor line and fading into the distance and out to the sides. Static. */
@@ -1848,22 +1838,20 @@ html.landing-mode body #root {
 .crt-scene[data-unavailable='true'] .crt-screen {
   display: none;
 }
-/* The stage waits, hidden and un-zoomed, until the TV is ready; then the intro plays through. */
-.stream-stage:not(.is-scene-shown) {
-  opacity: 0;
-  animation-play-state: paused !important;
+/* The stage is in the pre-rendered page, so it shows (and its push-in plays) from the first paint. */
+/* The screen overlay waits until the script has fitted it to the glass (inline box styles). */
+.stream-window:not([style]) {
+  visibility: hidden;
 }
 .stream-stage.is-scene-shown {
-  transition:
-    opacity var(--dur-reveal) var(--ease-out),
-    transform 1.8s var(--ease-out);
+  transition: transform 1.8s var(--ease-out);
 }
 /* Tavi fades in once her first frame is drawn, instead of popping in. */
 .page-walker:not([data-tavi-ready='true']) {
   opacity: 0;
 }
 .page-walker {
-  transition: opacity var(--dur-reveal) var(--ease-out);
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 .avatar-tabletop-hero {
   position: absolute;
@@ -2209,9 +2197,9 @@ html.landing-mode body #root {
   }
 }
 
-/* Pull back during signal search, landing at the final framing as it locks. */
+/* A short pull back while the signal comes in, landing at the final framing. */
 .stream-stage {
-  animation: crt-intro-zoom 3520ms var(--ease-out) both;
+  animation: crt-intro-zoom 1400ms var(--ease-out) both;
   transition: none;
 }
 .stream-stage.is-intro-skipped {
@@ -2235,55 +2223,8 @@ html.landing-mode body #root {
   }
 }
 
-/* Section reveals: once per visit, as each section comes into view. The heading wipes up line by
-   line, then the rest of the copy follows. The section art never hides: Tavi lands on it. */
 .reveal-line {
   display: block;
-}
-.can-reveal [data-reveal] .reveal-line {
-  clip-path: inset(-0.25em -0.1em -0.3em -0.1em);
-  transition:
-    clip-path var(--dur-reveal) var(--ease-in-out),
-    transform var(--dur-reveal) var(--ease-out);
-}
-.can-reveal [data-reveal]:not([data-visible]) .reveal-line {
-  clip-path: inset(-0.25em -0.1em 100% -0.1em);
-  transform: translateY(0.35em);
-}
-.can-reveal [data-reveal] .reveal-line:nth-child(2) {
-  transition-delay: 80ms;
-}
-.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :not(h2, .button-primary) {
-  transition:
-    opacity var(--dur-reveal) var(--ease-out),
-    transform var(--dur-reveal) var(--ease-out);
-}
-.can-reveal [data-reveal]:not([data-visible]) :is(.story-copy, .closing-copy) > :not(h2) {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(2) {
-  transition-delay: 180ms;
-}
-.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(3) {
-  transition-delay: 240ms;
-}
-.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(4) {
-  transition-delay: 300ms;
-}
-.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(5) {
-  transition-delay: 360ms;
-}
-/* The call to action fades in with the copy but keeps its quick press. */
-.can-reveal [data-reveal] .closing-button {
-  transition:
-    opacity var(--dur-reveal) var(--ease-out) 300ms,
-    transform var(--dur-press) var(--ease-out),
-    box-shadow var(--dur-quick) ease,
-    background var(--dur-quick) ease;
-}
-.can-reveal [data-reveal]:not([data-visible]) .closing-button {
-  transform: none;
 }
 
 /* A soft bloom of shadow where Tavi lands (played by the page with the Web Animations API). */
@@ -2296,13 +2237,6 @@ html.landing-mode body #root {
   opacity: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .can-reveal [data-reveal]:not([data-visible]) .reveal-line,
-  .can-reveal [data-reveal]:not([data-visible]) :is(.story-copy, .closing-copy) > :not(h2) {
-    transform: none;
-  }
 }
 
 /* The Studio beat: the art sits on the left, so Tavi's trip down the page zigzags. */
@@ -2411,23 +2345,6 @@ html.landing-mode body #root {
   border-radius: 3px 3px 10px 10px;
   background: linear-gradient(180deg, #ece7f0, #bdb3c8);
   box-shadow: 0 16px 26px rgb(40 24 58 / 0.22);
-}
-/* The display swings up to face the visitor as the section first appears (after Aceternity's
-   container scroll, played once on reveal rather than tied to the scroll position). */
-.can-reveal [data-reveal] .studio-display {
-  transform-origin: 50% 100%;
-  transition:
-    transform var(--dur-scene) var(--ease-out) 120ms,
-    opacity var(--dur-reveal) var(--ease-out) 120ms;
-}
-.can-reveal [data-reveal]:not([data-visible]) .studio-display {
-  opacity: 0;
-  transform: perspective(1400px) rotateX(18deg) translateY(28px) scale(0.95);
-}
-@media (prefers-reduced-motion: reduce) {
-  .can-reveal [data-reveal]:not([data-visible]) .studio-display {
-    transform: none;
-  }
 }
 /* The screen's mock studio: a calm dark app with a sidebar, a stage and a settings panel. */
 .studio-mock {

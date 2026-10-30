@@ -4,8 +4,9 @@ import { paintDither, type DitherLayer } from './dither';
 // The hero's dithered light, carried down the page: a soft pool on the wall behind a piece of
 // section art and a faint band where it meets its surface, as the TV has on its table. It keeps
 // the body in the same lit world as the hero and the closing. Painted once per size (a few
-// milliseconds), never per frame. It finds the art it lights by [data-art-object] among its
-// siblings and centres on it.
+// milliseconds), never per frame, and not before it nears the viewport, so the page's first
+// seconds go to the hero. It finds the art it lights by [data-art-object] among its siblings and
+// centres on it.
 
 const LAYERS: DitherLayer[] = ['on', 'seam'];
 
@@ -17,8 +18,10 @@ export function ArtLight() {
     const element = host.current;
     const art = element?.parentElement?.querySelector<HTMLElement>('[data-art-object]');
     if (!element || !art) return;
-    let painted = '';
+    let painted = '',
+      near = false;
     const paint = () => {
+      if (!near) return;
       // Layout boxes, not transformed ones: the art may be mid-reveal.
       const top = art.offsetTop - element.offsetTop,
         left = art.offsetLeft - element.offsetLeft;
@@ -43,9 +46,19 @@ export function ArtLight() {
     const size = new ResizeObserver(paint);
     size.observe(element);
     size.observe(art);
-    paint();
+    const approach = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        near = true;
+        approach.disconnect();
+        paint();
+      },
+      { rootMargin: '100% 0px' },
+    );
+    approach.observe(element);
     return () => {
       size.disconnect();
+      approach.disconnect();
     };
   }, []);
 

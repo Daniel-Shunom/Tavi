@@ -4,7 +4,7 @@ import '@fontsource/dm-sans/600.css';
 import '@fontsource/manrope/700.css';
 import '@fontsource/manrope/800.css';
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import { LandingPage } from './LandingPage';
 import { Avatar } from './renderer/Avatar';
 import { useConnection } from './useConnection';
@@ -25,10 +25,13 @@ const AvatarLab = React.lazy(() =>
 const Studio = React.lazy(() => import('./studio').then((module) => ({ default: module.Studio })));
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
 if (overlay) document.documentElement.classList.add('overlay');
-if (!overlay && !studio && !avatarLab) {
+const landing = !overlay && !studio && !avatarLab;
+if (landing) {
   document.documentElement.classList.add('landing-mode');
-  // Start Tavi's runtime, renderer and artwork now, alongside the page, not after it mounts.
+  // Start Tavi's runtime, renderer and artwork now, alongside the page, not after it mounts
+  // (the built page already starts them from its HTML).
   for (const href of [riveWasm, taviArtwork]) {
+    if (document.head.querySelector(`link[href="${href}"]`)) continue;
     const link = document.createElement('link');
     link.rel = 'preload';
     link.as = 'fetch';
@@ -67,8 +70,15 @@ function StudioApp() {
 }
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Tavi root element is missing');
-createRoot(rootElement).render(
+const app = (
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  </React.StrictMode>
 );
+// The built page carries the landing pre-rendered (tools/prerender-landing.mjs): hydrate it, or
+// clear it for the studio, overlay and avatar lab.
+if (landing && rootElement.hasChildNodes()) hydrateRoot(rootElement, app);
+else {
+  rootElement.replaceChildren();
+  createRoot(rootElement).render(app);
+}

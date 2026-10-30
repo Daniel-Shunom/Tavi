@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "buildCommand": "tsc --noEmit && vite build",
+  "buildCommand": "tsc --noEmit && vite build && node tools/prerender-landing.mjs",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "redirects": [
@@ -12,6 +12,10 @@
     }
   ],
   "headers": [
+    {
+      "source": "/assets/(.*)\\.riv",
+      "headers": [{ "key": "Content-Type", "value": "text/plain; charset=x-user-defined" }]
+    },
     {
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]

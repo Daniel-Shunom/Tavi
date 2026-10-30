@@ -97,7 +97,6 @@ export function StudioBeat({ perchRef }: { perchRef: RefObject<HTMLDivElement | 
       className="story-section story-studio story-flip"
       id="studio"
       data-cue="studio"
-      data-reveal
       ref={section}
     >
       <div className="story-copy">

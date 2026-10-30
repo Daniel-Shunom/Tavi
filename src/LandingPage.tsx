@@ -190,15 +190,18 @@ export function LandingPage() {
     setSceneShown(true);
   };
 
-  // The closing light, dithered like the hero's: painted once per size, never per frame.
+  // The closing light, dithered like the hero's: painted once per size, never per frame, and not
+  // before it nears the viewport, so the page's first seconds go to the hero.
   useEffect(() => {
     const canvas = closingDitherRef.current;
     if (!canvas) return;
     let painted = '';
     let cancelled = false;
+    let near = false;
     const glitch = new Image();
     glitch.src = TWITCH_GLITCH;
     const paint = (force = false) => {
+      if (!near) return;
       const key = `${String(canvas.clientWidth)}x${String(canvas.clientHeight)}`;
       if (key === painted && !force) return;
       painted = key;
@@ -218,7 +221,16 @@ export function LandingPage() {
       paint();
     });
     size.observe(canvas);
-    paint();
+    const approach = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        near = true;
+        approach.disconnect();
+        paint(true);
+      },
+      { rootMargin: '100% 0px' },
+    );
+    approach.observe(canvas);
     void glitch
       .decode()
       .then(() => document.fonts.ready)
@@ -229,25 +241,7 @@ export function LandingPage() {
     return () => {
       cancelled = true;
       size.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const reveal = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries)
-          if (entry.isIntersecting) {
-            entry.target.setAttribute('data-visible', 'true');
-            reveal.unobserve(entry.target);
-          }
-      },
-      { rootMargin: '0px 0px -18% 0px' },
-    );
-    document.querySelectorAll('[data-reveal]').forEach((section) => {
-      reveal.observe(section);
-    });
-    return () => {
-      reveal.disconnect();
+      approach.disconnect();
     };
   }, []);
 
@@ -329,10 +323,10 @@ export function LandingPage() {
     setDemoPlaying(demoRun > 0);
     let glitchTimer: number | undefined;
     let timer: number | undefined;
-    // The static runs its authored length while the camera pushes in, then holds until the
-    // picture, Tavi and the fonts are in, so the signal locks onto a complete scene. A slow
-    // connection gets at most 4 s more of static.
-    const shortest = demoRun ? 2200 : 2800;
+    // The signal locks as soon as the picture, Tavi and the fonts are in, so it locks onto a
+    // complete scene; static shows only while they load, and a slow connection gets at most 4 s
+    // of it. A replay of the demo plays its authored length of static.
+    const shortest = demoRun ? 2200 : 0;
     const began = performance.now();
     const check = () => {
       const waited = performance.now() - began;
@@ -861,7 +855,7 @@ export function LandingPage() {
         <div
           ref={deskRef}
           style={{
-            animationDuration: demoRun ? '2920ms' : '3520ms',
+            animationDuration: demoRun ? '2920ms' : '1400ms',
             animationName: demoRun % 2 ? 'crt-intro-replay' : 'crt-intro-zoom',
           }}
           className={`stream-stage${sceneShown ? ' is-scene-shown' : ''}${introSkipped ? ' is-intro-skipped' : ''}${nativeScreen ? ' has-native-screen' : ''}${demoPlaying ? ' is-playing' : ''}${streamStarting ? ' is-stream-starting' : ''}${streamStarted ? ' is-stream-started' : ''}`}
@@ -990,12 +984,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section
-        className="story-section story-one"
-        id="personality"
-        data-cue="personality"
-        data-reveal
-      >
+      <section className="story-section story-one" id="personality" data-cue="personality">
         <div className="story-copy">
           <h2>
             <span className="reveal-line">Not another thing</span>
@@ -1041,7 +1030,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="story-section story-two" data-cue="presence" data-reveal>
+      <section className="story-section story-two" data-cue="presence">
         <div className="story-copy">
           <h2>
             <span className="reveal-line">A companion who</span>
@@ -1077,7 +1066,7 @@ export function LandingPage() {
 
       <StudioBeat perchRef={studioPerchRef} />
 
-      <section className="closing-scene" data-cue="ending" data-reveal>
+      <section className="closing-scene" data-cue="ending">
         <div className="closing-light" />
         <canvas className="closing-dither" ref={closingDitherRef} aria-hidden="true" />
         <div className="closing-copy" ref={closingCopyRef}>

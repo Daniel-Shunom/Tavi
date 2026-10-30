@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "concurrently -k -n service,studio \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
-    "build": "tsc --noEmit && vite build && node tools/precompress.mjs",
+    "build": "tsc --noEmit && vite build && node tools/prerender-landing.mjs && node tools/precompress.mjs",
     "start": "tsx server/index.ts",
     "test": "vitest run",
     "skills:verify": "python tools/skills.py",
