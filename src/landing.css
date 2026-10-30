@@ -172,9 +172,9 @@ html.landing-mode body #root {
 .hero-description {
   max-width: 420px;
   margin: 29px 0 0;
-  color: #62576c;
-  font-size: clamp(15px, 1.15vw, 17px);
-  line-height: 1.75;
+  color: #554a60;
+  font-size: clamp(15.5px, 1.2vw, 17.5px);
+  line-height: 1.7;
 }
 .hero-actions {
   display: flex;
@@ -183,23 +183,30 @@ html.landing-mode body #root {
   flex-wrap: wrap;
   margin-top: 34px;
 }
+/* The primary button: a deep plum key with a lit edge (after Aceternity's lit-up border and
+   hover border gradient buttons, written for our palette and motion rules). The icon sits in its
+   own soft chip. On hover the button lifts, an arc of lavender-to-peach light travels once around
+   the border, a sheen crosses the face once, and the icon nudges toward where it leads. */
 .button-primary {
-  min-height: 49px;
-  padding: 0 18px;
+  min-height: 52px;
+  padding: 0 7px 0 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 19px;
-  border: 1px solid #e3d4eb;
-  border-radius: 8px;
-  background: #e2d0ec;
+  gap: 16px;
+  border: 1px solid #4b3a5c;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #3b2c4a, #261c31);
   box-shadow:
-    0 10px 28px rgb(144 98 170 / 0.16),
-    inset 0 1px rgb(255 255 255 / 0.55);
-  color: #24192c !important;
-  font-size: 13px;
+    inset 0 1px rgb(255 255 255 / 0.16),
+    inset 0 -1px rgb(0 0 0 / 0.2),
+    0 12px 28px rgb(64 36 92 / 0.28),
+    0 2px 5px rgb(64 36 92 / 0.2);
+  color: #fbf6fd !important;
+  font-size: 14px;
   font-weight: 600;
-  /* For the hover sheen: clipped to the button, under nothing but its own label. */
+  letter-spacing: 0.005em;
+  /* For the hover light and sheen: clipped to the button, under its own label. */
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -209,26 +216,33 @@ html.landing-mode body #root {
     background var(--dur-quick) ease,
     border-color var(--dur-quick) ease;
 }
-/* Hover highlight (after Aceternity's hover border gradient, written for our motion rules): an
-   arc of lavender-to-peach light travels once around the border as the pointer arrives, then
-   rests as a soft gradient edge. No loop; fine pointers only; reduced motion shows the resting
-   edge without the trip. --button-light is registered so the arc's angle can transition. */
+.button-primary svg {
+  box-sizing: content-box;
+  flex: 0 0 auto;
+  padding: 10px;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 1px rgb(255 255 255 / 0.1);
+  color: #f2d3bd;
+  transition: transform var(--dur-base) var(--ease-out);
+}
 @property --button-light {
   syntax: '<angle>';
   inherits: false;
   initial-value: 0deg;
 }
+/* The lit edge: a faint lavender-to-peach rim at rest, and the travelling arc on hover. */
 .button-primary::before {
   position: absolute;
   z-index: 1;
   inset: 0;
-  padding: 1.5px;
+  padding: 1px;
   border-radius: inherit;
   background: conic-gradient(
     from var(--button-light),
     transparent 0deg,
-    #b98fe0 70deg,
-    #f2b48e 125deg,
+    #c9a2ee 70deg,
+    #f4bb94 125deg,
     transparent 190deg,
     transparent 360deg
   );
@@ -237,14 +251,37 @@ html.landing-mode body #root {
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  opacity: 0;
+  opacity: 0.35;
   transition: opacity var(--dur-base) var(--ease-out);
+  content: '';
+  pointer-events: none;
+}
+/* The sheen: a soft diagonal band of light, parked off the left edge until hover. */
+.button-primary::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0 auto 0 0;
+  width: 60%;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgb(255 255 255 / 0.12) 50%,
+    transparent 80%
+  );
+  transform: translateX(-110%);
   content: '';
   pointer-events: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .button-primary:hover {
-    border-color: #d9c2e6;
+    transform: translateY(-2px);
+    border-color: #5d4870;
+    background: linear-gradient(180deg, #44334f, #2b1f36);
+    box-shadow:
+      inset 0 1px rgb(255 255 255 / 0.18),
+      inset 0 -1px rgb(0 0 0 / 0.2),
+      0 0 0 4px rgb(201 169 220 / 0.22),
+      0 18px 38px rgb(64 36 92 / 0.32);
   }
   .button-primary:hover::before {
     --button-light: 360deg;
@@ -253,22 +290,29 @@ html.landing-mode body #root {
       opacity var(--dur-base) var(--ease-out),
       --button-light 1.4s var(--ease-in-out);
   }
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .button-primary:hover {
-    transform: translateY(-2px);
+  .button-primary:hover::after {
+    transform: translateX(260%);
+    transition: transform 0.9s var(--ease-out);
   }
-}
-.button-primary:hover {
-  background: #f0e4f4;
-  box-shadow:
-    0 0 0 3px rgb(201 169 220 / 0.22),
-    0 16px 38px rgb(144 98 170 / 0.25);
+  .button-primary:hover svg {
+    transform: translateX(2px);
+  }
+  .closing-button:hover svg {
+    transform: translate(2px, -2px);
+  }
 }
 /* After the hover lift, so a press always reads (including mid-hover). */
 .button-primary:active {
   transform: scale(0.97);
+}
+.button-primary:focus-visible {
+  outline: 2px solid #8970b4;
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .button-primary::after {
+    display: none;
+  }
 }
 .hero-aside {
   max-width: 175px;
@@ -590,8 +634,8 @@ html.landing-mode body #root {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #6e6278;
-  font-size: 10px;
+  color: #625670;
+  font-size: 12px;
 }
 .scroll-cue svg {
   color: #795393;
@@ -623,20 +667,27 @@ html.landing-mode body #root {
   font-size: clamp(43px, 4.1vw, 60px);
   line-height: 1.04;
 }
+/* Each headline line is set by hand; on wide screens it never breaks again. */
+@media (min-width: 721px) {
+  .story-copy h2 .reveal-line {
+    white-space: nowrap;
+  }
+}
 .story-copy > p:not(.section-knot) {
-  max-width: 390px;
+  max-width: 400px;
   margin: 25px 0 0;
-  color: #62576c;
-  font-size: 15px;
-  line-height: 1.78;
+  color: #554a60;
+  font-size: 16.5px;
+  line-height: 1.7;
 }
 .section-knot {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   margin: 24px 0 0;
-  color: #76548a;
-  font-size: 11px;
+  color: #6c4a80;
+  font-size: 13px;
+  font-weight: 500;
 }
 .section-knot svg {
   color: #9a6647;
@@ -647,8 +698,8 @@ html.landing-mode body #root {
   margin-top: 28px;
   padding-top: 12px;
   border-top: 1px solid #e1d8e7;
-  color: #6e6278;
-  font-size: 10px;
+  color: #625670;
+  font-size: 12px;
 }
 .story-art {
   position: relative;
@@ -659,45 +710,85 @@ html.landing-mode body #root {
   display: grid;
   place-items: center;
 }
-.chat-scene-window {
+/* Stream chat on a phone: the same thin dark bezel as the Studio display, propped at a slight
+   angle in its pool of light. Tavi perches on its top edge and reads the messages as they land. */
+.chat-phone {
   position: relative;
-  width: min(100%, 570px);
-  height: 356px;
-  overflow: hidden;
-  border: 1px solid #e2c8ea20;
-  border-radius: 7px;
-  background: radial-gradient(
-    ellipse at 54% 44%,
-    #54416a 0%,
-    #342a49 30%,
-    #211d32 67%,
-    #171522 100%
-  );
-  box-shadow: 0 30px 80px #08070e70;
-  transform: rotate(1.5deg);
+  width: 268px;
+  padding: 9px;
+  border-radius: 38px;
+  background: linear-gradient(180deg, #2a2633, #17141f);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.14),
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    0 40px 80px rgb(40 24 58 / 0.26),
+    0 12px 24px rgb(40 24 58 / 0.16);
+  transform: rotate(2deg);
 }
-.scene-slice {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(115deg, transparent 38%, #d4b7df12 39% 52%, transparent 53%),
-    radial-gradient(ellipse at 74% 10%, #bd94c921, transparent 36%);
+.chat-phone-screen {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 452px;
+  overflow: hidden;
+  border-radius: 30px;
+  background: radial-gradient(ellipse at 50% 30%, #3d3052, #1c1828 62%, #15131d);
+}
+.chat-phone-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 30px 18px 12px;
+  border-bottom: 1px solid #ffffff0f;
+  color: #cbbcd8;
+  font-size: 11px;
+}
+.chat-live {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e8577f;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 14px;
+}
+.chat-phone-input {
+  height: 34px;
+  margin: 0 14px 18px;
+  border: 1px solid #ffffff14;
+  border-radius: 17px;
+  background: #ffffff08;
 }
 .chat-pop {
-  position: absolute;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 15px;
+  padding: 10px 12px;
   border: 1px solid #ebdaf31e;
-  border-radius: 7px;
-  background: #1a1825d9;
+  border-radius: 12px;
+  background: #221e2ed9;
   color: #ddd5e4;
-  font-size: 11px;
-  box-shadow: 0 12px 36px #09081038;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 10px 28px #09081038;
 }
-/* Once Tavi perches on the chat window, its messages pop in one at a time as she reads them. */
-.chat-scene-window[data-revealed] .chat-pop {
+.chat-pop b {
+  margin-right: 4px;
+  color: #c9a9dc;
+  font-weight: 600;
+}
+.chat-pop-b b {
+  color: #f0b99a;
+}
+/* Once Tavi perches on the phone, its messages pop in one at a time as she reads them. */
+.chat-phone[data-revealed] .chat-pop {
   opacity: 0;
   scale: 0.96;
   translate: 0 8px;
@@ -709,42 +800,34 @@ html.landing-mode body #root {
     border-color var(--dur-base) var(--ease-out);
 }
 /* The message Tavi is reading carries a soft light. */
-.chat-scene-window[data-look='bubble-0'] .chat-pop-a,
-.chat-scene-window[data-look='bubble-1'] .chat-pop-b,
-.chat-scene-window[data-look='bubble-2'] .chat-pop-c {
+.chat-phone[data-look='bubble-0'] .chat-pop-a,
+.chat-phone[data-look='bubble-1'] .chat-pop-b,
+.chat-phone[data-look='bubble-2'] .chat-pop-c {
   border-color: #ecd3f566;
   box-shadow:
     0 12px 30px #0000004d,
     0 0 0 1px #f3dcf933,
     0 0 26px #d8b4ea2e;
 }
-.chat-scene-window:is([data-revealed='1'], [data-revealed='2'], [data-revealed='3']) .chat-pop-a,
-.chat-scene-window:is([data-revealed='2'], [data-revealed='3']) .chat-pop-b,
-.chat-scene-window[data-revealed='3'] .chat-pop-c {
+.chat-phone:is([data-revealed='1'], [data-revealed='2'], [data-revealed='3']) .chat-pop-a,
+.chat-phone:is([data-revealed='2'], [data-revealed='3']) .chat-pop-b,
+.chat-phone[data-revealed='3'] .chat-pop-c {
   opacity: 1;
   scale: 1;
   translate: 0 0;
 }
-.chat-pop-a {
-  top: 22%;
-  left: 9%;
-  transform: rotate(-3deg);
-}
 .chat-pop-b {
-  top: 42%;
-  right: 8%;
-  transform: rotate(2deg);
+  align-self: flex-end;
 }
 .chat-pop-c {
-  bottom: 18%;
-  left: 21%;
+  align-self: center;
   color: #e2c6e4;
   background: #322841e6;
-  transform: rotate(-1deg);
 }
 .chat-avatar {
-  width: 23px;
-  height: 23px;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #f0c7df, #956ba8 68%);
 }
@@ -754,31 +837,27 @@ html.landing-mode body #root {
 .chat-pop-c svg {
   color: #e9bc99;
 }
-.scene-orbit {
-  position: absolute;
-  left: 50%;
-  top: 51%;
-  width: 198px;
-  height: 198px;
-  border: 1px solid #d7b5e61d;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
+/* The light behind each piece of section art (src/landing/ArtLight.tsx): a soft lavender wash
+   with the hero's dither over it and a faint band where the art meets its surface. */
+.story-art {
+  isolation: isolate;
 }
-.orbit-b {
-  width: 265px;
-  height: 265px;
-  border-color: #d7b5e610;
-}
-.art-shadow {
+.art-light {
   position: absolute;
   z-index: -1;
-  width: 66%;
-  height: 60px;
-  left: 17%;
-  bottom: 2%;
-  border-radius: 50%;
-  background: #9672ae18;
-  filter: blur(30px);
+  inset: -16% -24% -18%;
+  pointer-events: none;
+  background: radial-gradient(ellipse 50% 46% at 50% 46%, rgb(214 190 236 / 0.34), transparent 72%);
+}
+.art-light canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+.art-light-on {
+  opacity: 0.75;
 }
 .story-art-aware {
   display: grid;
@@ -789,9 +868,16 @@ html.landing-mode body #root {
   width: min(100%, 540px);
   height: 374px;
   overflow: hidden;
-  border-radius: 7px;
-  background: linear-gradient(156deg, #2c2540, #171522 68%);
-  box-shadow: 0 32px 82px #08070e70;
+  border: 1px solid #e6d8ee;
+  border-radius: 12px;
+  /* A pale lavender wall lit from the lamp, the same family as the hero's room. */
+  background:
+    radial-gradient(ellipse 60% 70% at 86% 62%, rgb(246 210 178 / 0.5), transparent 70%),
+    linear-gradient(180deg, #f6f0fa, #ebdff3 74%);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.8),
+    0 34px 70px rgb(96 64 132 / 0.18),
+    0 10px 22px rgb(96 64 132 / 0.1);
 }
 .room-window {
   position: absolute;
@@ -800,9 +886,12 @@ html.landing-mode body #root {
   width: 58%;
   height: 55%;
   overflow: hidden;
-  border: 1px solid #c5a7d458;
-  border-radius: 3px;
+  border: 6px solid #fbf8fd;
+  border-radius: 4px;
   background: linear-gradient(180deg, #6f597c, #40334f 56%, #282436);
+  box-shadow:
+    0 0 0 1px #dccbe6,
+    0 10px 22px rgb(96 64 132 / 0.16);
 }
 .room-moon {
   position: absolute;
@@ -835,8 +924,8 @@ html.landing-mode body #root {
   bottom: 0;
   width: 100%;
   height: 26%;
-  background: linear-gradient(180deg, #34283a, #1c1825);
-  border-top: 1px solid #c9978752;
+  background: linear-gradient(180deg, #ddc9e6, #cfb8dc);
+  border-top: 1px solid #f7eefb;
 }
 .room-lamp {
   position: absolute;
@@ -844,7 +933,7 @@ html.landing-mode body #root {
   bottom: 23%;
   width: 9px;
   height: 88px;
-  background: #61485c;
+  background: #a98aa0;
 }
 .room-lamp::before {
   content: '';
@@ -863,7 +952,7 @@ html.landing-mode body #root {
   top: 37%;
   width: 58%;
   height: 1px;
-  background: linear-gradient(90deg, #edc5a9, transparent);
+  background: linear-gradient(90deg, #f3c9aa, transparent);
   transform: rotate(13deg);
   transform-origin: left;
 }
@@ -887,7 +976,10 @@ html.landing-mode body #root {
     transform var(--dur-base) var(--ease-out),
     box-shadow var(--dur-base) var(--ease-out);
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px #b48fd04d;
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.16),
+    0 0 0 4px rgb(201 169 220 / 0.24),
+    0 16px 34px rgb(64 36 92 / 0.3);
 }
 .attention-dot {
   position: absolute;
@@ -905,7 +997,7 @@ html.landing-mode body #root {
   position: absolute;
   right: 8%;
   top: 15%;
-  color: #cdbbd4;
+  color: #8a7a96;
   font:
     10px 'DM Sans',
     sans-serif;
@@ -1006,8 +1098,8 @@ html.landing-mode body #root {
 .closing-copy > p:not(.section-knot) {
   max-width: 410px;
   margin: 27px auto 0;
-  color: #62576c;
-  font-size: 15px;
+  color: #554a60;
+  font-size: 16.5px;
   line-height: 1.7;
 }
 .closing-button {
@@ -1016,8 +1108,8 @@ html.landing-mode body #root {
 .closing-footnote {
   display: block;
   margin-top: 15px;
-  color: #6e6278;
-  font-size: 10px;
+  color: #625670;
+  font-size: 12px;
 }
 .closing-floor {
   position: absolute;
@@ -1035,12 +1127,12 @@ html.landing-mode body #root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #6e6278;
-  font-size: 10px;
+  color: #625670;
+  font-size: 12px;
 }
 .footer-credit {
-  color: #9a8fa3;
-  font-size: 9px;
+  color: #857a90;
+  font-size: 10.5px;
   text-align: center;
 }
 .footer-credit a {
@@ -1350,7 +1442,7 @@ html.landing-mode body #root {
     bottom: 25px;
     width: 100%;
     justify-content: center;
-    font-size: 9px;
+    font-size: 11px;
   }
   .story-section,
   .story-two {
@@ -1371,34 +1463,18 @@ html.landing-mode body #root {
     font-size: clamp(43px, 10vw, 62px);
   }
   .story-copy > p:not(.section-knot) {
-    font-size: 14px;
+    font-size: 15.5px;
   }
   .story-art {
     min-height: 270px;
     /* Headroom for Tavi perched on the art, clear of the section's note above it. */
     margin-top: 90px;
   }
-  .chat-scene-window {
-    height: 265px;
+  .chat-phone-screen {
+    height: 400px;
   }
   .aware-room {
     height: 275px;
-  }
-  .chat-pop {
-    padding: 10px 11px;
-    font-size: 9px;
-  }
-  .chat-pop-a {
-    top: 18%;
-    left: 4%;
-  }
-  .chat-pop-b {
-    top: 43%;
-    right: 3%;
-  }
-  .chat-pop-c {
-    bottom: 12%;
-    left: 11%;
   }
   .closing-scene {
     min-height: 760px;
@@ -1411,7 +1487,7 @@ html.landing-mode body #root {
     font-size: clamp(76px, 17vw, 108px);
   }
   .closing-copy > p:not(.section-knot) {
-    font-size: 14px;
+    font-size: 15.5px;
   }
   /* Narrow enough that Tavi, standing beside the button, does not stand on it. */
   .closing-footnote {
@@ -2210,38 +2286,6 @@ html.landing-mode body #root {
   transform: none;
 }
 
-/* The look line: from Tavi's eyes to what she is looking at. Over the sections, under her. */
-.look-line {
-  position: fixed;
-  z-index: 1;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--dur-base) var(--ease-out);
-}
-.look-line[data-showing='true'] {
-  opacity: 1;
-}
-.look-line path {
-  fill: none;
-  stroke: url(#look-fade);
-  stroke-width: 1.25;
-  stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-}
-.look-line circle {
-  fill: none;
-  stroke: #e6b896;
-  stroke-width: 1.25;
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
 /* A soft bloom of shadow where Tavi lands (played by the page with the Web Animations API). */
 .landing-bloom {
   position: absolute;
@@ -2258,5 +2302,284 @@ html.landing-mode body #root {
   .can-reveal [data-reveal]:not([data-visible]) .reveal-line,
   .can-reveal [data-reveal]:not([data-visible]) :is(.story-copy, .closing-copy) > :not(h2) {
     transform: none;
+  }
+}
+
+/* The Studio beat: the art sits on the left, so Tavi's trip down the page zigzags. */
+.story-flip {
+  grid-template-columns: minmax(380px, 1.1fr) minmax(360px, 0.9fr);
+  padding-right: clamp(220px, 15vw, 238px);
+  padding-left: clamp(40px, 8vw, 120px);
+}
+.story-flip .story-art {
+  order: -1;
+}
+.story-art-studio {
+  display: grid;
+  place-items: center;
+}
+.studio-steps {
+  display: grid;
+  gap: 4px;
+  margin-top: 24px;
+}
+.studio-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #554a60;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+.studio-step[aria-selected='true'] {
+  border-color: #e5d6ee;
+  background: #f7f1fb;
+  color: #2c2236;
+}
+@media (hover: hover) and (pointer: fine) {
+  .studio-step:hover {
+    color: #2c2236;
+  }
+}
+.studio-step:focus-visible {
+  outline: 2px solid #8970b4;
+  outline-offset: 2px;
+}
+.studio-step-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #efe6f5;
+  color: #76548a;
+}
+.studio-step-text {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.studio-step-text b {
+  font-weight: 600;
+}
+/* Studio on a desktop display, staged like a product shot: thin dark bezel, a soft metal stand
+   and foot, a contact shadow. Our own monitor, not a branded device. */
+.studio-display {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: min(100%, 620px);
+}
+.studio-bezel {
+  width: 100%;
+  padding: 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #2a2633, #17141f);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 0.12),
+    0 40px 80px rgb(40 24 58 / 0.28),
+    0 12px 24px rgb(40 24 58 / 0.16);
+}
+.studio-screen {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #11131c;
+}
+.studio-stand {
+  width: 16%;
+  height: 54px;
+  background: linear-gradient(90deg, #b9b0c4, #e7e1ec 45%, #c7bfd1);
+  clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%);
+}
+.studio-foot {
+  width: 38%;
+  height: 9px;
+  border-radius: 3px 3px 10px 10px;
+  background: linear-gradient(180deg, #ece7f0, #bdb3c8);
+  box-shadow: 0 16px 26px rgb(40 24 58 / 0.22);
+}
+/* The display swings up to face the visitor as the section first appears (after Aceternity's
+   container scroll, played once on reveal rather than tied to the scroll position). */
+.can-reveal [data-reveal] .studio-display {
+  transform-origin: 50% 100%;
+  transition:
+    transform var(--dur-scene) var(--ease-out) 120ms,
+    opacity var(--dur-reveal) var(--ease-out) 120ms;
+}
+.can-reveal [data-reveal]:not([data-visible]) .studio-display {
+  opacity: 0;
+  transform: perspective(1400px) rotateX(18deg) translateY(28px) scale(0.95);
+}
+@media (prefers-reduced-motion: reduce) {
+  .can-reveal [data-reveal]:not([data-visible]) .studio-display {
+    transform: none;
+  }
+}
+/* The screen's mock studio: a calm dark app with a sidebar, a stage and a settings panel. */
+.studio-mock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  color: #d8cce4;
+  font-size: 9px;
+}
+.studio-mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #ffffff10;
+  color: #a898b6;
+}
+.studio-mock-bar i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff22;
+}
+.studio-mock-bar span {
+  margin-left: 6px;
+}
+.studio-mock-body {
+  display: grid;
+  grid-template-columns: 26% 1fr 28%;
+  min-height: 0;
+}
+.studio-mock-nav {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 8px;
+  border-right: 1px solid #ffffff0d;
+}
+.studio-mock-nav span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 7px;
+  border-radius: 6px;
+  color: #9d90ab;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+.studio-mock-nav span[data-on='true'] {
+  background: #2d2540;
+  color: #f0e6f8;
+}
+.studio-mock-stage {
+  position: relative;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: radial-gradient(ellipse at 50% 45%, #3a2d52, #15131d 72%);
+}
+.studio-mock-figure {
+  width: 54px;
+  height: 74px;
+  border-radius: 40% 40% 30% 30%;
+  background: linear-gradient(180deg, #e8577f66, #6a4f8e55);
+  filter: blur(0.3px);
+}
+.studio-mock-stage span {
+  color: #a898b6;
+  font-size: 9px;
+}
+.studio-mock-panel {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px 10px;
+  border-left: 1px solid #ffffff0d;
+}
+.studio-mock-panel b {
+  color: #f0e6f8;
+  font-size: 10px;
+  font-weight: 600;
+}
+.studio-mock-panel i {
+  height: 6px;
+  border-radius: 3px;
+  background: #ffffff14;
+}
+.studio-mock-panel i:nth-of-type(2) {
+  width: 70%;
+}
+.studio-mock-panel i:nth-of-type(4) {
+  width: 50%;
+}
+@media (max-width: 1050px) {
+  .story-flip {
+    grid-template-columns: minmax(300px, 1.1fr) minmax(260px, 0.9fr);
+    padding-right: clamp(165px, 18vw, 190px);
+    padding-left: 6vw;
+  }
+}
+@media (max-width: 720px) {
+  .story-flip {
+    padding: 125px 25px;
+  }
+  .story-flip .story-art {
+    order: 2;
+  }
+}
+/* Phones. The stage caption would sit on the tabletop, so it goes; the closing copy ends clear of
+   the floor line Tavi stands on; the footer stacks; the Studio screen drops its settings panel. */
+@media (max-width: 720px) {
+  .stage-caption {
+    display: none;
+  }
+  .story-section,
+  .story-two,
+  .story-flip {
+    padding-top: 92px;
+    padding-bottom: 92px;
+  }
+  /* Narrow enough to stay clear of Tavi beside the button. */
+  .closing-footnote {
+    max-width: 150px;
+    font-size: 11px;
+  }
+  .room-label {
+    display: none;
+  }
+  .closing-scene {
+    min-height: 0;
+    padding: 120px 22px 200px;
+  }
+  .closing-dither {
+    height: 480px;
+  }
+  .footer-signoff {
+    bottom: 22px;
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .footer-credit {
+    order: 3;
+    flex-basis: 100%;
+    line-height: 1.5;
+  }
+  .studio-mock-body {
+    grid-template-columns: 40% 1fr;
+  }
+  .studio-mock-panel {
+    display: none;
   }
 }

@@ -24,7 +24,8 @@ import {
 } from './landing/tabletop';
 import type { Measures } from './landing/choreography';
 import { PageCompanion, type PageStation } from './landing/descent';
-import { LookLine } from './landing/lookLine';
+import { ArtLight } from './landing/ArtLight';
+import { StudioBeat } from './landing/StudioBeat';
 import { TWITCH_GLITCH, lockup, paintDither } from './landing/dither';
 
 /**
@@ -116,11 +117,11 @@ export function LandingPage() {
   const closingButtonRef = useRef<HTMLAnchorElement>(null);
   const chatPerchRef = useRef<HTMLDivElement>(null);
   const roomPerchRef = useRef<HTMLDivElement>(null);
+  const studioPerchRef = useRef<HTMLDivElement>(null);
   const closingDitherRef = useRef<HTMLCanvasElement>(null);
   const walkerRef = useRef<HTMLDivElement>(null);
   const heroShadowRef = useRef<HTMLDivElement>(null);
   const bloomRef = useRef<HTMLDivElement>(null);
-  const lookRef = useRef<SVGSVGElement>(null);
   const noiseRef = useRef<HTMLCanvasElement>(null);
   const [nativeScreen, setNativeScreen] = useState(false);
   // The opening waits for the TV (shown), then for the picture, Tavi and the fonts (revealed).
@@ -416,7 +417,6 @@ export function LandingPage() {
     const leaveCta = () => {
       companion.current.setCtaHover(false);
     };
-    const look = lookRef.current ? new LookLine(lookRef.current) : null;
     let available: boolean | undefined;
     let visible = true;
     // The visitor's pointer in client pixels, and when it last moved.
@@ -443,7 +443,11 @@ export function LandingPage() {
       // closing floor beside the call to action.
       const stage = pageRect(desk);
       const stations: PageStation[] = [];
-      const perch = (element: HTMLElement | null, spot: number, scene: 'chat' | 'room') => {
+      const perch = (
+        element: HTMLElement | null,
+        spot: number,
+        scene: 'chat' | 'room' | 'studio',
+      ) => {
         if (!element) return;
         const box = pageRect(element);
         const left = box.left - stage.left;
@@ -459,6 +463,8 @@ export function LandingPage() {
       };
       perch(chatPerchRef.current, 0.74, 'chat');
       perch(roomPerchRef.current, 0.26, 'room');
+      // In the Studio section she sits on top of the monitor, toward its right corner.
+      perch(studioPerchRef.current, 0.8, 'studio');
       const floorLine = closingFloorRef.current,
         button = closingButtonRef.current;
       if (floorLine && button) {
@@ -551,7 +557,11 @@ export function LandingPage() {
                 ? room?.querySelector<HTMLElement>('.attention-line')
                 : name === 'button'
                   ? cta
-                  : null;
+                  : name === 'studio-step'
+                    ? document.querySelector<HTMLElement>('.studio-step[aria-selected="true"]')
+                    : name === 'studio-screen'
+                      ? document.querySelector<HTMLElement>('.studio-screen')
+                      : null;
         if (!element) return null;
         const box = element.getBoundingClientRect();
         // The attention line runs down and to the right; look at its far end.
@@ -574,7 +584,6 @@ export function LandingPage() {
       const focus = screenBox
         ? { x: screenBox.left + screenBox.width / 2, y: screenBox.top + screenBox.height / 2 }
         : lookAt(scene?.look ?? null);
-      look?.update(scene?.look ?? null, focus ? head : null, focus, bodyPx * deskScale * 0.17);
       // Her idle life: what she does with herself, from where she is and what the visitor does.
       const landed = frame.action === 'land' && lastAction !== 'land';
       if (!still && step > 0) {
@@ -773,6 +782,7 @@ export function LandingPage() {
     for (const element of [
       chatPerchRef.current,
       roomPerchRef.current,
+      studioPerchRef.current,
       closingFloorRef.current,
       closingButtonRef.current,
     ])
@@ -980,18 +990,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      <svg className="look-line" ref={lookRef} aria-hidden="true" data-showing="false">
-        <defs>
-          <linearGradient id="look-fade" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#a98ac4" stopOpacity="0" />
-            <stop offset="0.3" stopColor="#a98ac4" stopOpacity="0.85" />
-            <stop offset="1" stopColor="#e6b896" stopOpacity="0.95" />
-          </linearGradient>
-        </defs>
-        <path pathLength={1} />
-        <circle r="5" />
-      </svg>
-
       <section
         className="story-section story-one"
         id="personality"
@@ -1013,21 +1011,33 @@ export function LandingPage() {
           <span className="story-note">Small presence. Real personality.</span>
         </div>
         <div className="story-art story-art-chat" aria-hidden="true">
-          <div className="chat-scene-window" ref={chatPerchRef}>
-            <div className="scene-slice" />
-            <div className="chat-pop chat-pop-a">
-              <span className="chat-avatar lilac" /> wait did you see that?
+          <ArtLight />
+          {/* Stream chat on a phone, propped up in the light; Tavi sits on its top edge. */}
+          <div className="chat-phone" ref={chatPerchRef} data-art-object>
+            <div className="chat-phone-screen">
+              <div className="chat-phone-bar">
+                <span className="chat-live">Live</span> Stream chat
+              </div>
+              <div className="chat-thread">
+                <div className="chat-pop chat-pop-a">
+                  <span className="chat-avatar lilac" />
+                  <span>
+                    <b>mossy</b> wait did you see that?
+                  </span>
+                </div>
+                <div className="chat-pop chat-pop-b">
+                  <span className="chat-avatar peach" />
+                  <span>
+                    <b>juniper</b> Tavi did 😂
+                  </span>
+                </div>
+                <div className="chat-pop chat-pop-c">
+                  <Sparkles size={14} /> little moments matter
+                </div>
+              </div>
+              <div className="chat-phone-input" />
             </div>
-            <div className="chat-pop chat-pop-b">
-              <span className="chat-avatar peach" /> Tavi did 😂
-            </div>
-            <div className="chat-pop chat-pop-c">
-              <Sparkles size={14} /> little moments matter
-            </div>
-            <div className="scene-orbit orbit-a" />
-            <div className="scene-orbit orbit-b" />
           </div>
-          <div className="art-shadow" />
         </div>
       </section>
 
@@ -1035,7 +1045,8 @@ export function LandingPage() {
         <div className="story-copy">
           <h2>
             <span className="reveal-line">A companion who</span>
-            <span className="reveal-line">knows where to look.</span>
+            <span className="reveal-line">knows where</span>
+            <span className="reveal-line">to look.</span>
           </h2>
           <p className="section-knot">
             <Eye size={15} /> In the room with you
@@ -1047,7 +1058,9 @@ export function LandingPage() {
           <span className="story-note">Aware of the scene around it.</span>
         </div>
         <div className="story-art story-art-aware" aria-hidden="true">
-          <div className="aware-room" ref={roomPerchRef}>
+          <ArtLight />
+          {/* A small lit room, like a diorama on a shelf; Tavi sits on its top edge. */}
+          <div className="aware-room" ref={roomPerchRef} data-art-object>
             <div className="room-window">
               <div className="room-moon" />
               <div className="room-mountain" />
@@ -1061,6 +1074,8 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      <StudioBeat perchRef={studioPerchRef} />
 
       <section className="closing-scene" data-cue="ending" data-reveal>
         <div className="closing-light" />

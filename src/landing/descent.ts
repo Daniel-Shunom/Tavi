@@ -109,6 +109,14 @@ export const SCENES: Record<SceneName, readonly Beat[]> = {
     { at: 3.4, look: null, expression: 'content' },
     { at: 5.4, expression: null },
   ],
+  // Studio: from her seat on top of the monitor she looks over at the step being shown, keen on
+  // what you can make of her, then peeks down at the screen.
+  studio: [
+    { at: 0.4, look: 'studio-step', expression: 'excited' },
+    { at: 3.2, look: 'studio-screen', expression: 'content' },
+    { at: 7, look: 'studio-step' },
+    { at: 10, look: null, expression: null },
+  ],
   floor: [
     { at: 0.3, look: 'button', expression: 'excited', present: 1 },
     { at: 2.4, look: null, expression: null, present: 0 },

@@ -33,12 +33,12 @@
   - `--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)` for travel;
   - `--dur-press` 160ms, `--dur-quick` 200ms and `--dur-base` 280ms for interface feedback;
   - `--dur-reveal` 600ms and `--dur-scene` 900ms for reveals and scene beats.
-  - The site's transitions use them. The canvas title card and the look line use the same curve in JS.
+  - The site's transitions use them. The canvas title card uses the same curve in JS.
   - Tavi's own motion is separate.
 - Polish rules: no overshoot or bounce outside Tavi. Hover motion is gated to fine pointers, and presses scale to 0.97. Reveals play once. Reduced motion keeps fades and drops movement.
 - Page motion:
   - Section headings wipe up line by line as they enter (`data-reveal`/`data-visible`, `can-reveal` set in `index.html`), and the copy follows with a 60ms stagger. The section art never hides.
-  - The look line (`lookLine.ts`) draws a hairline from Tavi's eyes to her scene's target (chat message, attention dot, call to action).
+  - Tavi's eyes follow her scene's target (chat message, attention dot, call to action, Studio step); the hairline look line was removed at the user's request.
   - A soft shadow bloom plays where she lands.
   - The TV title card enters like a broadcast ident once the signal locks.
   - The chat message she is reading carries a soft light.

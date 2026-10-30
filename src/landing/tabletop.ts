@@ -26,7 +26,7 @@ export interface JumpPose {
 }
 /** A little scene at a page station: where she looks, her face, and what she does. */
 export interface StopScene {
-  name: 'chat' | 'room' | 'floor';
+  name: 'chat' | 'room' | 'studio' | 'floor';
   /** A named thing in the section to look at, or null for the visitor and ambient life. */
   look: string | null;
   expression: ExpressionId | null;

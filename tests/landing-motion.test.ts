@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { cubicBezier } from '../src/landing/crtScreen';
-import { lookPath } from '../src/landing/lookLine';
 
 describe('landing motion helpers', () => {
   it('solves the --ease-out curve like CSS cubic-bezier(0.23, 1, 0.32, 1)', () => {
@@ -16,12 +15,5 @@ describe('landing motion helpers', () => {
     // A strong ease-out: well past halfway by a quarter of the time.
     expect(ease(0.25)).toBeGreaterThan(0.7);
     expect(cubicBezier(0, 0, 1, 1)(0.37)).toBeCloseTo(0.37, 5);
-  });
-
-  it('draws the look line from just off her face to just short of the target, bowed upward', () => {
-    const { start, end, control } = lookPath({ x: 100, y: 100 }, { x: 400, y: 300 }, 30);
-    expect(Math.hypot(start.x - 100, start.y - 100)).toBeCloseTo(30, 6);
-    expect(Math.hypot(end.x - 400, end.y - 300)).toBeCloseTo(7, 6);
-    expect(control.y).toBeLessThan((start.y + end.y) / 2);
   });
 });
