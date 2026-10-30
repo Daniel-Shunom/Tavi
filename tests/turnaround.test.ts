@@ -9,6 +9,8 @@ import { neutralPose, type MotionFrame } from '../src/renderer/motion/types';
 import { MotionLayer } from '../src/renderer/motion/motion';
 // @ts-expect-error -- plain .mjs pipeline module without type declarations
 import * as turnStep from '../tools/mascot-remix/steps/turn.mjs';
+// @ts-expect-error -- plain .mjs pipeline module without type declarations
+import * as skirtStep from '../tools/mascot-remix/steps/skirt.mjs';
 
 const { addTurnaround } = turnStep as { addTurnaround: (rml: string) => string };
 
@@ -32,16 +34,19 @@ function keyedProperties(body: string) {
   const out = new Map<string, [number, number][]>();
   for (const object of body.matchAll(
     /<KeyedObject objectId="([^"]+)"[^>]*>([\s\S]*?)<\/KeyedObject>/g,
-  ))
+  )) {
     for (const prop of (object[2] ?? '').matchAll(
       /<KeyedProperty property="([^"]+)"[^>]*>([\s\S]*?)<\/KeyedProperty>/g,
-    ))
+    )) {
+      if (!prop[2]?.includes('<KeyFrameDouble')) continue;
       out.set(
         `${object[1] ?? ''}.${prop[1] ?? ''}`,
         [...(prop[2] ?? '').matchAll(/<KeyFrameDouble value="([^"]+)"[^>]*?frame="(\d+)"/g)].map(
           (m) => [Number(m[2]), Number(m[1])] as [number, number],
         ),
       );
+    }
+  }
   return out;
 }
 
@@ -53,6 +58,21 @@ describe('Lyla v2 turnaround', () => {
 
   it('is authored idempotently by its own pipeline step', () => {
     expect(addTurnaround(source)).toBe(source);
+  });
+
+  it('keeps the skirt panels on the hip instead of weighted to the legs', () => {
+    const { attachSkirt } = skirtStep as { attachSkirt: (rml: string) => string };
+    expect(attachSkirt(source)).toBe(source);
+    const hip = source.indexOf('name="pants" id="0:635"');
+    const firstLeg = source.indexOf('name="IK  LEFT  LEG "', hip);
+    for (const id of ['0:636', '0:646']) {
+      const start = source.indexOf(`id="${id}"`, hip);
+      expect(start).toBeGreaterThan(hip);
+      expect(start).toBeLessThan(firstLeg);
+      const pathStart = source.indexOf('<PointsPath', start);
+      const pathEnd = source.indexOf('</PointsPath>', pathStart);
+      expect(source.slice(pathStart, pathEnd)).not.toContain('<Skin');
+    }
   });
 
   it('keys continuous values that rest at frame 30 on the authored pose', () => {
@@ -78,7 +98,7 @@ describe('Lyla v2 turnaround', () => {
     }
   });
 
-  it('keys nothing another timeline keys, so it layers over clips, gaits and joysticks', () => {
+  it('keys no numeric properties used by other clips, gaits or joysticks', () => {
     const own = new Set<string>();
     for (const name of TRACKS)
       for (const key of keyedProperties(animation(name)).keys()) own.add(key);
@@ -99,6 +119,68 @@ describe('Lyla v2 turnaround', () => {
     expect(width?.[10]?.[1]).toBeLessThan(0.9);
     const plane = props.get('0:1284.x') ?? [];
     expect((plane[10]?.[1] ?? 0) - (plane[0]?.[1] ?? 0)).toBeGreaterThan(45);
+  });
+
+  it('turns the chest and shoulders asymmetrically in both directions', () => {
+    const props = keyedProperties(animation('tavi/turnBody'));
+    const leftChest = props.get('0:614.scaleX') ?? [];
+    const rightChest = props.get('0:625.scaleX') ?? [];
+    expect(leftChest[0]?.[1]).toBeLessThan(rightChest[0]?.[1] ?? 0);
+    expect(rightChest[10]?.[1]).toBeLessThan(leftChest[10]?.[1] ?? 0);
+    expect(leftChest[5]?.[1]).toBe(1);
+    expect(rightChest[5]?.[1]).toBe(1);
+    const leftArm = props.get('0:2090.scaleX') ?? [];
+    const rightArm = props.get('0:2339.scaleX') ?? [];
+    expect(leftArm[0]?.[1]).toBeLessThan(leftArm[5]?.[1] ?? 0);
+    expect(rightArm[10]?.[1]).toBeLessThan(rightArm[5]?.[1] ?? 0);
+  });
+
+  it('does not resize either leg group as the body turns', () => {
+    const props = keyedProperties(animation('tavi/turnBody'));
+    for (const id of ['0:2518', '0:2507']) {
+      expect(props.has(`${id}.x`)).toBe(true);
+      expect(props.has(`${id}.scaleX`)).toBe(false);
+      expect(props.has(`${id}.scaleY`)).toBe(false);
+    }
+  });
+
+  it('points both IK knee bends into the selected three-quarter view', () => {
+    const body = animation('tavi/turnBody');
+    for (const [id, switchFrame] of [
+      ['0:2560', 30],
+      ['0:2505', 30],
+    ] as const) {
+      const object = new RegExp(`<KeyedObject objectId="${id}"[^>]*>([\\s\\S]*?)</KeyedObject>`).exec(body)?.[1] ?? '';
+      expect(object).toContain('property="invertDirection"');
+      expect(object).toMatch(/<KeyFrameBool value="false" frame="0"/);
+      expect(object).toContain(`<KeyFrameBool value="true" frame="${switchFrame}"`);
+    }
+  });
+
+  it('extends the shoe silhouette toward the facing direction', () => {
+    const props = keyedProperties(animation('tavi/turnBody'));
+    for (const id of ['0:13098', '0:13191']) {
+      const toe = props.get(`${id}.x`) ?? [];
+      expect(toe[10]?.[1]).toBeGreaterThan(toe[5]?.[1] ?? Infinity);
+    }
+    for (const id of ['0:13100', '0:13195']) {
+      const toe = props.get(`${id}.x`) ?? [];
+      expect(toe[0]?.[1]).toBeLessThan(toe[5]?.[1] ?? -Infinity);
+    }
+  });
+
+  it('keeps the two shirt panels overlapping through the turn', () => {
+    const props = keyedProperties(animation('tavi/turnBody'));
+    const leftX = props.get('0:614.x') ?? [];
+    const rightX = props.get('0:625.x') ?? [];
+    const leftScale = props.get('0:614.scaleX') ?? [];
+    const rightScale = props.get('0:625.scaleX') ?? [];
+    for (let i = 0; i < leftX.length; i++) {
+      // At the shirt hem these authored vertices face each other at the centre.
+      const leftEdge = (leftX[i]?.[1] ?? 0) + 17.455006 * (leftScale[i]?.[1] ?? 0);
+      const rightEdge = (rightX[i]?.[1] ?? 0) - 19.252001 * (rightScale[i]?.[1] ?? 0);
+      expect(leftEdge, `frame ${leftX[i]?.[0]}`).toBeGreaterThan(rightEdge);
+    }
   });
 
   it('is exposed through the manifest with turnStyle "authored"', () => {

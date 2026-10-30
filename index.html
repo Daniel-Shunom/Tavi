@@ -9,6 +9,23 @@
       name="description"
       content="A familiar face in the corner of your stream. Meet Tavi, your expressive stream companion."
     />
+    <script>
+      // The landing page is white from the first paint (not the studio's dark canvas until the
+      // app script runs), and its hero's TV and table are fetched with the page.
+      if (!['/overlay', '/studio', '/avatar-lab'].includes(location.pathname)) {
+        // Sections reveal as they scroll into view (the page script adds data-visible).
+        document.documentElement.classList.add('landing-mode', 'can-reveal');
+        for (const name of ['table', 'tv']) {
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'image';
+          link.fetchPriority = 'high';
+          link.imageSrcset = `/media/crt/${name}-900.webp 900w, /media/crt/${name}-1800.webp 1800w`;
+          link.imageSizes = '(max-width: 900px) 100vw, 900px';
+          document.head.append(link);
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

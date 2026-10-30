@@ -1,0 +1,88 @@
+{
+  "neutral": {
+    "browLeft": 0,
+    "browRight": 0,
+    "blinkLeft": 0,
+    "blinkRight": 0,
+    "lidLeft": 0,
+    "lidRight": 0,
+    "mouthCurve": 0.1,
+    "mouthX": 0,
+    "mouthY": 0,
+    "browTiltL": 0,
+    "browTiltR": 0,
+    "mouthOpen": 0.4,
+    "mouthWide": 0,
+    "mouthTilt": 0,
+    "mouthPop": 0,
+    "mouthShape": 0
+  },
+  "poses": {
+    "neutral": {},
+    "joy": {
+      "browLeft": -0.35,
+      "browRight": -0.35,
+      "blinkLeft": 0.25,
+      "blinkRight": 0.25,
+      "lidLeft": 0.3,
+      "lidRight": 0.3,
+      "mouthShape": 3,
+      "mouthOpen": 0.8,
+      "mouthWide": 0.25
+    },
+    "surprise": {
+      "browLeft": -1,
+      "browRight": -1,
+      "mouthShape": 6,
+      "mouthOpen": 0.9,
+      "mouthWide": -0.25
+    },
+    "concern": {
+      "browLeft": -0.25,
+      "browRight": -0.25,
+      "browTiltL": -0.95,
+      "browTiltR": -0.95,
+      "mouthShape": 9,
+      "mouthOpen": 0.55,
+      "mouthWide": -0.2
+    },
+    "focus": {
+      "browLeft": 0.35,
+      "browRight": 0.35,
+      "browTiltL": 0.75,
+      "browTiltR": 0.75,
+      "lidLeft": 0.2,
+      "lidRight": 0.2,
+      "mouthShape": 15,
+      "mouthOpen": 0.35,
+      "mouthWide": -0.3
+    },
+    "sleepy": {
+      "browLeft": 0.15,
+      "browRight": 0.15,
+      "blinkLeft": 0.72,
+      "blinkRight": 0.72,
+      "lidLeft": 0.15,
+      "lidRight": 0.15,
+      "mouthCurve": -0.1,
+      "mouthWide": -0.2
+    },
+    "playful": {
+      "browLeft": -0.65,
+      "browRight": 0.15,
+      "blinkRight": 0.7,
+      "mouthShape": 10,
+      "mouthTilt": 0.3,
+      "mouthOpen": 0.55
+    }
+  },
+  "fallback_sha256": {
+    "scene.rml": "b803b63df95eb7c75d75f00926f2ecff4d4312cb9c3639fdc04423783377f96a",
+    "mascot-v2.riv": "7faf2a6549e4789faf0ddf735872e66a76fd4abc4d48e3f43a39d2c485fd9fae"
+  },
+  "references": [
+    "https://rive.app/marketplace/669-1300-facial-expression-demo/",
+    "https://rive.app/marketplace/19598-36877-character-turn-animation/",
+    "https://rive.app/blog/animated-login-screen-design"
+  ]
+}

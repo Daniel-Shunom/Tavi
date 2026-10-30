@@ -48,6 +48,8 @@ export interface LocomotionCaps {
   turnStyle?: TurnStyle;
   /** Gaits the character provides authored cycles for (manifest tracks); others are procedural. */
   authored?: readonly GaitId[];
+  /** Character-specific timing/distance for its approved authored foundations. */
+  authoredCycles?: Partial<Record<GaitId, { seconds: number; stride: number }>>;
   /** Rig has foot IK targets (planted steps); otherwise travel uses flight cycles. */
   feet: boolean;
 }
@@ -359,7 +361,9 @@ export class Locomotion {
     // Authored cycle for this gait? Then play it phase-locked to distance (no foot slip) at a
     // little above its natural ground speed, with procedural lean/mood/beats on top.
     const authoredClip =
-      this.gait && caps.authored?.includes(this.gait) ? authoredGaitClips[this.gait] : undefined;
+      this.gait && caps.authored?.includes(this.gait)
+        ? (caps.authoredCycles?.[this.gait] ?? authoredGaitClips[this.gait])
+        : undefined;
     const authored =
       authoredClip?.stride && authoredClip.seconds
         ? { stride: authoredClip.stride, seconds: authoredClip.seconds }

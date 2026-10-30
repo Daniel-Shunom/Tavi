@@ -7,6 +7,7 @@ Tavi is a streamer-first expressive companion. Build in reviewable milestones; d
 Project skills are vendored under `.agents/skills/`. Use these copies instead of requiring a user-global installation. `.agents/skills.lock.json` records upstream repositories, exact commits, and file hashes. Run `python tools/skills.py` to verify; `--restore` restores missing files. Preserve upstream licenses and notices. Newly installed skills are available on the next turn.
 
 - UI creation: `.agents/skills/frontend-design/SKILL.md`.
+- Landing pages: `.agents/skills/landing-page-design/SKILL.md` (Elaya Design). Apply alongside Tavi's documented visual direction; the user's established typography, palette, character staging, and motion choices take precedence over skill defaults.
 - React implementation: `.agents/skills/react-best-practices/SKILL.md`.
 - Component architecture: `.agents/skills/composition-patterns/SKILL.md`.
 - UI review: `.agents/skills/web-design-guidelines/SKILL.md`.
@@ -15,6 +16,10 @@ Project skills are vendored under `.agents/skills/`. Use these copies instead of
 - Test-first work: `.agents/skills/tdd/SKILL.md`.
 - Bug diagnosis: `.agents/skills/diagnosing-bugs/SKILL.md`.
 - Rive (official, discovery only: runtime docs and CLI pointers): `.agents/skills/rive/SKILL.md`. Ask before installing the Rive CLI.
+- Character motion quality bar and pipeline (project-local): `.agents/skills/character-motion/SKILL.md`. Use with `.agents/skills/2d-character-rig-animation/SKILL.md`.
+- Deterministic procedural animation (timing, seeding, reduced motion): `.agents/skills/procedural-canvas-animation/SKILL.md`.
+- UI design, critique and polish (Impeccable 4.8.0): `.agents/skills/impeccable/SKILL.md`. Its launcher downloads a checksum-verified engine binary into `scripts/bin/` or `~/.impeccable` on first run; do not commit that binary.
+- Interface motion (Emil Kowalski's `animate`: whether to animate, curves, durations, interruption, reduced motion): `.agents/skills/animate/SKILL.md`. Use it for page and UI transitions; character motion stays with `character-motion`.
 - Matt Pocock orchestration skills and setup are installed alongside these. Run setup before invoking workflows that require issue tracker configuration; no tracker is configured yet.
 
 ## Ownership and integration

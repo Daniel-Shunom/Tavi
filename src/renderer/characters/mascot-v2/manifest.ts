@@ -49,16 +49,25 @@ export const mascotV2PoseTracks = {
   'fx.zzz': 'zzz',
 };
 
-/** Rive authored performances for the cinematic landing sequence. */
+/**
+ * Rive authored performances for the cinematic landing sequence (tools/mascot-remix/steps/
+ * landing.mjs). `landing.rest` is the neutral base the page applies under every other clip, so a
+ * clip hand-off never strands a posed leg or arm. Contacts are authored on the artboard's soles
+ * line: seated clips drop the hips onto it and hang the legs below it.
+ */
 export const mascotV2LandingTracks = {
+  'landing.rest': 'tavi/landing/rest',
   'landing.panic': 'tavi/landing/panic',
   'landing.relief': 'tavi/landing/relief',
+  'landing.notice': 'tavi/landing/notice',
+  'landing.crouch': 'tavi/landing/crouch',
   'landing.brace': 'tavi/landing/brace',
-  'landing.climb': 'tavi/landing/climb',
-  'landing.sit': 'tavi/landing/sit',
+  'landing.leg-over': 'tavi/landing/leg-over',
+  'landing.drop': 'tavi/landing/drop',
+  'landing.hop': 'tavi/landing/hop',
+  'landing.sit-down': 'tavi/landing/sit-down',
   'landing.sit-life': 'tavi/landing/sit-life',
-  'landing.jump-down': 'tavi/landing/jump-down',
-  'landing.jump-up': 'tavi/landing/jump-up',
+  'landing.present': 'tavi/landing/present',
 };
 
 export const mascotV2: ManifestInput = {

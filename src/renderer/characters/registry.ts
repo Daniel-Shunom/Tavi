@@ -4,8 +4,9 @@ import type { CharacterCatalog } from '../../../shared/capabilities';
 import { capabilitiesOf, manifestSchema, type CharacterManifest } from './manifest';
 import { mascot } from './mascot/manifest';
 import { mascotV2 } from './mascot-v2/manifest';
+import { taviRefined } from './tavi-refined/manifest';
 
-const manifests: CharacterManifest[] = [mascot, mascotV2].map((input) =>
+const manifests: CharacterManifest[] = [mascot, mascotV2, taviRefined].map((input) =>
   manifestSchema.parse(input),
 );
 export const defaultCharacterId = 'mascot-v2';

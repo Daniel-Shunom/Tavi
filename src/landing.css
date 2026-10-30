@@ -6,11 +6,23 @@ html.landing-mode body #root {
   min-height: 100%;
   overflow-x: clip;
   overflow-y: auto;
-  background: #100f19;
-  color: #f3eff6;
+  background: #ffffff;
+  color: #292330;
+  color-scheme: light;
+  scrollbar-color: #a89bb4 #ffffff;
 }
 
 .tavi-site {
+  /* Motion language (Emil Kowalski's curves). Entrances and settles ease out; things that travel
+     on screen ease in and out. Interface feedback stays under 300 ms; reveals and scene beats
+     are the only longer moves. Tavi's own motion is hers and does not use these. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-press: 160ms;
+  --dur-quick: 200ms;
+  --dur-base: 280ms;
+  --dur-reveal: 600ms;
+  --dur-scene: 900ms;
   --ink: #100f19;
   --indigo: #171528;
   --plum: #30203c;
@@ -20,10 +32,8 @@ html.landing-mode body #root {
   --warm: #e5ae82;
   min-height: 100vh;
   overflow: clip;
-  background:
-    radial-gradient(ellipse 78vw 56vw at 78% 9%, rgb(82 51 111 / 0.36), transparent 72%),
-    linear-gradient(180deg, #100f19 0%, #141220 36%, #171320 68%, #100f19 100%);
-  color: var(--pearl);
+  background: #ffffff;
+  color: #292330;
   font-family: 'DM Sans', sans-serif;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
@@ -40,8 +50,9 @@ html.landing-mode body #root {
   color: inherit;
   text-decoration: none;
 }
-.tavi-site a:focus-visible {
-  outline: 2px solid #e4cdf5;
+.tavi-site a:focus-visible,
+.tavi-site button:focus-visible {
+  outline: 2px solid #795393;
   outline-offset: 5px;
 }
 
@@ -61,7 +72,7 @@ html.landing-mode body #root {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #fff9ff;
+  color: #292330;
   font:
     800 28px/1 'Manrope',
     sans-serif;
@@ -78,34 +89,40 @@ html.landing-mode body #root {
   gap: clamp(20px, 3vw, 46px);
 }
 .site-nav nav > a:not(.nav-cta) {
-  color: #d0cbd5;
+  color: #62576c;
   font-size: 13px;
-  transition: color 180ms ease;
+  transition: color var(--dur-quick) ease;
 }
 .site-nav nav > a:not(.nav-cta):hover {
-  color: white;
+  color: #382541;
 }
 .nav-cta {
   display: inline-flex;
   align-items: center;
   gap: 11px;
   padding: 12px 17px;
-  border: 1px solid rgb(224 200 236 / 0.24);
+  border: 1px solid #cec3d5;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.035);
-  color: #f7f1fb;
+  background: #ffffff;
+  color: #382541;
   font-size: 12px;
   transition:
-    background 180ms ease,
-    border-color 180ms ease;
+    background var(--dur-quick) ease,
+    border-color var(--dur-quick) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+.nav-cta:active {
+  transform: scale(0.97);
 }
 .nav-cta:hover {
-  border-color: rgb(224 200 236 / 0.48);
-  background: rgb(255 255 255 / 0.09);
+  border-color: #9275a6;
+  background: #f6f0fa;
 }
 
 .site-hero {
   position: relative;
+  /* Above the sections below, so Tavi stays in front when she follows the visitor down. */
+  z-index: 2;
   min-height: max(820px, 100svh);
   padding: clamp(130px, 18vh, 190px) clamp(26px, 7.2vw, 116px) 132px;
   display: grid;
@@ -119,9 +136,14 @@ html.landing-mode body #root {
   z-index: -1;
   inset: 0 0 auto;
   height: 70%;
-  background: radial-gradient(ellipse 62% 54% at 70% 43%, rgb(110 72 136 / 0.24), transparent 78%);
+  background: none;
   content: '';
   pointer-events: none;
+}
+/* Walking behind the call to action: under the closing copy (z-index 1, later in the page), still
+   over the closing section's background. */
+.site-hero[data-tavi-behind='true'] {
+  z-index: 1;
 }
 .hero-copy {
   position: relative;
@@ -144,13 +166,13 @@ html.landing-mode body #root {
   line-height: 0.99;
 }
 .hero-copy h1 em {
-  color: #dfcee8;
+  color: #72577f;
   font-weight: 400;
 }
 .hero-description {
   max-width: 420px;
   margin: 29px 0 0;
-  color: #cbc3d0;
+  color: #62576c;
   font-size: clamp(15px, 1.15vw, 17px);
   line-height: 1.75;
 }
@@ -177,15 +199,76 @@ html.landing-mode body #root {
   color: #24192c !important;
   font-size: 13px;
   font-weight: 600;
+  /* For the hover sheen: clipped to the button, under nothing but its own label. */
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   transition:
-    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 220ms ease,
-    background 220ms ease;
+    transform var(--dur-press) var(--ease-out),
+    box-shadow var(--dur-quick) ease,
+    background var(--dur-quick) ease,
+    border-color var(--dur-quick) ease;
+}
+/* Hover highlight (after Aceternity's hover border gradient, written for our motion rules): an
+   arc of lavender-to-peach light travels once around the border as the pointer arrives, then
+   rests as a soft gradient edge. No loop; fine pointers only; reduced motion shows the resting
+   edge without the trip. --button-light is registered so the arc's angle can transition. */
+@property --button-light {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.button-primary::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--button-light),
+    transparent 0deg,
+    #b98fe0 70deg,
+    #f2b48e 125deg,
+    transparent 190deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  content: '';
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .button-primary:hover {
+    border-color: #d9c2e6;
+  }
+  .button-primary:hover::before {
+    --button-light: 360deg;
+    opacity: 1;
+    transition:
+      opacity var(--dur-base) var(--ease-out),
+      --button-light 1.4s var(--ease-in-out);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button-primary:hover {
+    transform: translateY(-2px);
+  }
 }
 .button-primary:hover {
-  transform: translateY(-2px);
   background: #f0e4f4;
-  box-shadow: 0 16px 38px rgb(144 98 170 / 0.25);
+  box-shadow:
+    0 0 0 3px rgb(201 169 220 / 0.22),
+    0 16px 38px rgb(144 98 170 / 0.25);
+}
+/* After the hover lift, so a press always reads (including mid-hover). */
+.button-primary:active {
+  transform: scale(0.97);
 }
 .hero-aside {
   max-width: 175px;
@@ -225,7 +308,7 @@ html.landing-mode body #root {
 .video-image {
   position: absolute;
   inset: -1%;
-  background: url('/media/tavi-stream-forest.png') center 52% / cover no-repeat;
+  background: url('/media/tavi-stream-forest.webp') center 52% / cover no-repeat;
   filter: saturate(0.79) brightness(0.77);
   transform: scale(1.04);
   animation: scene-drift 28s ease-in-out infinite alternate;
@@ -507,11 +590,11 @@ html.landing-mode body #root {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #a89eae;
+  color: #6e6278;
   font-size: 10px;
 }
 .scroll-cue svg {
-  color: #d2b8de;
+  color: #795393;
   animation: cue-drop 2.2s ease-in-out infinite;
 }
 
@@ -526,10 +609,10 @@ html.landing-mode body #root {
   overflow: hidden;
 }
 .story-one {
-  background: linear-gradient(180deg, #171320 0%, #191625 44%, #171421 100%);
+  background: #ffffff;
 }
 .story-two {
-  background: linear-gradient(180deg, #171421, #15121f 72%, #181421);
+  background: #ffffff;
 }
 .story-copy {
   position: relative;
@@ -543,7 +626,7 @@ html.landing-mode body #root {
 .story-copy > p:not(.section-knot) {
   max-width: 390px;
   margin: 25px 0 0;
-  color: #bdb4c5;
+  color: #62576c;
   font-size: 15px;
   line-height: 1.78;
 }
@@ -552,19 +635,19 @@ html.landing-mode body #root {
   align-items: center;
   gap: 8px;
   margin: 24px 0 0;
-  color: #d3bce0;
+  color: #76548a;
   font-size: 11px;
 }
 .section-knot svg {
-  color: #ddb294;
+  color: #9a6647;
   stroke-width: 1.7;
 }
 .story-note {
   display: inline-block;
   margin-top: 28px;
   padding-top: 12px;
-  border-top: 1px solid #d9c9e32b;
-  color: #968da0;
+  border-top: 1px solid #e1d8e7;
+  color: #6e6278;
   font-size: 10px;
 }
 .story-art {
@@ -612,6 +695,35 @@ html.landing-mode body #root {
   color: #ddd5e4;
   font-size: 11px;
   box-shadow: 0 12px 36px #09081038;
+}
+/* Once Tavi perches on the chat window, its messages pop in one at a time as she reads them. */
+.chat-scene-window[data-revealed] .chat-pop {
+  opacity: 0;
+  scale: 0.96;
+  translate: 0 8px;
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    scale var(--dur-reveal) var(--ease-out),
+    translate var(--dur-reveal) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+/* The message Tavi is reading carries a soft light. */
+.chat-scene-window[data-look='bubble-0'] .chat-pop-a,
+.chat-scene-window[data-look='bubble-1'] .chat-pop-b,
+.chat-scene-window[data-look='bubble-2'] .chat-pop-c {
+  border-color: #ecd3f566;
+  box-shadow:
+    0 12px 30px #0000004d,
+    0 0 0 1px #f3dcf933,
+    0 0 26px #d8b4ea2e;
+}
+.chat-scene-window:is([data-revealed='1'], [data-revealed='2'], [data-revealed='3']) .chat-pop-a,
+.chat-scene-window:is([data-revealed='2'], [data-revealed='3']) .chat-pop-b,
+.chat-scene-window[data-revealed='3'] .chat-pop-c {
+  opacity: 1;
+  scale: 1;
+  translate: 0 0;
 }
 .chat-pop-a {
   top: 22%;
@@ -755,6 +867,28 @@ html.landing-mode body #root {
   transform: rotate(13deg);
   transform-origin: left;
 }
+/* Where Tavi is looking lights up: first the dot, then the line out to the scene. */
+.attention-dot,
+.attention-line {
+  transition:
+    scale var(--dur-base) var(--ease-out),
+    filter var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.aware-room[data-look='dot'] .attention-dot {
+  scale: 1.45;
+  box-shadow: 0 0 16px #f0c9a8;
+}
+.aware-room[data-look='line-end'] .attention-line {
+  filter: brightness(1.6) drop-shadow(0 0 4px #f0c9a8);
+}
+.closing-button[data-presented='true'] {
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px #b48fd04d;
+}
 .attention-dot {
   position: absolute;
   left: 29%;
@@ -785,18 +919,77 @@ html.landing-mode body #root {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: radial-gradient(ellipse 50% 54% at 54% 52%, #372744 0%, #211a2c 45%, #12101a 100%);
+  background: #ffffff;
 }
+/* A soft pool of light on the closing floor, where Tavi and the call to action stand, with a
+   faint wash up the wall behind the copy. It comes up once, with the section. */
 .closing-light {
   position: absolute;
-  top: 2%;
   left: 50%;
-  width: 60vw;
-  height: 60vw;
-  border-radius: 50%;
-  background: radial-gradient(circle, #b07fc21e, transparent 68%);
+  bottom: 150px;
+  width: min(1100px, 92vw);
+  height: 520px;
+  background:
+    radial-gradient(ellipse 46% 13% at 50% 100%, rgb(190 156 222 / 0.3), transparent 72%),
+    radial-gradient(ellipse 40% 60% at 50% 100%, rgb(214 190 236 / 0.2), transparent 70%);
+  transform: translate(-50%, 0);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease-out) 200ms;
+}
+/* The same dithered light as the hero's, rising up the wall from the floor line behind the copy
+   (painted by src/landing/dither.ts). It sits above the grid floor, so the two never overlap. */
+.closing-dither {
+  position: absolute;
+  left: 50%;
+  bottom: 150px;
+  width: min(1400px, 100vw);
+  height: 560px;
+  image-rendering: pixelated;
   transform: translateX(-50%);
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease-out) 200ms;
+}
+[data-visible] > .closing-light,
+[data-visible] > .closing-dither,
+:not(.can-reveal) .closing-light,
+:not(.can-reveal) .closing-dither {
+  opacity: 1;
+}
+/* The closing floor: a fine grid with a dot at each crossing, laid back in perspective from the
+   floor line and fading into the distance and out to the sides. Static. */
+.closing-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  overflow: hidden;
+  perspective: 420px;
+  perspective-origin: 50% 0;
+  pointer-events: none;
+}
+.closing-ground::before {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 180%;
+  height: 420px;
+  background-image:
+    radial-gradient(circle, rgb(150 118 184 / 0.46) 1.3px, transparent 1.9px),
+    linear-gradient(90deg, rgb(170 140 200 / 0.12) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(170 140 200 / 0.12) 1px, transparent 1px);
+  background-position:
+    -14px -14px,
+    0 0,
+    0 0;
+  background-size: 28px 28px;
+  transform: rotateX(62deg);
+  transform-origin: 50% 0;
+  -webkit-mask-image: radial-gradient(ellipse 30% 78% at 50% 0%, #000 22%, transparent 100%);
+  mask-image: radial-gradient(ellipse 30% 78% at 50% 0%, #000 22%, transparent 100%);
+  content: '';
 }
 .closing-copy {
   position: relative;
@@ -813,7 +1006,7 @@ html.landing-mode body #root {
 .closing-copy > p:not(.section-knot) {
   max-width: 410px;
   margin: 27px auto 0;
-  color: #c9bece;
+  color: #62576c;
   font-size: 15px;
   line-height: 1.7;
 }
@@ -823,17 +1016,16 @@ html.landing-mode body #root {
 .closing-footnote {
   display: block;
   margin-top: 15px;
-  color: #a99eae;
+  color: #6e6278;
   font-size: 10px;
 }
 .closing-floor {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 72px;
+  bottom: 150px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #dfc2e040 22%, #dfc2e04c 78%, transparent);
-  box-shadow: 0 10px 32px #d8aee31b;
+  background: linear-gradient(90deg, transparent, #cdb2dc66 22%, #cdb2dc73 78%, transparent);
 }
 .footer-signoff {
   position: absolute;
@@ -843,8 +1035,18 @@ html.landing-mode body #root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #908798;
+  color: #6e6278;
   font-size: 10px;
+}
+.footer-credit {
+  color: #9a8fa3;
+  font-size: 9px;
+  text-align: center;
+}
+.footer-credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .footer-signoff .site-mark {
   font-size: 22px;
@@ -854,56 +1056,22 @@ html.landing-mode body #root {
   height: 10px;
 }
 
+/*
+ * The character rides a fixed box placed around her soles point by the choreography
+ * (src/landing/choreography.ts). The box is larger than the body so authored clips can hang the
+ * legs below the soles line and lift the body in hops; inside the webcam it is clipped to the
+ * glass with a clip-path, never with overflow.
+ */
 .page-walker {
-  position: fixed;
+  position: absolute;
   z-index: 8;
   top: 0;
   left: 0;
-  width: var(--walker-width, 168px);
-  height: var(--walker-height, 218px);
-  overflow: hidden;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  box-shadow: none;
+  width: var(--walker-width, 340px);
+  height: var(--walker-height, 400px);
   transform: translate3d(var(--walker-x, 0), var(--walker-y, 0), 0);
-  transition:
-    width 460ms cubic-bezier(0.16, 1, 0.3, 1),
-    height 460ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-radius 500ms ease,
-    border-color 500ms ease,
-    box-shadow 500ms ease;
   pointer-events: none;
-  will-change: transform;
-}
-.page-walker[data-escaped='true'] {
-  border-radius: 0;
-  overflow: visible;
-}
-.page-walker[data-escaped='true']::before {
-  position: absolute;
-  z-index: 0;
-  right: -19%;
-  bottom: 13%;
-  left: -19%;
-  height: 2px;
-  border-radius: 50%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    #d8c2ebbb 16%,
-    #f5d9d6 50%,
-    #d8c2ebbb 84%,
-    transparent
-  );
-  box-shadow: 0 4px 14px rgb(208 174 224 / 0.25);
-  content: '';
-}
-.page-walker[data-wander='true']::before {
-  opacity: 0;
-}
-.page-walker[data-escaped='true'] .walker-aura {
-  opacity: 0.55;
+  will-change: transform, clip-path;
 }
 .page-walker .avatar-renderer {
   position: absolute;
@@ -912,17 +1080,94 @@ html.landing-mode body #root {
   width: 100%;
   height: 100%;
 }
-.walker-aura {
-  position: absolute;
-  inset: 3% -16% 0;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 66%, #ba8ed733, transparent 68%);
-  opacity: 0;
-  transition: opacity 500ms ease;
+.page-walker:not([data-stage='tabletop']) {
+  visibility: hidden;
 }
-.page-walker[data-wander='true'] {
-  border-color: transparent;
-  box-shadow: none;
+/* The scene surfaces (ledge, bezel, floor) carry the contact; the portrait's own spot stays off. */
+.page-walker .avatar-shadow {
+  display: none;
+}
+.tabletop-greeting {
+  position: absolute;
+  z-index: 2;
+  left: 34%;
+  top: 39%;
+  width: 32%;
+  height: 38%;
+  padding: 0;
+  border: 0;
+  border-radius: 45%;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.tabletop-greeting:disabled {
+  pointer-events: none;
+}
+.tabletop-greeting:focus-visible {
+  outline: 2px solid #8970b4;
+  outline-offset: 4px;
+}
+.tabletop-greeting span {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -6px);
+  padding: 7px 12px;
+  border-radius: 14px;
+  background: #f2ecfa;
+  color: #493960;
+  font:
+    500 12px/1.2 'DM Sans',
+    sans-serif;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--dur-quick) var(--ease-out);
+  pointer-events: none;
+}
+.tabletop-greeting:is(:hover, :focus-visible) span {
+  opacity: 1;
+}
+.hero-contact-shadow {
+  position: absolute;
+  z-index: 7;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(26 18 17 / 0.75), transparent 72%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.hero-contact-shadow[hidden] {
+  display: none;
+}
+/* A small, soft shelf at the soles line. The seated body sits on it and the legs hang in front. */
+.page-ledge {
+  position: fixed;
+  z-index: 7;
+  top: 0;
+  left: 0;
+  width: 192px;
+  height: 14px;
+  border-radius: 3px 3px 7px 7px;
+  background: linear-gradient(180deg, #e9d8f4 0, #c9b2e2 2px, #4a3a5e 3px, #2a2238 100%);
+  box-shadow:
+    0 1px 0 #f5e6ff66,
+    0 14px 30px rgb(0 0 0 / 0.42),
+    0 0 28px rgb(190 150 225 / 0.16);
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+.page-ledge[hidden] {
+  display: none;
+}
+.page-ledge .ledge-shade {
+  position: absolute;
+  top: -8px;
+  left: 18%;
+  width: 64%;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 60%, rgb(28 20 40 / 0.55), transparent 70%);
 }
 
 @keyframes scene-drift {
@@ -1130,6 +1375,8 @@ html.landing-mode body #root {
   }
   .story-art {
     min-height: 270px;
+    /* Headroom for Tavi perched on the art, clear of the section's note above it. */
+    margin-top: 90px;
   }
   .chat-scene-window {
     height: 265px;
@@ -1166,13 +1413,15 @@ html.landing-mode body #root {
   .closing-copy > p:not(.section-knot) {
     font-size: 14px;
   }
+  /* Narrow enough that Tavi, standing beside the button, does not stand on it. */
+  .closing-footnote {
+    max-width: 210px;
+    margin-inline: auto;
+  }
   .footer-signoff {
     right: 22px;
     bottom: 25px;
     left: 22px;
-  }
-  .page-walker {
-    border-radius: 6px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1186,19 +1435,20 @@ html.landing-mode body #root {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .page-walker[data-wander='true'] {
-    animation: none;
-  }
 }
 
 /* The opening is one centered screen; the character carries the story below it. */
 .site-hero {
-  min-height: max(900px, 100svh);
-  padding: 112px clamp(22px, 7vw, 112px) 104px;
+  /* The whole opening fits the first screen: the TV takes the height left after the copy.
+     --hero-top and --hero-heading are shared with the stage sizing below. */
+  --hero-top: clamp(88px, 12svh, 112px);
+  --hero-heading: clamp(36px, min(5vw, 7.2svh), 66px);
+  min-height: max(640px, 100svh);
+  padding: var(--hero-top) clamp(22px, 7vw, 112px) 104px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: clamp(19px, 3vh, 34px);
 }
 .hero-copy {
@@ -1209,7 +1459,7 @@ html.landing-mode body #root {
 }
 .hero-copy h1 {
   max-width: none;
-  font-size: clamp(40px, 5vw, 66px);
+  font-size: var(--hero-heading);
 }
 .hero-description {
   max-width: 58ch;
@@ -1239,11 +1489,31 @@ html.landing-mode body #root {
     0 0 100px rgb(170 126 202 / 0.16),
     inset 0 1px rgb(255 255 255 / 0.12);
   transform: scale(1.11);
-  transition: transform 1800ms cubic-bezier(0.2, 0.76, 0.18, 1);
+  transition: transform 1800ms var(--ease-out);
   transform-origin: 50% 56%;
 }
 .stream-stage.is-stream-started .stream-window {
   transform: scale(var(--camera-push, 1));
+}
+/* Television static: a canvas of real noise (drawn by the page), under scanlines and a tube
+   vignette, until the stream starts. */
+.screen-noise {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  opacity: 0.92;
+  image-rendering: pixelated;
+  pointer-events: none;
+  transition:
+    opacity 700ms ease,
+    visibility 700ms ease;
+}
+.stream-stage.is-stream-started .screen-noise {
+  visibility: hidden;
+  opacity: 0;
 }
 .stream-window::after {
   position: absolute;
@@ -1251,28 +1521,15 @@ html.landing-mode body #root {
   inset: 0;
   border-radius: inherit;
   background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0 4px,
-      rgb(236 228 247 / 0.13) 5px,
-      transparent 6px
-    ),
-    repeating-linear-gradient(90deg, rgb(242 236 250 / 0.08) 0 1px, transparent 1px 13px),
-    radial-gradient(
-      ellipse at 48% 45%,
-      rgb(233 228 244 / 0.42),
-      rgb(170 161 190 / 0.1) 30%,
-      rgb(12 11 21 / 0.82) 78%
-    ),
-    linear-gradient(115deg, transparent 24%, rgb(255 255 255 / 0.11) 42%, transparent 58%);
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.28) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 50%, transparent 55%, rgb(4 3 10 / 0.7) 100%);
   content: '';
-  opacity: 0.88;
-  mix-blend-mode: screen;
+  opacity: 1;
   pointer-events: none;
   transition:
     opacity 850ms ease,
     visibility 850ms ease;
-  animation: screen-static 170ms steps(2, end) infinite;
+  animation: screen-static 90ms steps(2, end) infinite;
 }
 .stream-stage.is-stream-started .stream-window::after {
   visibility: hidden;
@@ -1298,8 +1555,8 @@ html.landing-mode body #root {
 .scene-title,
 .scene-player {
   transition:
-    opacity 750ms ease 450ms,
-    transform 900ms cubic-bezier(0.2, 0.76, 0.18, 1) 350ms;
+    opacity var(--dur-reveal) var(--ease-out) 450ms,
+    transform var(--dur-scene) var(--ease-out) 350ms;
 }
 .stream-stage:not(.is-stream-started) .scene-title,
 .stream-stage:not(.is-stream-started) .scene-player {
@@ -1327,13 +1584,13 @@ html.landing-mode body #root {
   position: fixed;
   z-index: 9;
   padding: 9px 13px;
-  border: 1px solid rgb(236 219 248 / 0.24);
+  border: 1px solid #dacbdf;
   border-radius: 18px 18px 18px 5px;
-  background: #231c30;
+  background: #ffffff;
   box-shadow:
     0 7px 22px rgb(0 0 0 / 0.25),
     0 0 22px rgb(181 145 210 / 0.12);
-  color: #f2e8f8;
+  color: #46334f;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 13px;
   white-space: nowrap;
@@ -1376,7 +1633,630 @@ html.landing-mode body #root {
   .stream-stage.is-stream-started .stream-window {
     transform: scale(1);
   }
+}
+
+/* The hero renders Poly Haven's CC0 CRT and table. The animated signal is mapped
+   onto the model's original curved glass; DOM anchors also support its fallback. */
+.stream-stage {
+  /* As wide as fits the first screen with the headline, blurb and button below it (two
+     heading lines, the blurb, the button and their margins), never under 440px. */
+  width: min(
+    100%,
+    900px,
+    max(440px, calc((100svh - var(--hero-top) - 2 * var(--hero-heading) - 196px) * 1.5))
+  );
+  max-width: 900px;
+  aspect-ratio: 3 / 2;
+  padding: 0;
+  overflow: visible;
+  background: none;
+  transform: scale(1.14);
+  transform-origin: 50% 50%;
+  transition: transform 1.8s var(--ease-out);
+}
+.stream-stage.is-stream-started {
+  transform: scale(1);
+}
+.stage-light {
+  display: none;
+}
+.crt-scene {
+  /* No stacking context of its own: Tavi slips between its layers when she walks behind the TV.
+     The scene's soft drop shadow is baked into the table layer. */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.crt-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+.crt-table {
+  z-index: 0;
+}
+/* The room around the set: a wall that catches the screen's glow behind the TV, a warm wash
+   where the desk meets it, and a floor that runs out under the copy. Static light; it sits
+   behind every layer and zooms with the intro like the rest of the set. Positions are in stage
+   terms: the glass centre is at 42% across, 44% down; the desk's foot at 94%. */
+/* The TV's light on the wall as an ordered dither (painted by src/landing/dither.ts), in the same
+   box as the room. Grey while the set shows static; it blooms violet as the signal locks. */
+.crt-dither {
+  position: absolute;
+  z-index: -1;
+  top: -50%;
+  right: -55%;
+  bottom: -60%;
+  left: -55%;
+  width: 210%;
+  height: 210%;
+  image-rendering: pixelated;
+  pointer-events: none;
+  transition: opacity 1.2s var(--ease-out);
+}
+.crt-dither-on {
+  opacity: 0;
+}
+.stream-stage.is-stream-started .crt-dither-on {
+  opacity: 1;
+}
+.stream-stage.is-stream-started .crt-dither-off {
+  opacity: 0;
+}
+.crt-room {
+  position: absolute;
+  z-index: -1;
+  top: -20%;
+  right: -55%;
+  bottom: -60%;
+  left: -55%;
+  background:
+    radial-gradient(ellipse 30% 30% at 46.3% 35.8%, rgb(132 98 200 / 0.34), transparent 70%),
+    radial-gradient(ellipse 52% 46% at 46.3% 38%, rgb(160 130 210 / 0.16), transparent 72%),
+    radial-gradient(ellipse 36% 6% at 50% 62.6%, rgb(120 84 70 / 0.14), transparent 75%),
+    linear-gradient(
+      180deg,
+      #fbf9fd 0%,
+      #f3eef7 34%,
+      #e9e1f0 61.9%,
+      #e2d8e6 62.6%,
+      #ece5ee 70%,
+      #f7f3f7 84%,
+      #ffffff 96%
+    );
+  -webkit-mask-image: radial-gradient(ellipse 50% 54% at 50% 46%, #000 50%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 54% at 50% 46%, #000 50%, transparent 100%);
+  pointer-events: none;
+}
+.crt-screen {
+  position: absolute;
+  z-index: 2;
+  /* The TV layer's cut-out shapes the glass. The 3D glass material darkened the signal a
+     little and deepened its contrast; this matches it (measured against the old render). */
+  filter: contrast(1.17) brightness(0.985);
+}
+.crt-tv {
+  z-index: 3;
+}
+/* The TV's lower dial: a hit area over the knob in the TV layer, which changes channel. */
+.crt-knob {
+  position: absolute;
+  z-index: 4;
+  left: 76.3%;
+  top: 38.2%;
+  width: 7%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: box-shadow var(--dur-quick) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .crt-knob:hover {
+    box-shadow: 0 0 0 2px rgb(201 169 220 / 0.55);
+  }
+}
+.crt-knob:focus-visible {
+  outline: 2px solid #8970b4;
+  outline-offset: 2px;
+}
+.crt-knob:active {
+  transform: rotate(18deg) scale(0.97);
+}
+.crt-scene[data-unavailable='true'] .crt-screen {
+  display: none;
+}
+/* The stage waits, hidden and un-zoomed, until the TV is ready; then the intro plays through. */
+.stream-stage:not(.is-scene-shown) {
+  opacity: 0;
+  animation-play-state: paused !important;
+}
+.stream-stage.is-scene-shown {
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform 1.8s var(--ease-out);
+}
+/* Tavi fades in once her first frame is drawn, instead of popping in. */
+.page-walker:not([data-tavi-ready='true']) {
+  opacity: 0;
+}
+.page-walker {
+  transition: opacity var(--dur-reveal) var(--ease-out);
+}
+.avatar-tabletop-hero {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.avatar-tabletop-hero .avatar-tabletop-canvas {
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+.avatar-tabletop-hero canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stream-window {
+  position: absolute;
+  z-index: 1;
+  top: 20%;
+  left: 20.1%;
+  width: 45.6%;
+  height: 52.5%;
+  overflow: hidden;
+  border: 0;
+  border-radius: 9% / 8%;
+  background: #08090c;
+  box-shadow:
+    inset 0 0 22px rgb(2 2 5 / 0.6),
+    0 1px 2px rgb(255 238 215 / 0.08);
+  transform: scale(var(--camera-push, 1));
+  transform-origin: 50% 54%;
+}
+.stream-video {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #13101b;
+}
+.stream-window::before,
+.stream-window::after {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+}
+.stream-stage.has-native-screen .stream-window {
+  opacity: 0;
+  transform: none !important;
+  animation: none;
+  transition: none;
+  pointer-events: none;
+}
+.page-walker[data-native-screen='true'] {
+  opacity: 0;
+}
+.page-walker[data-hero-depth='back'] {
+  /* Behind the TV: over the table, under the screen and the housing. */
+  z-index: 1;
+}
+.stream-window::before {
+  z-index: 4;
+  background:
+    linear-gradient(117deg, rgb(255 255 255 / 0.13), transparent 16% 67%, rgb(249 211 170 / 0.07)),
+    radial-gradient(ellipse at 50% 50%, transparent 58%, rgb(6 7 11 / 0.34));
+  mix-blend-mode: screen;
+}
+.stream-window::after {
+  background:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.13) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 50%, transparent 60%, rgb(2 2 5 / 0.5) 100%);
+  opacity: 0.62;
+  transition: opacity 200ms ease;
+}
+.stream-stage.is-stream-started .stream-window::after {
+  visibility: visible;
+  opacity: 0.36;
+  animation: none;
+}
+.stream-stage:not(.is-stream-started) .video-image {
+  filter: grayscale(1) brightness(0.16) saturate(0.15);
+  opacity: 0.18;
+}
+.stream-stage.is-stream-starting .stream-window {
+  animation: tube-impact 720ms steps(2, end) both;
+}
+.stream-stage.is-stream-starting .video-image {
+  opacity: 0.88;
+  filter: saturate(1.45) contrast(1.3) brightness(1.24);
+  animation: picture-lock 720ms steps(2, end) both;
+}
+.stream-stage.is-stream-starting .stream-window::after {
+  opacity: 0.92;
+  animation: signal-tear 110ms steps(2, end) infinite;
+}
+.stream-stage.is-stream-starting .webcam-window {
+  animation: character-hit 150ms steps(2, end) 4;
+}
+.stream-stage.is-stream-starting .scene-title,
+.stream-stage.is-stream-starting .scene-player {
+  animation: signal-copy 720ms steps(2, end) both;
+}
+.stream-stage:not(.is-stream-started) .scene-title,
+.stream-stage:not(.is-stream-started) .scene-player {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.scene-title {
+  top: 5%;
+  left: 5%;
+  gap: 4px;
+}
+.scene-title span {
+  font-size: clamp(19px, 3.5vw, 38px);
+}
+.scene-title b {
+  font-size: clamp(11px, 1.2vw, 15px);
+}
+.scene-player {
+  display: none;
+}
+.stream-meta {
+  top: 4%;
+  right: 5%;
+  gap: 7px;
+  font-size: 8px;
+}
+.preview-tag {
+  padding: 5px 7px;
+  background: rgb(15 12 22 / 0.42);
+}
+.webcam-window {
+  right: 5%;
+  bottom: 6%;
+  width: clamp(98px, 35%, 166px);
+  aspect-ratio: 0.76;
+  border-color: rgb(242 219 250 / 0.4);
+  border-radius: 11px;
+}
+.stream-rail {
+  position: absolute;
+  z-index: 2;
+  right: auto;
+  bottom: 6%;
+  left: 5%;
+  width: 52%;
+  min-height: 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  border: 1px solid rgb(244 229 250 / 0.11);
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgb(10 8 16 / 0.68), rgb(10 8 16 / 0.18));
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.2);
+  backdrop-filter: blur(4px);
+}
+.rail-header,
+.chat-input,
+.stream-controls,
+.stream-rail .chat-line:nth-of-type(n + 4) {
+  display: none;
+}
+.stream-rail .chat-line {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  color: #f0e9f2;
+  font-size: clamp(7px, 0.78vw, 10px);
+  line-height: 1.3;
+  text-shadow: 0 1px 7px rgb(0 0 0 / 0.8);
+}
+.stream-rail .chat-line b {
+  flex: 0 0 auto;
+}
+.stream-stage:not(.is-stream-started) .stream-rail {
+  opacity: 0;
+  transform: translateY(5px);
+}
+.stream-stage.is-stream-started .stream-rail {
+  opacity: 1;
+  transition:
+    opacity var(--dur-reveal) var(--ease-out) 160ms,
+    transform var(--dur-reveal) var(--ease-out) 160ms;
+}
+.page-ledge {
+  height: 5px;
+  border: 0;
+  border-radius: 2px 2px 5px 5px;
+  background: linear-gradient(
+    180deg,
+    rgb(235 220 244 / 0.32) 0,
+    rgb(146 123 162 / 0.25) 1px,
+    rgb(43 35 54 / 0.44) 2px,
+    rgb(31 26 40 / 0.1) 100%
+  );
+  box-shadow: 0 5px 16px rgb(4 3 8 / 0.18);
+}
+.page-ledge .ledge-shade {
+  top: -5px;
+  height: 8px;
+  opacity: 0.56;
+}
+.stage-caption {
+  right: 3%;
+  bottom: 1%;
+  color: #6e6278;
+  font-size: 9px;
+  text-shadow: none;
+}
+.stage-caption .caption-rule {
+  background: rgb(213 178 226 / 0.68);
+}
+@keyframes tube-impact {
+  0%,
+  17%,
+  35%,
+  52%,
+  76%,
+  100% {
+    transform: translateX(0) scale(var(--camera-push, 1));
+  }
+  12% {
+    transform: translateX(-3px) scale(var(--camera-push, 1.015));
+  }
+  31% {
+    transform: translateX(4px) scale(var(--camera-push, 1.025));
+  }
+  48% {
+    transform: translateX(-2px) scale(var(--camera-push, 1.01));
+  }
+}
+@keyframes picture-lock {
+  0%,
+  12%,
+  31%,
+  52% {
+    clip-path: inset(0 0 0 0);
+    transform: translateX(0) scale(1);
+  }
+  9% {
+    clip-path: inset(4% 0 70% 0);
+    transform: translateX(8px) scale(1.04);
+  }
+  29% {
+    clip-path: inset(50% 0 18% 0);
+    transform: translateX(-11px) scale(1.02);
+  }
+  48% {
+    clip-path: inset(11% 0 64% 0);
+    transform: translateX(5px) scale(1.06);
+  }
+  78%,
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes signal-tear {
+  0% {
+    background-position:
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      0 9px,
+      1px 0;
+  }
+}
+@keyframes signal-copy {
+  0%,
+  57%,
+  76%,
+  100% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  62% {
+    opacity: 0.12;
+    transform: translate(4px, -1px);
+  }
+  70% {
+    opacity: 0.84;
+    transform: translate(-3px, 1px);
+  }
+}
+@keyframes character-hit {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-3px, 1px);
+  }
+}
+@media (max-width: 720px) {
+  .stream-stage {
+    width: 100%;
+    transform: scale(1.2);
+  }
+  .stream-stage.is-stream-started {
+    transform: scale(1);
+  }
+  .stream-window {
+    top: 20%;
+    left: 20.1%;
+    width: 45.6%;
+    height: 52.5%;
+  }
   .stream-video {
-    height: clamp(250px, 70vw, 380px);
+    height: 100%;
+  }
+  .webcam-window {
+    width: clamp(66px, 35%, 110px);
+  }
+  .stream-rail {
+    padding: 5px 6px;
+    gap: 3px;
+    border-radius: 5px;
+  }
+  .stage-caption {
+    right: 1%;
+    bottom: 0;
+    font-size: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stream-stage,
+  .stream-window,
+  .stream-stage.is-stream-starting .video-image,
+  .stream-stage.is-stream-starting .webcam-window,
+  .stream-stage.is-stream-starting .scene-title {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Pull back during signal search, landing at the final framing as it locks. */
+.stream-stage {
+  animation: crt-intro-zoom 3520ms var(--ease-out) both;
+  transition: none;
+}
+.stream-stage.is-intro-skipped {
+  animation: none !important;
+  transform: scale(1);
+}
+@keyframes crt-intro-zoom {
+  from {
+    transform: scale(1.14);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes crt-intro-replay {
+  from {
+    transform: scale(1.14);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Section reveals: once per visit, as each section comes into view. The heading wipes up line by
+   line, then the rest of the copy follows. The section art never hides: Tavi lands on it. */
+.reveal-line {
+  display: block;
+}
+.can-reveal [data-reveal] .reveal-line {
+  clip-path: inset(-0.25em -0.1em -0.3em -0.1em);
+  transition:
+    clip-path var(--dur-reveal) var(--ease-in-out),
+    transform var(--dur-reveal) var(--ease-out);
+}
+.can-reveal [data-reveal]:not([data-visible]) .reveal-line {
+  clip-path: inset(-0.25em -0.1em 100% -0.1em);
+  transform: translateY(0.35em);
+}
+.can-reveal [data-reveal] .reveal-line:nth-child(2) {
+  transition-delay: 80ms;
+}
+.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :not(h2, .button-primary) {
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform var(--dur-reveal) var(--ease-out);
+}
+.can-reveal [data-reveal]:not([data-visible]) :is(.story-copy, .closing-copy) > :not(h2) {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(2) {
+  transition-delay: 180ms;
+}
+.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(3) {
+  transition-delay: 240ms;
+}
+.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(4) {
+  transition-delay: 300ms;
+}
+.can-reveal [data-reveal] :is(.story-copy, .closing-copy) > :nth-child(5) {
+  transition-delay: 360ms;
+}
+/* The call to action fades in with the copy but keeps its quick press. */
+.can-reveal [data-reveal] .closing-button {
+  transition:
+    opacity var(--dur-reveal) var(--ease-out) 300ms,
+    transform var(--dur-press) var(--ease-out),
+    box-shadow var(--dur-quick) ease,
+    background var(--dur-quick) ease;
+}
+.can-reveal [data-reveal]:not([data-visible]) .closing-button {
+  transform: none;
+}
+
+/* The look line: from Tavi's eyes to what she is looking at. Over the sections, under her. */
+.look-line {
+  position: fixed;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.look-line[data-showing='true'] {
+  opacity: 1;
+}
+.look-line path {
+  fill: none;
+  stroke: url(#look-fade);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.look-line circle {
+  fill: none;
+  stroke: #e6b896;
+  stroke-width: 1.25;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* A soft bloom of shadow where Tavi lands (played by the page with the Web Animations API). */
+.landing-bloom {
+  position: absolute;
+  z-index: 7;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(40 26 20 / 0.6), transparent 70%);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .can-reveal [data-reveal]:not([data-visible]) .reveal-line,
+  .can-reveal [data-reveal]:not([data-visible]) :is(.story-copy, .closing-copy) > :not(h2) {
+    transform: none;
   }
 }

@@ -51,6 +51,8 @@ export const lylaTurnSpec = {
     /** Arm groups inside the shoulders (the shoulders' x belongs to variant builds). */
     arms: { L: '0:2090', R: '0:2339' },
     legs: { L: '0:2518', R: '0:2507' },
+    shoes: { L: '0:13091', R: '0:13183' },
+    legIK: { L: '0:2560', R: '0:2505' },
   },
   /** Face-plane travel at a full turn (artboard units). */
   travel: 26,
@@ -113,6 +115,14 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
       )
       .join('') +
     `</KeyedObject>`;
+  // A bend direction is discrete in Rive. Switch close to the front pose,
+  // where the legs are closest to straight, and retain the authored rest value.
+  const keyedBend = (component, switchFrame) =>
+    `<KeyedObject objectId="${component}" id="${id()}">` +
+    `<KeyedProperty property="invertDirection" id="${id()}">` +
+    `<KeyFrameBool value="false" frame="0" id="${id()}"/>` +
+    `<KeyFrameBool value="true" frame="${switchFrame}" id="${id()}"/>` +
+    `</KeyedProperty></KeyedObject>`;
   /** Farness (0..1) of a side for turn t: the side the face turns toward is the far one. */
   const far = (sign, t) => Math.max(0, sign * t);
   const near = (sign, t) => Math.max(0, -sign * t);
@@ -241,19 +251,22 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
     pantsRotation = attr(b.pants, 'rotation', 0);
   let body =
     keyed(b.shirt, {
-      x: (t) => shirtX + 4 * t,
-      rotation: (t) => shirtRotation + 0.2 * t,
+      x: (t) => shirtX + 2 * t,
+      rotation: (t) => shirtRotation + 0.08 * t,
     }) +
     keyed(b.pants, {
       scaleX: (t) => pantsSX * (1 - 0.28 * Math.abs(t)),
-      rotation: (t) => pantsRotation + 0.1 * t,
+      rotation: (t) => pantsRotation + 0.04 * t,
     });
-  for (const half of b.shirtHalves) {
+  for (const [index, half] of b.shirtHalves.entries()) {
+    const sign = index === 0 ? -1 : 1;
     const halfX = attr(half, 'x', 0),
       halfSX = attr(half, 'scaleX', 1);
     body += keyed(half, {
-      x: (t) => halfX * (1 - 0.3 * Math.abs(t)),
-      scaleX: (t) => halfSX * (1 - 0.36 * Math.abs(t)),
+      // Unequal near and far planes make the chest read as a turn rather than a
+      // uniformly squeezed front view. Keep the halves overlapping at the seam.
+      x: (t) => halfX * (1 - 0.48 * far(sign, t) - 0.3 * near(sign, t)) + t,
+      scaleX: (t) => halfSX * (1 - 0.48 * far(sign, t) - 0.3 * near(sign, t)),
     });
   }
   for (const [side, sign] of SIDES) {
@@ -262,16 +275,31 @@ export function addTurnaround(source, spec = lylaTurnSpec, artboard = 'lyla anim
       armSX = attr(arm, 'scaleX', 1),
       armSY = attr(arm, 'scaleY', 1);
     body += keyed(arm, {
-      x: (t) => armX - sign * (4 * near(sign, t) + 20 * far(sign, t)),
-      scaleX: (t) => armSX * (1 + 0.1 * near(sign, t) - 0.25 * far(sign, t)),
+      x: (t) => armX - sign * (4 * near(sign, t) + 22 * far(sign, t)),
+      scaleX: (t) => armSX * (1 + 0.1 * near(sign, t) - 0.32 * far(sign, t)),
       scaleY: (t) => armSY * (1 + 0.08 * near(sign, t) - 0.14 * far(sign, t)),
     });
     const leg = b.legs[side];
     const legX = attr(leg, 'x', 0);
     body += keyed(leg, {
+      // Shift the hip for overlap, but leave the whole leg's width and length
+      // to the rig: scaling this group changes the apparent leg volume.
       x: (t) => legX - sign * (5 * near(sign, t) + 14 * far(sign, t)),
-      scaleX: (t) => 1 - 0.22 * far(sign, t) + 0.06 * near(sign, t),
     });
+    body += keyedBend(b.legIK[side], 30);
+    // Toe extension is a path deformation, not a leg transform: the ankle
+    // vertices stay fixed and only the lower outer edge projects forward.
+    for (const vertex of vertices(b.shoes[side])) {
+      const x = attr(vertex, 'x', 0);
+      const y = attr(vertex, 'y', 0);
+      const sole = Math.max(0, Math.min(1, (y - 4) / 6));
+      if (!sole) continue;
+      const right = Math.max(0, Math.min(1, x / 27));
+      const left = 1 - right;
+      body += keyed(vertex, {
+        x: (t) => x + 12 * sole * (right * Math.max(t, 0) - left * Math.max(-t, 0)),
+      });
+    }
   }
 
   const track = (name, content) =>

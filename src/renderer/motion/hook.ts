@@ -21,12 +21,25 @@ import type { MotionFrame } from './types';
 import { applyStateKey } from './states/apply';
 import { BodyStatePlayer, type PlayerFrame, type PlayerResult } from './states/player';
 import type { StateRig } from './states/types';
+import type { Artboard } from '@rive-app/webgl2/rive_advanced.mjs';
 
 export interface CharacterMotionRig {
+  /** Both directions are authored in the artboard, so never mirror the whole rig. */
+  screenSpaceViews?: boolean;
+  authoredCycles?: Partial<
+    Record<import('./systems/gaits/library').GaitId, { seconds: number; stride: number }>
+  >;
   /** In-memory patch the renderer applies at load (runtime names + control tracks). */
   patch: RigPatch;
   /** Abstract frame -> manifest handles (ctl.* tracks and node handles). */
-  bind(frame: MotionFrame): Required<Pick<MotionOutput, 'tracks' | 'nodes'>>;
+  bind(
+    frame: MotionFrame,
+    body?: { id: string; result: PlayerResult },
+  ): Required<Pick<MotionOutput, 'tracks' | 'nodes'>>;
+  /** Resolve character-specific render geometry after state and motion controls. */
+  createPostprocessor?: (board: Artboard) => {
+    update(dt?: number, placement?: import('../adapter').Placement, travel?: number): void;
+  };
   /** Body-state key poses and contact geometry (optional; without it states are ignored). */
   states?: StateRig;
 }
@@ -128,6 +141,7 @@ export function createHookLayer(
           feet,
           turnStyle: manifest.turnStyle,
           authored,
+          ...(rig.authoredCycles ? { authoredCycles: rig.authoredCycles } : {}),
         });
         const start = input.locomotion.position;
         layer.place(start.x, start.y);
@@ -286,7 +300,10 @@ export function createHookLayer(
       facing = frame.placement.facing < 0 ? -1 : 1;
       const state: PlayerResult | null = bodyStates ? bodyStates.evaluate(playerFrame()) : null;
       if (state) applyStateKey(frame.pose, state.key, facing);
-      const bound = rig.bind(frame);
+      const bound = rig.bind(
+        frame,
+        state ? { id: bodyStates?.state ?? 'stand', result: state } : undefined,
+      );
       const p = frame.placement;
       const output: MotionOutput = {
         tracks: bound.tracks,
@@ -294,7 +311,7 @@ export function createHookLayer(
         position: { x: p.x, y: p.y },
         groundPosition: { x: frame.shadow.x, y: frame.shadow.y },
         facing: p.facing < 0 ? -1 : 1,
-        facingScaleX: p.facing,
+        facingScaleX: rig.screenSpaceViews ? 1 : p.facing,
         shadow: frame.shadow,
       };
       if (state) {

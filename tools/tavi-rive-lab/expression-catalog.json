@@ -1,0 +1,1562 @@
+{
+  "schema": 1,
+  "purpose": "Facial-only port from the original Tavi acting library; no body or gaze ownership.",
+  "sourceSha256": {
+    "src/renderer/characters/mascot-v2/acting.ts": "aa66b4b847993f46de063910595ab4dde96f44f2a308f792f5e3dfa867c9ed72",
+    "src/renderer/characters/mascot/acting/core.ts": "11d5c74e598dd3feff2c7a52da075fbdea663990e2637e10199f3c7528fc7117",
+    "src/renderer/characters/mascot/acting/faces.ts": "ad76bb00a49a45a51c08ac3869698ef217618cbdfdd6411c492060734859d1e4",
+    "src/renderer/characters/mascot/acting/custom.ts": "0dd7453da58247da814de6597897ba62f41d979db068558a6797aac4391db665",
+    "shared/expressions.ts": "9bff77f12bdfd6340cb7c9f22af7c43a0716f0235c28081c7160ae11bd4c90c6"
+  },
+  "channels": {
+    "browL": "browLeft",
+    "browR": "browRight",
+    "blinkL": "blinkLeft",
+    "blinkR": "blinkRight",
+    "squintL": "lidLeft",
+    "squintR": "lidRight",
+    "smile": "mouthCurve",
+    "mouthX": "mouthX",
+    "mouthY": "mouthY",
+    "mouthShape": "mouthShape",
+    "mouthOpen": "mouthOpen",
+    "mouthWide": "mouthWide",
+    "mouthTilt": "mouthTilt",
+    "mouthPop": "mouthPop",
+    "browTiltL": "browTiltL",
+    "browTiltR": "browTiltR"
+  },
+  "expressions": {
+    "content": {
+      "label": "Content",
+      "typical": {
+        "mouthCurve": 0.7,
+        "browLeft": -0.35,
+        "browRight": -0.35
+      },
+      "strong": {
+        "mouthCurve": 0.95,
+        "mouthY": 0.25,
+        "browLeft": -0.5,
+        "browRight": -0.5,
+        "blinkLeft": 0.25,
+        "blinkRight": 0.25
+      },
+      "keys": {
+        "channels": {},
+        "every": 3.2
+      },
+      "deferredChannels": [
+        "gazeY",
+        "headTilt",
+        "lean",
+        "shift"
+      ]
+    },
+    "impressed": {
+      "label": "Impressed",
+      "typical": {
+        "browLeft": -1,
+        "browRight": -0.75,
+        "mouthCurve": 0.2,
+        "mouthY": 0.55,
+        "mouthX": 0.15,
+        "mouthShape": 5,
+        "mouthOpen": 0.55
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": -1.05,
+        "mouthCurve": 0.35,
+        "mouthY": 0.85,
+        "mouthX": 0.2,
+        "mouthShape": 6,
+        "mouthOpen": 0.45
+      },
+      "onset": {
+        "pose": {
+          "browLeft": -1.2,
+          "browRight": -1.2,
+          "blinkLeft": 0.4,
+          "blinkRight": 0.4
+        },
+        "seconds": 0.35
+      },
+      "keys": {
+        "channels": {},
+        "every": 3
+      },
+      "deferredChannels": [
+        "gazeY",
+        "lean",
+        "headY",
+        "handR",
+        "armR",
+        "elbowR",
+        "armsFront"
+      ]
+    },
+    "skeptical": {
+      "label": "Skeptical",
+      "typical": {
+        "browLeft": -1.1,
+        "browRight": 0.6,
+        "lidLeft": 0.25,
+        "lidRight": 0.65,
+        "mouthX": 0.6,
+        "mouthCurve": -0.4,
+        "browTiltR": 0.6,
+        "mouthShape": 15,
+        "mouthOpen": 0.5,
+        "mouthTilt": 0.35
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": 0.8,
+        "lidLeft": 0.35,
+        "lidRight": 0.8,
+        "mouthX": 0.85,
+        "mouthCurve": -0.6,
+        "browTiltR": 0.9,
+        "mouthShape": 15,
+        "mouthOpen": 0.8,
+        "mouthTilt": 0.35
+      },
+      "keys": {
+        "channels": {
+          "browRight": [
+            [
+              0.9,
+              0
+            ],
+            [
+              1.05,
+              0.04
+            ],
+            [
+              1.3,
+              0
+            ]
+          ],
+          "lidRight": [
+            [
+              1.5,
+              0
+            ],
+            [
+              1.7,
+              0.1
+            ],
+            [
+              2.1,
+              0
+            ]
+          ]
+        }
+      },
+      "deferredChannels": [
+        "gazeX"
+      ]
+    },
+    "innocent": {
+      "label": "Innocent",
+      "typical": {
+        "browLeft": -0.95,
+        "browRight": -0.8,
+        "mouthCurve": 0.45,
+        "mouthX": -0.5,
+        "mouthY": -0.25,
+        "mouthShape": 0
+      },
+      "strong": {
+        "browLeft": -1.2,
+        "browRight": -1.05,
+        "mouthCurve": 0.55,
+        "mouthX": -0.7,
+        "mouthY": -0.35
+      },
+      "onset": {
+        "seconds": 0.45,
+        "pose": {
+          "browLeft": -1.25,
+          "browRight": -1.25,
+          "mouthCurve": -0.75,
+          "mouthY": 1,
+          "mouthX": 0.1,
+          "mouthShape": 11
+        },
+        "hold": 0.4
+      },
+      "keys": {
+        "channels": {},
+        "every": 2.6
+      },
+      "deferredChannels": [
+        "gazeX",
+        "gazeY",
+        "pupilX",
+        "pupilY"
+      ]
+    },
+    "bored": {
+      "label": "Bored",
+      "typical": {
+        "lidLeft": 0.65,
+        "lidRight": 0.6,
+        "mouthCurve": -0.4,
+        "mouthX": 0.4,
+        "browLeft": 0.15,
+        "browRight": 0.1,
+        "mouthShape": 15,
+        "mouthOpen": 0.5,
+        "mouthTilt": 0.2
+      },
+      "strong": {
+        "lidLeft": 0.85,
+        "lidRight": 0.8,
+        "mouthCurve": -0.6,
+        "mouthX": 0.6,
+        "browLeft": 0.25,
+        "browRight": 0.2,
+        "mouthShape": 15,
+        "mouthOpen": 0.8,
+        "mouthTilt": 0.2
+      },
+      "keys": {
+        "channels": {},
+        "every": 4
+      },
+      "deferredChannels": [
+        "gazeY",
+        "gazeX",
+        "headTilt",
+        "headY",
+        "lean",
+        "bob",
+        "armL",
+        "armR",
+        "pupilY"
+      ]
+    },
+    "soft-smile": {
+      "label": "Soft smile",
+      "typical": {
+        "mouthCurve": 0.55,
+        "mouthY": -0.3,
+        "blinkLeft": 0.7,
+        "blinkRight": 0.7,
+        "browLeft": -0.3,
+        "browRight": -0.3
+      },
+      "strong": {
+        "mouthCurve": 0.75,
+        "mouthY": -0.35,
+        "blinkLeft": 0.9,
+        "blinkRight": 0.9,
+        "browLeft": -0.45,
+        "browRight": -0.45
+      },
+      "keys": {
+        "channels": {},
+        "every": 3
+      },
+      "deferredChannels": [
+        "headTilt",
+        "armL",
+        "armR"
+      ]
+    },
+    "grin": {
+      "label": "Grin",
+      "typical": {
+        "mouthCurve": 1.2,
+        "mouthY": 0.95,
+        "blinkLeft": 0.3,
+        "blinkRight": 0.3,
+        "browLeft": -0.6,
+        "browRight": -0.45,
+        "mouthShape": 2,
+        "mouthOpen": 0.55,
+        "mouthWide": 0.4
+      },
+      "strong": {
+        "mouthCurve": 1.25,
+        "mouthY": 1,
+        "blinkLeft": 0.45,
+        "blinkRight": 0.45,
+        "browLeft": -0.9,
+        "browRight": -0.7,
+        "mouthShape": 4,
+        "mouthOpen": 0.8,
+        "mouthWide": 0.4
+      },
+      "onset": {
+        "pose": {},
+        "seconds": 0.2
+      },
+      "deferredChannels": [
+        "squash",
+        "lean",
+        "headY"
+      ]
+    },
+    "laugh": {
+      "label": "Laugh",
+      "typical": {
+        "mouthCurve": 1.2,
+        "mouthY": 1,
+        "blinkLeft": 0.95,
+        "blinkRight": 0.95,
+        "browLeft": -0.7,
+        "browRight": -0.7,
+        "mouthShape": 3,
+        "mouthOpen": 0.8
+      },
+      "strong": {
+        "mouthCurve": 1.25,
+        "mouthY": 1,
+        "blinkLeft": 1,
+        "blinkRight": 1,
+        "browLeft": -1,
+        "browRight": -1,
+        "mouthShape": 3,
+        "mouthOpen": 1
+      },
+      "keys": {
+        "channels": {},
+        "every": 0.95
+      },
+      "deferredChannels": [
+        "headTilt",
+        "headY",
+        "lean",
+        "squash",
+        "shift"
+      ]
+    },
+    "smirk": {
+      "label": "Smirk",
+      "typical": {
+        "browLeft": -0.85,
+        "browRight": 0.3,
+        "lidRight": 0.45,
+        "mouthCurve": 0.65,
+        "mouthX": 0.95,
+        "mouthShape": 10,
+        "mouthOpen": 0.5,
+        "mouthTilt": 0.5
+      },
+      "strong": {
+        "browLeft": -1.15,
+        "browRight": 0.5,
+        "lidRight": 0.6,
+        "mouthCurve": 0.85,
+        "mouthX": 1,
+        "mouthShape": 10,
+        "mouthOpen": 0.8,
+        "mouthTilt": 0.5
+      },
+      "onset": {
+        "pose": {},
+        "seconds": 0.3
+      },
+      "deferredChannels": [
+        "gazeX",
+        "headTilt",
+        "headY"
+      ]
+    },
+    "eye-roll": {
+      "label": "Eye roll",
+      "typical": {
+        "lidLeft": 0.5,
+        "lidRight": 0.5,
+        "mouthCurve": -0.4,
+        "mouthX": 0.45,
+        "browLeft": -0.5,
+        "browRight": -0.5,
+        "mouthShape": 15,
+        "mouthOpen": 0.5,
+        "mouthTilt": 0.3
+      },
+      "strong": {
+        "lidLeft": 0.65,
+        "lidRight": 0.65,
+        "mouthCurve": -0.55,
+        "mouthX": 0.65,
+        "browLeft": -0.75,
+        "browRight": -0.75,
+        "mouthShape": 15,
+        "mouthOpen": 0.8,
+        "mouthTilt": 0.3
+      },
+      "keys": {
+        "channels": {}
+      },
+      "deferredChannels": [
+        "gazeY",
+        "gazeX",
+        "headTilt",
+        "headY",
+        "bob",
+        "armL",
+        "armR",
+        "pupilY",
+        "pupilX"
+      ]
+    },
+    "suspicious": {
+      "label": "Suspicious",
+      "typical": {
+        "lidLeft": 0.75,
+        "lidRight": 0.75,
+        "browLeft": 0.5,
+        "browRight": 0.65,
+        "mouthCurve": -0.3,
+        "mouthX": -0.4,
+        "mouthY": -0.3,
+        "browTiltL": 0.5,
+        "browTiltR": 0.5,
+        "mouthShape": 15,
+        "mouthOpen": 0.5,
+        "mouthTilt": -0.25,
+        "mouthWide": -0.3
+      },
+      "strong": {
+        "lidLeft": 0.9,
+        "lidRight": 0.9,
+        "browLeft": 0.7,
+        "browRight": 0.85,
+        "mouthCurve": -0.45,
+        "mouthX": -0.6,
+        "mouthY": -0.45,
+        "mouthShape": 15,
+        "mouthOpen": 0.8,
+        "mouthTilt": -0.25,
+        "mouthWide": -0.3
+      },
+      "keys": {
+        "channels": {},
+        "every": 4
+      },
+      "deferredChannels": [
+        "gazeX",
+        "headTilt",
+        "lean",
+        "pupilX",
+        "shift"
+      ]
+    },
+    "deadpan": {
+      "label": "Deadpan",
+      "typical": {
+        "lidLeft": 0.55,
+        "lidRight": 0.55,
+        "mouthCurve": -0.45,
+        "browLeft": 0.15,
+        "browRight": 0.15,
+        "mouthY": -0.15,
+        "mouthShape": 15,
+        "mouthOpen": 0.5
+      },
+      "strong": {
+        "lidLeft": 0.7,
+        "lidRight": 0.7,
+        "mouthCurve": -0.5,
+        "browLeft": 0.25,
+        "browRight": 0.25,
+        "mouthY": -0.25,
+        "mouthShape": 15,
+        "mouthOpen": 0.8
+      },
+      "deferredChannels": []
+    },
+    "focused": {
+      "label": "Focused",
+      "typical": {
+        "browLeft": 0.5,
+        "browRight": 0.5,
+        "lidLeft": 0.3,
+        "lidRight": 0.3,
+        "mouthCurve": -0.2,
+        "mouthY": -0.35,
+        "browTiltL": 0.4,
+        "browTiltR": 0.4,
+        "mouthShape": 15,
+        "mouthOpen": 0.5,
+        "mouthWide": -0.3
+      },
+      "strong": {
+        "browLeft": 0.75,
+        "browRight": 0.75,
+        "lidLeft": 0.45,
+        "lidRight": 0.45,
+        "mouthCurve": -0.3,
+        "mouthY": -0.55,
+        "browTiltL": 0.6,
+        "browTiltR": 0.6,
+        "mouthShape": 15,
+        "mouthOpen": 0.8,
+        "mouthWide": -0.3
+      },
+      "keys": {
+        "channels": {
+          "mouthX": [
+            [
+              0,
+              0
+            ],
+            [
+              1.5,
+              0.25
+            ],
+            [
+              3,
+              0
+            ]
+          ]
+        },
+        "every": 3
+      },
+      "deferredChannels": [
+        "gazeY",
+        "lean",
+        "headY",
+        "armL",
+        "armR"
+      ]
+    },
+    "determined": {
+      "label": "Determined",
+      "typical": {
+        "browLeft": 0.7,
+        "browRight": 0.7,
+        "lidLeft": 0.4,
+        "lidRight": 0.4,
+        "mouthCurve": 0.05,
+        "mouthY": -0.4,
+        "browTiltL": 0.5,
+        "browTiltR": 0.5,
+        "mouthShape": 15,
+        "mouthOpen": 0.5,
+        "mouthWide": 0.2
+      },
+      "strong": {
+        "browLeft": 0.85,
+        "browRight": 0.85,
+        "lidLeft": 0.5,
+        "lidRight": 0.5,
+        "mouthCurve": 0.25,
+        "mouthY": -0.55,
+        "browTiltL": 0.8,
+        "browTiltR": 0.8,
+        "mouthShape": 11,
+        "mouthOpen": 0.5,
+        "mouthWide": 0.2
+      },
+      "keys": {
+        "channels": {}
+      },
+      "deferredChannels": [
+        "gazeY",
+        "lean",
+        "bob",
+        "headY"
+      ]
+    },
+    "frown": {
+      "label": "Frown",
+      "typical": {
+        "browLeft": 0.65,
+        "browRight": 0.65,
+        "lidLeft": 0.3,
+        "lidRight": 0.3,
+        "mouthCurve": -0.9,
+        "mouthY": -0.15,
+        "browTiltL": 0.8,
+        "browTiltR": 0.8,
+        "mouthShape": 18,
+        "mouthOpen": 0.5
+      },
+      "strong": {
+        "browLeft": 0.85,
+        "browRight": 0.85,
+        "lidLeft": 0.45,
+        "lidRight": 0.45,
+        "mouthCurve": -1.2,
+        "mouthY": -0.25,
+        "browTiltL": 1,
+        "browTiltR": 1,
+        "mouthShape": 17,
+        "mouthOpen": 0.35
+      },
+      "deferredChannels": [
+        "gazeX",
+        "headY",
+        "armL",
+        "armR"
+      ]
+    },
+    "pout": {
+      "label": "Pout",
+      "typical": {
+        "mouthCurve": -0.75,
+        "mouthY": -0.8,
+        "browLeft": -0.45,
+        "browRight": -0.3,
+        "lidLeft": 0.25,
+        "lidRight": 0.25,
+        "browTiltL": -0.4,
+        "browTiltR": -0.4,
+        "mouthShape": 12,
+        "mouthOpen": 0.5
+      },
+      "strong": {
+        "mouthCurve": -1,
+        "mouthY": -1,
+        "browLeft": -0.65,
+        "browRight": -0.45,
+        "lidLeft": 0.35,
+        "lidRight": 0.35,
+        "browTiltL": -0.6,
+        "browTiltR": -0.6,
+        "mouthShape": 12,
+        "mouthOpen": 0.8
+      },
+      "keys": {
+        "channels": {},
+        "every": 3.5
+      },
+      "deferredChannels": [
+        "gazeX",
+        "gazeY",
+        "squash",
+        "headTilt",
+        "headY",
+        "armL",
+        "armR"
+      ]
+    },
+    "annoyed": {
+      "label": "Annoyed",
+      "typical": {
+        "browLeft": 0.8,
+        "browRight": 0.65,
+        "lidLeft": 0.55,
+        "lidRight": 0.5,
+        "mouthCurve": -0.6,
+        "mouthX": 0.5,
+        "mouthY": -0.2,
+        "browTiltL": 0.8,
+        "browTiltR": 0.8,
+        "mouthShape": 15,
+        "mouthOpen": 0.5,
+        "mouthTilt": 0.3
+      },
+      "strong": {
+        "browLeft": 0.85,
+        "browRight": 0.85,
+        "lidLeft": 0.75,
+        "lidRight": 0.7,
+        "mouthCurve": -0.85,
+        "mouthX": 0.75,
+        "mouthY": -0.3,
+        "browTiltL": 1,
+        "browTiltR": 1,
+        "mouthShape": 11,
+        "mouthOpen": 0.4,
+        "mouthTilt": 0.3
+      },
+      "keys": {
+        "channels": {},
+        "every": 2.4
+      },
+      "deferredChannels": [
+        "gazeX",
+        "headTilt",
+        "footRY"
+      ]
+    },
+    "sad": {
+      "label": "Sad",
+      "typical": {
+        "browLeft": -0.85,
+        "browRight": -0.85,
+        "lidLeft": 0.4,
+        "lidRight": 0.4,
+        "blinkLeft": 0.2,
+        "blinkRight": 0.2,
+        "mouthCurve": -1.05,
+        "mouthY": -0.2,
+        "browTiltL": -0.8,
+        "browTiltR": -0.8,
+        "mouthShape": 18,
+        "mouthOpen": 0.5
+      },
+      "strong": {
+        "browLeft": -1.1,
+        "browRight": -1.1,
+        "lidLeft": 0.5,
+        "lidRight": 0.5,
+        "blinkLeft": 0.3,
+        "blinkRight": 0.3,
+        "mouthCurve": -1.25,
+        "mouthY": -0.3,
+        "browTiltL": -1,
+        "browTiltR": -1,
+        "mouthShape": 17,
+        "mouthOpen": 0.55
+      },
+      "keys": {
+        "channels": {},
+        "every": 4
+      },
+      "deferredChannels": [
+        "gazeY",
+        "squash",
+        "headTilt",
+        "headY",
+        "lean",
+        "bob",
+        "armL",
+        "armR"
+      ]
+    },
+    "worried": {
+      "label": "Worried",
+      "typical": {
+        "browLeft": -1,
+        "browRight": -0.9,
+        "mouthCurve": -0.6,
+        "mouthX": 0.25,
+        "mouthY": -0.35,
+        "browTiltL": -0.8,
+        "browTiltR": -0.8,
+        "mouthShape": 9,
+        "mouthOpen": 0.45
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": -1.15,
+        "mouthCurve": -0.85,
+        "mouthX": 0.4,
+        "mouthY": -0.5,
+        "browTiltL": -1,
+        "browTiltR": -1,
+        "mouthShape": 9,
+        "mouthOpen": 0.7
+      },
+      "keys": {
+        "channels": {
+          "mouthX": [
+            [
+              0,
+              0
+            ],
+            [
+              0.5,
+              -0.25
+            ],
+            [
+              1,
+              0.15
+            ],
+            [
+              1.5,
+              -0.2
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "every": 2.4
+      },
+      "deferredChannels": [
+        "squash",
+        "gazeY",
+        "headY",
+        "bob",
+        "armL",
+        "armR",
+        "gazeX",
+        "shift"
+      ]
+    },
+    "wince": {
+      "label": "Wince",
+      "typical": {
+        "lidLeft": 0.85,
+        "lidRight": 0.85,
+        "blinkLeft": 0.6,
+        "blinkRight": 0.65,
+        "browLeft": 0.75,
+        "browRight": 0.8,
+        "mouthCurve": -0.75,
+        "mouthY": 0.6,
+        "mouthX": 0.35,
+        "mouthShape": 11,
+        "mouthOpen": 0.55,
+        "mouthTilt": 0.25
+      },
+      "strong": {
+        "lidLeft": 0.9,
+        "lidRight": 0.9,
+        "blinkLeft": 0.8,
+        "blinkRight": 0.85,
+        "browLeft": 0.85,
+        "browRight": 0.85,
+        "mouthCurve": -1,
+        "mouthY": 0.85,
+        "mouthX": 0.5,
+        "mouthShape": 11,
+        "mouthOpen": 0.8,
+        "mouthTilt": 0.25
+      },
+      "onset": {
+        "pose": {
+          "blinkLeft": 1,
+          "blinkRight": 1
+        },
+        "seconds": 0.2
+      },
+      "deferredChannels": [
+        "squash",
+        "headTilt",
+        "headY",
+        "lean",
+        "shift",
+        "armL",
+        "armR"
+      ]
+    },
+    "grossed-out": {
+      "label": "Grossed out",
+      "typical": {
+        "browLeft": 0.65,
+        "browRight": -0.35,
+        "lidLeft": 0.65,
+        "lidRight": 0.45,
+        "mouthCurve": -1.1,
+        "mouthX": -0.65,
+        "mouthY": 0.5,
+        "browTiltL": 0.8,
+        "browTiltR": -0.3,
+        "mouthShape": 11,
+        "mouthOpen": 0.5,
+        "mouthTilt": -0.45
+      },
+      "strong": {
+        "browLeft": 0.85,
+        "browRight": -0.5,
+        "lidLeft": 0.8,
+        "lidRight": 0.55,
+        "mouthCurve": -1.25,
+        "mouthX": -0.9,
+        "mouthY": 0.7,
+        "mouthShape": 17,
+        "mouthOpen": 0.6,
+        "mouthTilt": -0.45
+      },
+      "onset": {
+        "pose": {
+          "lidLeft": 0.85,
+          "lidRight": 0.75
+        },
+        "seconds": 0.25
+      },
+      "keys": {
+        "channels": {}
+      },
+      "deferredChannels": [
+        "gazeX",
+        "squash",
+        "headTilt",
+        "lean",
+        "shift",
+        "armL",
+        "armR"
+      ]
+    },
+    "shocked": {
+      "label": "Shocked",
+      "typical": {
+        "browLeft": -1.25,
+        "browRight": -1.25,
+        "mouthCurve": -0.35,
+        "mouthY": 1,
+        "mouthShape": 6,
+        "mouthOpen": 0.85
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": -1.25,
+        "mouthCurve": -0.45,
+        "mouthY": 1,
+        "mouthShape": 6,
+        "mouthOpen": 1
+      },
+      "onset": {
+        "pose": {
+          "blinkLeft": 0.9,
+          "blinkRight": 0.9
+        },
+        "seconds": 0.14
+      },
+      "deferredChannels": [
+        "squash",
+        "gazeY",
+        "headY",
+        "lean",
+        "armL",
+        "armR",
+        "armsFront",
+        "handL",
+        "handR"
+      ]
+    },
+    "sleepy": {
+      "label": "Sleepy",
+      "typical": {
+        "lidLeft": 0.7,
+        "lidRight": 0.7,
+        "blinkLeft": 0.4,
+        "blinkRight": 0.4,
+        "browLeft": -0.25,
+        "browRight": -0.25,
+        "mouthCurve": -0.15
+      },
+      "strong": {
+        "lidLeft": 0.8,
+        "lidRight": 0.8,
+        "blinkLeft": 0.5,
+        "blinkRight": 0.5,
+        "browLeft": -0.35,
+        "browRight": -0.35,
+        "mouthCurve": -0.25
+      },
+      "keys": {
+        "channels": {
+          "mouthY": [
+            [
+              0.6,
+              0
+            ],
+            [
+              1.1,
+              0.95
+            ],
+            [
+              1.9,
+              0.95
+            ],
+            [
+              2.3,
+              0
+            ]
+          ],
+          "mouthCurve": [
+            [
+              0.6,
+              0
+            ],
+            [
+              1.1,
+              -0.9
+            ],
+            [
+              1.9,
+              -0.9
+            ],
+            [
+              2.3,
+              0
+            ]
+          ],
+          "browLeft": [
+            [
+              0.6,
+              0
+            ],
+            [
+              1.1,
+              -0.8
+            ],
+            [
+              1.9,
+              -0.8
+            ],
+            [
+              2.3,
+              0
+            ]
+          ],
+          "browRight": [
+            [
+              0.6,
+              0
+            ],
+            [
+              1.1,
+              -0.8
+            ],
+            [
+              1.9,
+              -0.8
+            ],
+            [
+              2.3,
+              0
+            ]
+          ],
+          "mouthShape": [
+            [
+              0,
+              0
+            ],
+            [
+              0.75,
+              16
+            ],
+            [
+              2.1,
+              0
+            ]
+          ],
+          "mouthOpen": [
+            [
+              0.6,
+              0
+            ],
+            [
+              1.1,
+              0.9
+            ],
+            [
+              1.9,
+              0.9
+            ],
+            [
+              2.3,
+              0
+            ]
+          ]
+        },
+        "every": 6
+      },
+      "deferredChannels": [
+        "gazeY",
+        "headTilt",
+        "headY",
+        "lean",
+        "bob",
+        "armL",
+        "armR",
+        "squash"
+      ]
+    },
+    "blush": {
+      "label": "Blush",
+      "typical": {
+        "blinkLeft": 0.85,
+        "blinkRight": 0.85,
+        "mouthCurve": 0.75,
+        "mouthY": -0.4,
+        "browLeft": -0.6,
+        "browRight": -0.6
+      },
+      "strong": {
+        "blinkLeft": 1,
+        "blinkRight": 1,
+        "mouthCurve": 0.95,
+        "mouthY": -0.5,
+        "browLeft": -0.85,
+        "browRight": -0.85
+      },
+      "keys": {
+        "channels": {},
+        "every": 2.1
+      },
+      "deferredChannels": [
+        "gazeY",
+        "headTilt",
+        "headY",
+        "squash",
+        "shift"
+      ]
+    },
+    "amused": {
+      "label": "Amused",
+      "typical": {
+        "mouthCurve": 1.05,
+        "mouthY": 0.45,
+        "blinkLeft": 0.5,
+        "blinkRight": 0.45,
+        "browLeft": -0.45,
+        "browRight": -0.35,
+        "mouthShape": 1,
+        "mouthOpen": 0.45
+      },
+      "strong": {
+        "mouthCurve": 1.25,
+        "mouthY": 0.85,
+        "blinkLeft": 0.8,
+        "blinkRight": 0.75,
+        "browLeft": -0.7,
+        "browRight": -0.6,
+        "mouthShape": 3,
+        "mouthOpen": 0.6
+      },
+      "onset": {
+        "pose": {
+          "mouthCurve": 0.4,
+          "blinkLeft": 0.2,
+          "blinkRight": 0.2
+        },
+        "seconds": 0.25
+      },
+      "keys": {
+        "channels": {},
+        "every": 2.6
+      },
+      "deferredChannels": [
+        "headTilt",
+        "headY",
+        "lean",
+        "squash",
+        "bob"
+      ]
+    },
+    "excited": {
+      "label": "Excited",
+      "typical": {
+        "browLeft": -1.15,
+        "browRight": -1.15,
+        "mouthCurve": 1.15,
+        "mouthY": 0.9,
+        "mouthShape": 4,
+        "mouthOpen": 0.7
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": -1.25,
+        "mouthCurve": 1.25,
+        "mouthY": 1,
+        "mouthShape": 4,
+        "mouthOpen": 1
+      },
+      "onset": {
+        "pose": {
+          "browLeft": -0.4,
+          "browRight": -0.4
+        },
+        "seconds": 0.22
+      },
+      "keys": {
+        "channels": {},
+        "every": 1.6
+      },
+      "deferredChannels": [
+        "squash",
+        "gazeY",
+        "armL",
+        "armR",
+        "bob",
+        "handL",
+        "handR",
+        "armsFront",
+        "elbowL",
+        "elbowR",
+        "footLY",
+        "footRY"
+      ]
+    },
+    "proud": {
+      "label": "Proud",
+      "typical": {
+        "blinkLeft": 0.8,
+        "blinkRight": 0.8,
+        "mouthCurve": 0.85,
+        "browLeft": -0.55,
+        "browRight": -0.55
+      },
+      "strong": {
+        "blinkLeft": 0.95,
+        "blinkRight": 0.95,
+        "mouthCurve": 1.05,
+        "mouthX": 0.2,
+        "browLeft": -0.8,
+        "browRight": -0.8
+      },
+      "onset": {
+        "pose": {
+          "blinkLeft": 0,
+          "blinkRight": 0
+        },
+        "seconds": 0.3
+      },
+      "keys": {
+        "channels": {}
+      },
+      "deferredChannels": [
+        "gazeY",
+        "headY",
+        "lean",
+        "bob"
+      ]
+    },
+    "smug": {
+      "label": "Smug",
+      "typical": {
+        "browLeft": -0.85,
+        "browRight": 0.45,
+        "lidLeft": 0.55,
+        "lidRight": 0.65,
+        "mouthCurve": 0.85,
+        "mouthX": 0.75,
+        "mouthShape": 10,
+        "mouthOpen": 0.45,
+        "mouthTilt": 0.35
+      },
+      "strong": {
+        "browLeft": -1,
+        "browRight": 0.65,
+        "lidLeft": 0.7,
+        "lidRight": 0.8,
+        "mouthCurve": 1.05,
+        "mouthX": 1,
+        "mouthShape": 10,
+        "mouthOpen": 0.75,
+        "mouthTilt": 0.35
+      },
+      "keys": {
+        "channels": {
+          "browLeft": [
+            [
+              0.6,
+              0
+            ],
+            [
+              0.75,
+              -0.2
+            ],
+            [
+              0.9,
+              0
+            ],
+            [
+              1.05,
+              -0.2
+            ],
+            [
+              1.2,
+              0
+            ]
+          ]
+        },
+        "every": 3.2
+      },
+      "deferredChannels": [
+        "gazeY",
+        "gazeX",
+        "headTilt",
+        "headY",
+        "lean",
+        "shift"
+      ]
+    },
+    "teasing": {
+      "label": "Teasing",
+      "typical": {
+        "blinkRight": 1,
+        "browRight": 0.5,
+        "browLeft": -0.8,
+        "lidRight": 0.3,
+        "mouthCurve": 1.1,
+        "mouthX": 0.6,
+        "mouthY": 0.3,
+        "mouthShape": 13,
+        "mouthOpen": 0.5
+      },
+      "strong": {
+        "blinkRight": 1,
+        "browRight": 0.65,
+        "browLeft": -1.1,
+        "lidRight": 0.4,
+        "mouthCurve": 1.25,
+        "mouthX": 0.85,
+        "mouthY": 0.55,
+        "mouthShape": 13,
+        "mouthOpen": 0.8
+      },
+      "keys": {
+        "channels": {},
+        "every": 2.4
+      },
+      "deferredChannels": [
+        "headTilt",
+        "lean",
+        "shift"
+      ]
+    },
+    "confused": {
+      "label": "Confused",
+      "typical": {
+        "browLeft": -1.15,
+        "browRight": 0.5,
+        "lidRight": 0.3,
+        "mouthCurve": -0.4,
+        "mouthX": -0.65,
+        "mouthY": 0.25,
+        "mouthShape": 14,
+        "mouthOpen": 0.5
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": 0.75,
+        "lidRight": 0.45,
+        "mouthCurve": -0.6,
+        "mouthX": -0.9,
+        "mouthY": 0.4,
+        "mouthShape": 14,
+        "mouthOpen": 0.8
+      },
+      "keys": {
+        "channels": {
+          "browLeft": [
+            [
+              1.3,
+              0
+            ],
+            [
+              1.65,
+              0.5
+            ],
+            [
+              2.6,
+              0.5
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "browRight": [
+            [
+              1.3,
+              0
+            ],
+            [
+              1.65,
+              -1.2
+            ],
+            [
+              2.6,
+              -1.2
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "mouthX": [
+            [
+              1.3,
+              0
+            ],
+            [
+              1.65,
+              1.2
+            ],
+            [
+              2.6,
+              1.2
+            ],
+            [
+              3,
+              0
+            ]
+          ]
+        },
+        "every": 3
+      },
+      "deferredChannels": [
+        "gazeY",
+        "lean",
+        "headTilt"
+      ]
+    },
+    "thinking": {
+      "label": "Thinking",
+      "typical": {
+        "browLeft": -0.75,
+        "browRight": 0.3,
+        "lidLeft": 0.3,
+        "lidRight": 0.4,
+        "mouthX": 0.7,
+        "mouthCurve": -0.25,
+        "mouthY": -0.4
+      },
+      "strong": {
+        "browLeft": -1.05,
+        "browRight": 0.5,
+        "lidLeft": 0.4,
+        "lidRight": 0.55,
+        "mouthX": 0.95,
+        "mouthCurve": -0.4,
+        "mouthY": -0.6
+      },
+      "keys": {
+        "channels": {
+          "mouthX": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              -0.15
+            ],
+            [
+              4,
+              0
+            ]
+          ]
+        },
+        "every": 4
+      },
+      "deferredChannels": [
+        "gazeX",
+        "gazeY",
+        "headTilt",
+        "pupilX",
+        "pupilY",
+        "squash"
+      ]
+    },
+    "sympathetic": {
+      "label": "Sympathetic",
+      "typical": {
+        "browLeft": -0.9,
+        "browRight": -0.9,
+        "lidLeft": 0.2,
+        "lidRight": 0.2,
+        "blinkLeft": 0.35,
+        "blinkRight": 0.35,
+        "mouthCurve": 0.05,
+        "mouthY": -0.3,
+        "browTiltL": -0.6,
+        "browTiltR": -0.6
+      },
+      "strong": {
+        "browLeft": -1.15,
+        "browRight": -1.15,
+        "lidLeft": 0.3,
+        "lidRight": 0.3,
+        "blinkLeft": 0.45,
+        "blinkRight": 0.45,
+        "mouthCurve": -0.25,
+        "mouthY": -0.45,
+        "browTiltL": -0.8,
+        "browTiltR": -0.8
+      },
+      "keys": {
+        "channels": {},
+        "every": 3.2
+      },
+      "deferredChannels": [
+        "gazeY",
+        "headTilt",
+        "lean",
+        "armL",
+        "armR",
+        "headY"
+      ]
+    },
+    "embarrassed": {
+      "label": "Embarrassed",
+      "typical": {
+        "browLeft": -1,
+        "browRight": -0.85,
+        "blinkLeft": 0.35,
+        "blinkRight": 0.35,
+        "mouthCurve": 0.55,
+        "mouthX": -0.6,
+        "mouthY": -0.35,
+        "mouthShape": 9,
+        "mouthOpen": 0.4,
+        "mouthTilt": -0.2
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": -1.1,
+        "blinkLeft": 0.5,
+        "blinkRight": 0.5,
+        "mouthCurve": 0.45,
+        "mouthX": -0.85,
+        "mouthY": -0.5,
+        "mouthShape": 9,
+        "mouthOpen": 0.7,
+        "mouthTilt": -0.2
+      },
+      "keys": {
+        "channels": {},
+        "every": 3
+      },
+      "deferredChannels": [
+        "gazeX",
+        "gazeY",
+        "squash",
+        "headTilt",
+        "headY",
+        "bob",
+        "pupilX",
+        "pupilY",
+        "shift"
+      ]
+    },
+    "startled": {
+      "label": "Startled",
+      "typical": {
+        "browLeft": -1.2,
+        "browRight": -1.2,
+        "mouthCurve": -0.6,
+        "mouthY": 0.85,
+        "mouthShape": 7,
+        "mouthOpen": 0.7
+      },
+      "strong": {
+        "browLeft": -1.25,
+        "browRight": -1.25,
+        "mouthCurve": -0.85,
+        "mouthY": 1,
+        "mouthShape": 6,
+        "mouthOpen": 0.9
+      },
+      "onset": {
+        "pose": {
+          "blinkLeft": 1,
+          "blinkRight": 1,
+          "browLeft": 0.4,
+          "browRight": 0.4
+        },
+        "seconds": 0.12
+      },
+      "keys": {
+        "channels": {}
+      },
+      "deferredChannels": [
+        "squash",
+        "headY",
+        "lean",
+        "armL",
+        "armR",
+        "bob",
+        "footLY",
+        "footRY",
+        "shift"
+      ]
+    }
+  }
+}
