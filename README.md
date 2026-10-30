@@ -20,6 +20,7 @@ A customizable, expressive chibi companion that hangs out in a streamer's OBS ca
 </p>
 
 <p>
+  <a href="#for-judges"><b>For judges</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="#a-look-around"><b>A look around</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/RUNNING.md"><b>Run it</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/STATUS.md"><b>What works</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
@@ -30,6 +31,25 @@ A customizable, expressive chibi companion that hangs out in a streamer's OBS ca
 </div>
 
 <br />
+
+## FOR JUDGES
+
+Tavi is an expressive companion for Twitch streamers: customize her in Studio, add the transparent overlay to OBS, and let chat become small on-screen reactions.
+
+| What to review                    | Where to look                                                                                                                                             |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Run and evaluate Tavi             | [Judge walkthrough and capability boundaries](docs/JUDGING.md#try-tavi) / [source setup](docs/RUNNING.md) / [Windows app instructions](desktop/README.md) |
+| How Codex was used                | [Codex development README](docs/codex/README.md), including concrete examples, source links, and attribution                                              |
+| Codex session IDs                 | [Session registry](docs/codex/README.md#session-ids) / [recorded primary ID](.session_id). Primary build thread confirmed by the creator.                 |
+| Twitch connection and interaction | [Connect Twitch](#connect-twitch) / [event reactions and cooldowns](docs/STREAM-EVENT-REACTIONS.md)                                                       |
+| Submission materials              | [Demo video, project description, and submission checklist](docs/JUDGING.md#submission-materials). Video and Devpost project URLs are pending.            |
+| Architecture, checks, and credits | [Technical review map](docs/JUDGING.md#technical-review-map) / [validation commands](docs/DEVELOPMENT.md#validate) / [asset credits](public/credits/)     |
+
+Primary Codex build session: `01a17704-cc9a-7d01-822a-754a6062ab3c` (confirmed by the creator).
+
+The landing page is an authored product demonstration. For live Twitch evidence, follow the judge walkthrough and show the OBS overlay responding to actual channel activity. This landing review revision uses the core rules path. ChatGPT sign-in and extended stream-event work are documented as awaiting integration; they are not included in this PR. Microphone input and spoken voice are not implemented.
+
+Requirements were checked against the [hackathon overview](https://twitchcon-codex.devpost.com/) and [official rules](https://twitchcon-codex.devpost.com/rules). See the [readiness checklist](docs/JUDGING.md#before-submitting) for outstanding submission steps.
 
 ## Project description
 
@@ -72,7 +92,7 @@ Tavi is a customizable animated companion for livestreamers. It lives in an OBS 
 
 ## How we used Codex
 
-We used Codex as a collaborative coding partner to explore the existing React, TypeScript, Rive, and Node service architecture, then implement and refine features across the studio, shared behavior contracts, character renderer, and OBS overlay. Codex helped trace behavior from the UI through the validated commands and renderer, and supported iterative UI and motion work. We kept the product boundaries explicit in the code and documentation: Twitch reactions are rule-based, demo inputs are labeled, and AI integration is not described as live functionality.
+See the [Codex development README](docs/codex/README.md) for the confirmed build session, collaboration record, implementation evidence, and attribution. It distinguishes this revision from work awaiting integration.
 
 ## Connect Twitch
 
