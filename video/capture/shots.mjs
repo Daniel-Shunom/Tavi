@@ -7,9 +7,46 @@ export const fps = 30;
 
 const overlay = { presentation: 'overlay', width: 1920, height: 1080, scale: 1.5 };
 const portrait = { presentation: 'portrait', width: 1080, height: 1080, scale: 2.5 };
+const face = { presentation: 'portrait', width: 1080, height: 1080, scale: 2 };
+
+/** Seconds between expressions in a mood reel; the montage samples each at `moodPeak`. */
+export const moodGap = 2.3;
+export const moodPeak = 1.35;
+const reel = (ids) =>
+  ids.map((id, index) => [
+    0.4 + index * moodGap,
+    `stage.perform({ expression: '${id}', intensity: 0.95, target: 'streamer' })`,
+  ]);
+export const moods = {
+  'moods-a': ['excited', 'smug', 'shocked', 'eye-roll', 'sassy', 'proud'],
+  'moods-b': ['confused', 'determined', 'wince', 'grin', 'agreeing', 'shrug'],
+  'moods-c': ['sleepy', 'bored', 'point', 'celebrate', 'happy-dance', 'suspicious'],
+};
 
 /** @type {Record<string, {presentation:string,width:number,height:number,scale:number,seconds:number,config?:object,actions:[number,string][]}>} */
 export const shots = {
+  // The chat beat, portrait size: she listens, then reacts to each message in turn.
+  chat: {
+    ...face,
+    seconds: 13,
+    actions: [
+      [
+        0.4,
+        `stage.perform({ expression: 'listening', intensity: 0.8, target: 'chat', hold: 2.2 })`,
+      ],
+      [2.8, `stage.perform({ expression: 'startled', intensity: 0.95, target: 'chat' })`],
+      [4.6, `stage.perform({ expression: 'laugh', intensity: 1, target: 'chat' })`],
+      [7.2, `stage.perform({ expression: 'thank-you', intensity: 0.95, target: 'chat' })`],
+      [9.8, `stage.perform({ expression: 'blush', intensity: 0.95, target: 'chat' })`],
+    ],
+  },
+  // Mood reels for the montage: one expression every `moodGap` seconds.
+  ...Object.fromEntries(
+    Object.entries(moods).map(([name, ids]) => [
+      name,
+      { ...face, seconds: 0.4 + ids.length * moodGap + 0.6, actions: reel(ids) },
+    ]),
+  ),
   // The reveal and every extreme close-up: big, centred, face forward.
   hero: {
     ...portrait,

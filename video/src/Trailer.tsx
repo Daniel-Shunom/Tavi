@@ -4,6 +4,8 @@ import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useVideoConfig 
 import type { ReactNode } from 'react';
 import { useExists, useGridPulse, useLivePulse, type Pulse } from './audio';
 import { files, musicStart, timeline, totalSeconds } from './config';
+import { ChatBeat } from './ChatBeat';
+import { Montage } from './Montage';
 import { Feature, Outro, PulseContext, Reveal, Tease } from './scenes';
 import { colors } from './theme';
 
@@ -97,6 +99,10 @@ function Scenes() {
             <Reveal offset={from} />
           ) : beat.kind === 'feature' ? (
             <Feature beat={beat} offset={from} />
+          ) : beat.kind === 'chat' ? (
+            <ChatBeat beat={beat} offset={from} />
+          ) : beat.kind === 'montage' ? (
+            <Montage beat={beat} offset={from} />
           ) : (
             <Outro offset={from} />
           );

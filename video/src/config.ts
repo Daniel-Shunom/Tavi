@@ -57,9 +57,43 @@ export type Beat =
           }
         | { type: 'clip'; src: string; fallback: TaviMedia };
     }
+  | {
+      /** Simulated chat lines pop in and she reacts to each one (the `chat` capture). */
+      kind: 'chat';
+      at: number;
+      eyebrow: string;
+      headline: string;
+      sub?: string;
+      media: TaviMedia;
+      messages: {
+        at: number;
+        user: string;
+        text: string;
+        tone?: 'pink' | 'teal' | 'mint' | 'lavender';
+      }[];
+    }
+  | {
+      /** Fast cuts through the mood reels, one expression per cut with its name. */
+      kind: 'montage';
+      at: number;
+      eyebrow: string;
+      cutSeconds: number;
+      cuts: { shot: TaviShot; index: number; label: string }[];
+    }
   | { kind: 'outro'; at: number };
 
-export type TaviShot = 'hero' | 'reactions' | 'run' | 'perch' | 'nap' | 'peek' | 'drop';
+export type TaviShot =
+  | 'hero'
+  | 'reactions'
+  | 'run'
+  | 'perch'
+  | 'nap'
+  | 'peek'
+  | 'drop'
+  | 'chat'
+  | 'moods-a'
+  | 'moods-b'
+  | 'moods-c';
 
 /**
  * A captured Tavi shot: `from` seconds into it, `zoom` (1 fits the capture's height to the frame),
@@ -86,27 +120,51 @@ export const copy = {
   },
 };
 
+/** Portrait face framing shared by the chat beat and the montage (face centre ≈ 0.5, 0.58). */
+const faceFrame = { zoom: 1.5, focus: [0.5, 0.63] as [number, number] };
+
 export const timeline: Beat[] = [
   { kind: 'tease', at: 0 },
-  { kind: 'reveal', at: 9.5 },
+  { kind: 'reveal', at: 9.4 },
   {
-    kind: 'feature',
+    kind: 'chat',
     at: 16,
     eyebrow: 'She hears your chat',
     headline: 'Reacts to every message.',
     sub: 'Bounded rules, zero AI roulette.',
-    media: {
-      type: 'tavi',
-      shot: 'reactions',
-      from: 2.4,
-      zoom: 2.4,
-      focus: [0.23, 0.61],
-      anchor: [0.68, 0.55],
-    },
+    // The capture: listening at 0.4 s, startled 2.8, laugh 4.6, thank-you 7.2, blush 9.8.
+    media: { type: 'tavi', shot: 'chat', from: 0.6, ...faceFrame, anchor: [0.58, 0.56] },
+    messages: [
+      { at: 0.3, user: 'pogchamp_dan', text: 'wait is she actually watching chat', tone: 'teal' },
+      { at: 1.9, user: 'mira', text: 'BOO', tone: 'pink' },
+      { at: 3.7, user: 'k3v', text: 'LMAOOO she jumped', tone: 'lavender' },
+      { at: 6.3, user: 'lux_tv', text: 'gifted 5 subs to the community!', tone: 'mint' },
+      { at: 8.9, user: 'noodle', text: 'tavi is so cute omg', tone: 'pink' },
+    ],
+  },
+  {
+    kind: 'montage',
+    at: 27.5,
+    eyebrow: 'A face for everything',
+    cutSeconds: 0.5,
+    cuts: [
+      { shot: 'moods-a', index: 0, label: 'excited' },
+      { shot: 'moods-a', index: 1, label: 'smug' },
+      { shot: 'moods-a', index: 2, label: 'shocked' },
+      { shot: 'moods-a', index: 3, label: 'eye roll' },
+      { shot: 'moods-a', index: 4, label: 'sassy' },
+      { shot: 'moods-b', index: 0, label: 'confused' },
+      { shot: 'moods-b', index: 1, label: 'determined' },
+      { shot: 'moods-b', index: 2, label: 'wince' },
+      { shot: 'moods-b', index: 3, label: 'grin' },
+      { shot: 'moods-c', index: 5, label: 'suspicious' },
+      { shot: 'moods-c', index: 0, label: 'sleepy' },
+      { shot: 'moods-c', index: 3, label: 'celebrate' },
+    ],
   },
   {
     kind: 'feature',
-    at: 24,
+    at: 33.5,
     eyebrow: 'Lives on your stream',
     headline: 'Right there in OBS.',
     sub: 'Transparent overlay, one browser source.',
@@ -125,7 +183,7 @@ export const timeline: Beat[] = [
   },
   {
     kind: 'feature',
-    at: 32,
+    at: 40.5,
     eyebrow: 'Knows the room',
     headline: 'Climbs your webcam.',
     sub: 'Sits, naps, peeks at chat, wanders home.',
@@ -140,7 +198,7 @@ export const timeline: Beat[] = [
   },
   {
     kind: 'feature',
-    at: 40,
+    at: 48,
     eyebrow: 'Tune her in Studio',
     headline: 'Your rules. Her moves.',
     sub: 'Look, personality, hotkeys, scene.',
@@ -154,7 +212,7 @@ export const timeline: Beat[] = [
   },
   {
     kind: 'feature',
-    at: 49,
+    at: 56,
     eyebrow: 'Meet her on the site',
     headline: 'Scroll. She follows.',
     media: {
@@ -167,7 +225,7 @@ export const timeline: Beat[] = [
   },
   {
     kind: 'feature',
-    at: 57,
+    at: 62.5,
     eyebrow: 'Even when it is quiet',
     headline: 'She is still there.',
     media: {
@@ -179,7 +237,7 @@ export const timeline: Beat[] = [
       anchor: [0.68, 0.55],
     },
   },
-  { kind: 'outro', at: 64 },
+  { kind: 'outro', at: 68.5 },
 ];
 
-export const totalSeconds = 74;
+export const totalSeconds = 78;

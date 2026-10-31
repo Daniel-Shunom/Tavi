@@ -4,6 +4,7 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } fr
 import { hitIndex, punch, type Pulse } from './audio';
 import { copy, type Beat, type TaviMedia } from './config';
 import { Aberration, Backdrop, Flash, Glitch, Grain, Scanlines, shake, Vignette } from './fx';
+import { Letterbox, LightLeak } from './cinema';
 import { Screen } from './Screen';
 import { TaviClip } from './TaviClip';
 import { colors } from './theme';
@@ -11,7 +12,7 @@ import { Body, Label, rise, Slam, sans } from './type';
 
 export const PulseContext = createContext<Pulse>({ energy: [], hits: [], live: false });
 /** The pulse is composition-wide; `offset` is the frame this scene starts on. */
-function usePulseAt(offset: number) {
+export function usePulseAt(offset: number) {
   const pulse = useContext(PulseContext);
   const frame = useCurrentFrame() + offset;
   const hit = hitIndex(pulse, frame);
@@ -92,13 +93,14 @@ export function Tease({ offset }: { offset: number }) {
       <Scanlines opacity={0.22} />
       <Grain amount={0.18} />
       <Vignette strength={0.85} />
+      <Letterbox amount={1} />
       {/* Count-in strip: a thin lavender bar that fills to the reveal. */}
       <div
         style={{
           position: 'absolute',
           left: 0,
-          bottom: 0,
-          height: 6,
+          bottom: 138,
+          height: 5,
           width: `${(progress * 100).toFixed(2)}%`,
           background: colors.lavender,
           opacity: 0.8,
@@ -108,7 +110,7 @@ export function Tease({ offset }: { offset: number }) {
         style={{
           position: 'absolute',
           left: 64,
-          bottom: 40,
+          bottom: 168,
           fontFamily: sans,
           fontSize: 22,
           letterSpacing: '0.24em',
@@ -190,10 +192,18 @@ export function Reveal({ offset }: { offset: number }) {
           </div>
         </AbsoluteFill>
       </AbsoluteFill>
+      <LightLeak at={0} from="right" life={46} />
       <Flash at={0} color={colors.white} peak={1} decay={2.5} />
       <Flash at={nameAt} color={colors.lavender} peak={0.4} decay={2.5} />
       <Grain amount={0.1} />
       <Vignette strength={0.5} />
+      {/* The bars let go as she lands and the trailer opens up to full frame. */}
+      <Letterbox
+        amount={interpolate(local, [4, 26], [1, 0], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        })}
+      />
     </Backdrop>
   );
 }
