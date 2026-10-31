@@ -35,10 +35,23 @@ export interface CharacterMotionRig {
   bind(
     frame: MotionFrame,
     body?: { id: string; result: PlayerResult },
-  ): Required<Pick<MotionOutput, 'tracks' | 'nodes'>>;
+  ): Required<Pick<MotionOutput, 'tracks' | 'nodes'>> & Pick<MotionOutput, 'bodyControls'>;
   /** Resolve character-specific render geometry after state and motion controls. */
   createPostprocessor?: (board: Artboard) => {
-    update(dt?: number, placement?: import('../adapter').Placement, travel?: number): void;
+    /** Restore additive rig controls before this frame's animation samples. */
+    prepare?: () => void;
+    diagnostics?: () => {
+      owner: string;
+      contactError: number;
+      lengthError: number;
+      supportResidual: number;
+    };
+    update(
+      dt?: number,
+      placement?: import('../adapter').Placement,
+      travel?: number,
+      bodyControls?: import('../rig/body').BodyControls,
+    ): void;
   };
   /** Body-state key poses and contact geometry (optional; without it states are ignored). */
   states?: StateRig;
@@ -314,6 +327,7 @@ export function createHookLayer(
         facingScaleX: rig.screenSpaceViews ? 1 : p.facing,
         shadow: frame.shadow,
       };
+      if (bound.bodyControls) output.bodyControls = bound.bodyControls;
       if (state) {
         const { key } = state;
         // Root lift (ledges, jumps) moves the placement; rotation and pose-local offsets pivot

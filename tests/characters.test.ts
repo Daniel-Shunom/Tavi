@@ -26,7 +26,7 @@ describe('character manifests', () => {
         process.execPath,
         [
           'tools/rive-inventory.mjs',
-          `src/renderer/characters/${manifest.id}/${manifest.asset}`,
+          `src/renderer/characters/${manifest.assetSource ?? manifest.id}/${manifest.asset}`,
           '--json',
         ],
         { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },

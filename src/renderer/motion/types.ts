@@ -128,6 +128,7 @@ export interface ClipRequest {
 }
 
 export interface MotionFrame {
+  bodyControls?: import('../rig/body').BodyControls;
   time: number;
   pose: Pose;
   clips: ClipRequest[];

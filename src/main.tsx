@@ -17,6 +17,9 @@ import taviArtwork from './renderer/characters/tavi-refined/tavi-refined.riv?url
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
 const studio = location.pathname === '/studio';
+const rigLab = location.pathname === '/rig-lab';
+const RigLab = React.lazy(() => import('./RigLab').then((module) => ({ default: module.RigLab })));
+if (rigLab) document.documentElement.classList.add('rig-lab-mode');
 const avatarLab = location.pathname === '/avatar-lab';
 const dock = location.pathname === '/dock';
 const AvatarLab = React.lazy(() =>
@@ -28,7 +31,7 @@ const Studio = React.lazy(() => import('./studio').then((module) => ({ default: 
 const Dock = React.lazy(() => import('./studio/Dock').then((module) => ({ default: module.Dock })));
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
 if (overlay) document.documentElement.classList.add('overlay');
-const landing = !overlay && !studio && !avatarLab && !dock;
+const landing = !overlay && !studio && !avatarLab && !dock && !rigLab;
 if (landing) {
   document.documentElement.classList.add('landing-mode');
   // Start Tavi's runtime, renderer and artwork now, alongside the page, not after it mounts
@@ -45,6 +48,12 @@ if (landing) {
   void import('./renderer/rive/riveRenderer');
 }
 function App() {
+  if (rigLab)
+    return (
+      <React.Suspense fallback={<p>Loading rig...</p>}>
+        <RigLab />
+      </React.Suspense>
+    );
   if (avatarLab)
     return (
       <React.Suspense fallback={<p>Loading avatar experiment…</p>}>

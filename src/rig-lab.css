@@ -1,0 +1,262 @@
+html.rig-lab-mode,
+html.rig-lab-mode body,
+html.rig-lab-mode #root {
+  min-height: 100%;
+  height: auto;
+  overflow-x: clip;
+  overflow-y: auto;
+  background: #15131c;
+  color: #ede8e0;
+  color-scheme: dark;
+}
+.rig-lab {
+  max-width: 1600px;
+  padding: 28px 44px;
+  margin: auto;
+  font-family: 'DM Sans', sans-serif;
+}
+.rig-lab header,
+.rig-heading,
+.rig-toolbar,
+.rig-timeline,
+.rig-lab footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.rig-lab header {
+  padding-bottom: 22px;
+  border-bottom: 1px solid #ffffff17;
+  font-size: 13px;
+}
+.rig-lab a {
+  color: #ede8e0;
+  text-decoration: none;
+}
+.rig-lab header > span {
+  color: #c1b5d4;
+}
+.rig-lab b {
+  margin-left: 20px;
+  font-weight: 400;
+}
+.rig-heading {
+  padding: 36px 0 28px;
+}
+.rig-eyebrow {
+  color: #b8a6ca;
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  margin: 0 0 12px;
+}
+.rig-lab h1 {
+  font:
+    400 clamp(30px, 3vw, 48px)/1.15 Georgia,
+    serif;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+.rig-status {
+  color: #bcb5c6;
+  font-size: 12px;
+}
+.rig-toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding: 18px 0 24px;
+  border-top: 1px solid #ffffff17;
+}
+.rig-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #c3bbc9;
+}
+.rig-lab select,
+.rig-lab button {
+  padding: 9px 12px;
+  border: 1px solid #ffffff28;
+  background: #24202d;
+  border-radius: 5px;
+  color: #f3eee8;
+  font: inherit;
+  font-size: 12px;
+}
+.rig-lab button {
+  cursor: pointer;
+}
+.rig-lab button:hover {
+  background: #393044;
+}
+.rig-lab :focus-visible {
+  outline: 2px solid #d3b7f4;
+  outline-offset: 4px;
+}
+.rig-lab input[type='range'] {
+  accent-color: #c4abd9;
+  min-height: 28px;
+  max-width: 130px;
+  cursor: pointer;
+}
+.rig-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #ffffff20;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.rig-stage {
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+}
+.rig-stage + .rig-stage {
+  overflow: hidden;
+  border-left: 1px solid #ffffff20;
+}
+.rig-stage canvas {
+  width: 100%;
+  height: clamp(340px, 46vw, 590px);
+  display: block;
+}
+.rig-caption {
+  position: absolute;
+  top: 22px;
+  left: 24px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+.rig-caption span {
+  font:
+    12px Georgia,
+    serif;
+  opacity: 0.6;
+}
+.rig-caption h2 {
+  font-size: 12px;
+  font-weight: 400;
+  margin: 0;
+}
+.rig-surface-dark {
+  background: #201d29;
+}
+.rig-surface-light {
+  background: #e5dfd4;
+  color: #302738;
+}
+.rig-surface-checker {
+  background-color: #bfb9c6;
+  color: #302738;
+  background-image: conic-gradient(#ddd7e1 25%, transparent 0 50%, #ddd7e1 0 75%, transparent 0);
+  background-size: 24px 24px;
+}
+.rig-ground {
+  position: absolute;
+  bottom: 24px;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.12;
+  pointer-events: none;
+}
+.rig-timeline {
+  font-size: 12px;
+  padding: 20px 0;
+  font-variant-numeric: tabular-nums;
+  color: #c1b6cd;
+}
+.rig-timeline input[type='range'] {
+  flex: 1;
+  max-width: none;
+}
+.rig-lab footer {
+  border-top: 1px solid #ffffff17;
+  font-size: 12px;
+  color: #bcb5c6;
+  align-items: flex-start;
+}
+.rig-lab footer p {
+  max-width: 440px;
+  line-height: 1.6;
+}
+@media (max-width: 720px) {
+  .rig-lab {
+    padding: 20px;
+  }
+  .rig-heading {
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .rig-status {
+    max-width: 85px;
+  }
+  .rig-toolbar {
+    gap: 12px;
+  }
+  .rig-comparison {
+    grid-template-columns: 1fr;
+  }
+  .rig-stage + .rig-stage {
+    overflow: hidden;
+    border-left: 0;
+    border-top: 1px solid #ffffff20;
+  }
+  .rig-stage canvas {
+    height: 380px;
+  }
+  .rig-lab footer {
+    display: block;
+  }
+}
+
+.rig-body-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  border: 0;
+  border-top: 1px solid #ffffff17;
+  margin: 0;
+  padding: 16px 0 24px;
+}
+.rig-body-controls legend {
+  padding: 0 12px 0 0;
+  color: #c3bbc9;
+  font-size: 12px;
+}
+.rig-body-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.rig-body-controls input[type='range'] {
+  width: 80px;
+}
+.rig-body-controls output {
+  width: 52px;
+  font-variant-numeric: tabular-nums;
+  color: #c3bbc9;
+}
+.rig-body-controls input[type='checkbox'] {
+  accent-color: #c4abd9;
+}
+@media (max-width: 720px) {
+  .rig-body-controls {
+    gap: 12px;
+  }
+  .rig-body-controls label {
+    flex: 1 1 42%;
+  }
+}
+
+/* Sleep currently evaluates the pose and breath; head/hand floor contacts are the next art/constraint gate. */
+.rig-sleep .rig-ground {
+  display: none;
+}
