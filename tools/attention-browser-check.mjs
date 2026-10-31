@@ -26,14 +26,10 @@ async function send(page, commands) {
 }
 try {
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
-  await page.goto(base);
-  await expect(page.locator('.portrait-space .avatar-renderer')).toHaveAttribute(
-    'data-ready',
-    'true',
-    {
-      timeout: 30000,
-    },
-  );
+  await page.goto(base + '/studio');
+  await expect(page.locator('.st-screen .avatar-renderer')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30000,
+  });
   const overlay = await (
     await browser.newContext({ viewport: { width: 1280, height: 720 } })
   ).newPage();
@@ -43,9 +39,9 @@ try {
   });
   const original = (await state(page)).config;
   await mkdir('test-results', { recursive: true });
-  const back = page.getByRole('button', { name: 'Bring Tavi back', exact: true });
-  if (await back.count()) await back.click();
-  const dock = page.getByRole('group', { name: 'Try an expression' });
+  const tuck = page.getByRole('switch', { name: 'Tuck her away' });
+  if ((await tuck.getAttribute('aria-checked')) === 'true') await tuck.click();
+  const dock = page.getByRole('group', { name: 'Reactions' });
   try {
     for (const [name, chat, expected] of [
       ['left', { enabled: true, x: 0.02, y: 0.1, w: 0.2, h: 0.45 }, 'chat:left'],
@@ -56,8 +52,8 @@ try {
         { type: 'configure', patch: { x: 0.5, y: 0.8, scene: { ...original.scene, chat } } },
       ]);
       await page.waitForTimeout(4000);
-      await dock.getByRole('button', { name: 'chat', exact: true }).click();
-      await expect(page.locator('.portrait-space .avatar-renderer')).toHaveAttribute(
+      await dock.getByRole('button', { name: 'Look at chat', exact: true }).click();
+      await expect(page.locator('.st-screen .avatar-renderer')).toHaveAttribute(
         'data-attention',
         expected,
         {
@@ -72,9 +68,7 @@ try {
         },
       );
       await page.waitForTimeout(400);
-      await page
-        .locator('.portrait-space')
-        .screenshot({ path: `test-results/attention-${name}.png` });
+      await page.locator('.st-screen').screenshot({ path: `test-results/attention-${name}.png` });
     }
     console.log(
       'Attention browser check passed: chat look follows the chat panel left and right, studio and overlay agree.',

@@ -83,6 +83,7 @@ if (existsSync(resolve('dist/index.html'))) {
   });
   app.get('/studio', async (_, reply) => reply.sendFile('index.html'));
   app.get('/overlay', async (_, reply) => reply.sendFile('index.html'));
+  app.get('/dock', async (_, reply) => reply.sendFile('index.html'));
 }
 try {
   await app.listen({ host: '127.0.0.1', port });

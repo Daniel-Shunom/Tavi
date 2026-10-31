@@ -2,80 +2,299 @@
   "schemaVersion": 2,
   "source": "DESIGN.md",
   "colorMeta": {
-    "night-ink": { "displayName": "Night Ink", "role": "app canvas" },
-    "deep-indigo-stage": { "displayName": "Deep Indigo Stage", "role": "character preview" },
-    "tool-deck": { "displayName": "Tool Deck", "role": "settings surface" },
-    "raised-surface": { "displayName": "Raised Surface", "role": "panels and popovers" },
-    "field-surface": { "displayName": "Field Surface", "role": "inputs" },
-    "soft-white": { "displayName": "Soft White", "role": "primary text" },
-    "muted-lavender-grey": { "displayName": "Muted Lavender Grey", "role": "secondary text" },
-    "quiet-divider": { "displayName": "Quiet Divider", "role": "separators" },
-    "soft-lavender": { "displayName": "Soft Lavender", "role": "selection and focus" },
-    "lavender-action": { "displayName": "Lavender Action", "role": "primary action" }
+    "night-ink": {
+      "displayName": "Night Ink",
+      "role": "app canvas and inset fields",
+      "cssVar": "--bg"
+    },
+    "plum-panel": {
+      "displayName": "Plum Panel",
+      "role": "cards, steps, keys, secondary buttons",
+      "cssVar": "--panel"
+    },
+    "raised-surface": {
+      "displayName": "Raised Surface",
+      "role": "hover, current, and track surfaces",
+      "cssVar": "--raised"
+    },
+    "quiet-divider": {
+      "displayName": "Quiet Divider",
+      "role": "borders and separators",
+      "cssVar": "--line"
+    },
+    "soft-white": { "displayName": "Soft White", "role": "primary text", "cssVar": "--text" },
+    "muted-lavender-grey": {
+      "displayName": "Muted Lavender Grey",
+      "role": "secondary text",
+      "cssVar": "--sub"
+    },
+    "faint-lilac-grey": {
+      "displayName": "Faint Lilac Grey",
+      "role": "hints, notes, labels",
+      "cssVar": "--faint"
+    },
+    "soft-lavender": {
+      "displayName": "Soft Lavender",
+      "role": "the accent: action, selection, focus",
+      "cssVar": "--accent"
+    },
+    "plum-ink": {
+      "displayName": "Plum Ink",
+      "role": "text on the accent",
+      "cssVar": "--accent-ink"
+    },
+    "mint-ready": {
+      "displayName": "Mint Ready",
+      "role": "connected, done, here",
+      "cssVar": "--good"
+    },
+    "coral-warning": {
+      "displayName": "Coral Warning",
+      "role": "disconnected and errors",
+      "cssVar": "--warn"
+    }
+  },
+  "themes": {
+    "moonlight": {
+      "displayName": "Moonlight",
+      "default": true,
+      "colorScheme": "dark",
+      "description": "The front-matter values.",
+      "values": {
+        "night-ink": "#100f17",
+        "plum-panel": "#17151f",
+        "raised-surface": "#221f2c",
+        "quiet-divider": "#2d2939",
+        "soft-white": "#f4f0f7",
+        "muted-lavender-grey": "#b6aec2",
+        "faint-lilac-grey": "#958da2",
+        "soft-lavender": "#c7b3ea",
+        "plum-ink": "#1b1424",
+        "mint-ready": "#8fd3b0",
+        "coral-warning": "#ffb4a8",
+        "glow": "rgb(199 179 234 / 0.16)",
+        "shadow": "rgb(0 0 0 / 0.35)"
+      }
+    },
+    "daydream": {
+      "displayName": "Daydream",
+      "colorScheme": "light",
+      "description": "Pale lilac canvas, white panels, and a deep plum accent with white accent ink.",
+      "values": {
+        "night-ink": "#f4f1f6",
+        "plum-panel": "#ffffff",
+        "raised-surface": "#f0ebf4",
+        "quiet-divider": "#e2dbe8",
+        "soft-white": "#1c1724",
+        "muted-lavender-grey": "#574e63",
+        "faint-lilac-grey": "#625a6e",
+        "soft-lavender": "#3b2c4a",
+        "plum-ink": "#ffffff",
+        "mint-ready": "#23704f",
+        "coral-warning": "#a8322a",
+        "glow": "rgb(59 44 74 / 0.08)",
+        "shadow": "rgb(40 24 58 / 0.12)"
+      }
+    },
+    "afterhours": {
+      "displayName": "Afterhours",
+      "colorScheme": "dark",
+      "description": "Blue-black charcoal surfaces with a warm apricot accent.",
+      "values": {
+        "night-ink": "#0c0e13",
+        "plum-panel": "#13161d",
+        "raised-surface": "#1c2029",
+        "quiet-divider": "#272c37",
+        "soft-white": "#eef1f5",
+        "muted-lavender-grey": "#aab1be",
+        "faint-lilac-grey": "#8e96a4",
+        "soft-lavender": "#efb98d",
+        "plum-ink": "#22160c",
+        "mint-ready": "#80d4a9",
+        "coral-warning": "#ffb4a8",
+        "glow": "rgb(239 185 141 / 0.14)",
+        "shadow": "rgb(0 0 0 / 0.35)"
+      }
+    }
   },
   "typographyMeta": {
+    "heading": { "displayName": "Georgia", "role": "page titles (28px under 860px)" },
+    "value": { "displayName": "Georgia", "role": "spoken setting summaries" },
+    "title": { "displayName": "DM Sans", "role": "card, block, and step headings" },
     "body": { "displayName": "DM Sans", "role": "interface copy and controls" },
-    "heading": { "displayName": "Georgia", "role": "stage and settings headings" },
-    "label": { "displayName": "DM Sans", "role": "control labels" },
-    "wordmark": { "displayName": "Manrope", "role": "brand wordmark" }
+    "hint": { "displayName": "DM Sans", "role": "notes and helper copy; smallest essential size" },
+    "label": { "displayName": "DM Sans", "role": "badges, tags, key caps, group labels" },
+    "wordmark": { "displayName": "DM Sans", "role": "lowercase brand wordmark" }
   },
+  "shadows": [
+    {
+      "name": "segment-lift",
+      "value": "0 1px 2px var(--shadow)",
+      "purpose": "The chosen option in a segmented track or tab bar."
+    },
+    {
+      "name": "selection-ring",
+      "value": "0 0 0 1px var(--accent)",
+      "purpose": "Chosen choices, swatches, and theme buttons, with an accent border."
+    },
+    {
+      "name": "accent-glow",
+      "value": "0 0 0 1px var(--accent), 0 0 40px var(--glow)",
+      "purpose": "The chosen nature and (at 48px) the current setup step only."
+    },
+    {
+      "name": "preview-lift",
+      "value": "0 0 0 1px var(--line), 0 24px 60px -28px var(--shadow)",
+      "purpose": "The 16:9 stream preview."
+    }
+  ],
+  "motion": [
+    {
+      "name": "ease-out",
+      "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+      "purpose": "All Studio transitions."
+    },
+    {
+      "name": "state-change",
+      "value": "200ms",
+      "purpose": "Switch knob, disclosure chevron, preview ring and hint."
+    },
+    {
+      "name": "key-press",
+      "value": "160ms, scale(0.97)",
+      "purpose": "Reaction keys pressing down."
+    }
+  ],
+  "breakpoints": [
+    {
+      "name": "top-bar",
+      "value": "860px",
+      "purpose": "Rail becomes a top bar; side columns go full width; Look stage stops sticking."
+    },
+    { "name": "compact-nav", "value": "480px", "purpose": "Rail icons drop; labels remain." }
+  ],
   "components": [
     {
       "name": "Primary button",
       "category": "button",
       "refersTo": "button-primary",
-      "description": "Main local action with a soft lavender fill.",
-      "html": "<button class=\"ds-button-primary\">Open overlay</button>",
-      "css": ".ds-button-primary { background: #d2bdf4; color: #2c203e; padding: 11px 16px; border: 1px solid #e8d9ff38; border-radius: 9px; font: 600 11px 'DM Sans', sans-serif; transition: background-color .18s, box-shadow .18s; } .ds-button-primary:hover { background: #e4d3ff; box-shadow: 0 3px 17px #b795e522; } .ds-button-primary:focus-visible { outline: 2px solid #d5c3ff; outline-offset: 4px; } .ds-button-primary:active { transform: translateY(1px); }"
+      "description": "The main action in a local context, filled with the theme accent.",
+      "html": "<button class=\"ds-button-primary\">Copy the overlay link</button>",
+      "css": ".ds-button-primary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1px solid #c7b3ea; border-radius: 12px; background: #c7b3ea; color: #1b1424; font: 600 15px 'DM Sans', system-ui, sans-serif; } .ds-button-primary:hover { background: color-mix(in srgb, #c7b3ea 88%, #f4f0f7); } .ds-button-primary:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary button",
+      "category": "button",
+      "refersTo": "button-secondary",
+      "description": "Everyday actions on a panel surface; mint when pressed as a toggle.",
+      "html": "<button class=\"ds-button\">Test the overlay</button>",
+      "css": ".ds-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1px solid #2d2939; border-radius: 12px; background: #17151f; color: #f4f0f7; font: 500 15px 'DM Sans', system-ui, sans-serif; } .ds-button:hover { background: #221f2c; } .ds-button[aria-pressed='true'] { border-color: #8fd3b0; color: #8fd3b0; } .ds-button:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; }"
     },
     {
       "name": "Text field",
       "category": "input",
       "refersTo": "field",
-      "description": "Inset editable value with quiet violet boundaries.",
-      "html": "<label class=\"ds-field\">Character name<input value=\"Tavi\" /></label>",
-      "css": ".ds-field { color: #bdb1c9; font: 11px 'DM Sans', sans-serif; } .ds-field input { display: block; width: 100%; margin-top: 9px; padding: 10px 12px; color: #e3d7ec; background: #1d1d2a; border: 1px solid #43374e; border-radius: 8px; font: 12px 'DM Sans', sans-serif; } .ds-field input:hover { border-color: #7d628f; } .ds-field input:focus-visible { outline: 2px solid #d5c3ff; outline-offset: 3px; }"
+      "description": "Inset on the canvas color with a quiet border.",
+      "html": "<label class=\"ds-field\">Her name<input value=\"Tavi\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; color: #b6aec2; font: 500 14px 'DM Sans', system-ui, sans-serif; } .ds-field input { min-height: 44px; padding: 10px 14px; border: 1px solid #2d2939; border-radius: 12px; background: #100f17; color: #f4f0f7; font: 15px 'DM Sans', system-ui, sans-serif; } .ds-field input:hover { border-color: #958da2; } .ds-field input:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; }"
     },
     {
-      "name": "Current tool navigation",
+      "name": "Rail item",
       "category": "nav",
-      "refersTo": "tool-navigation-active",
-      "description": "Marks the active settings section without overpowering the content.",
-      "html": "<a class=\"ds-nav-item\" href=\"#appearance\" aria-current=\"location\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><circle cx=\"12\" cy=\"12\" r=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>Appearance</a>",
-      "css": ".ds-nav-item { display: flex; align-items: center; gap: 11px; padding: 11px 12px; color: #a49bad; border-radius: 8px; font: 11px 'DM Sans', sans-serif; text-decoration: none; transition: background-color .18s, color .18s; } .ds-nav-item:hover, .ds-nav-item[aria-current] { color: #e0c9f7; background: #c2a5e914; } .ds-nav-item:focus-visible { outline: 2px solid #d5c3ff; outline-offset: 3px; }"
+      "refersTo": "nav-item-current",
+      "description": "One of the four Studio places; raised when current.",
+      "html": "<nav class=\"ds-rail\"><a href=\"#live\" aria-current=\"page\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"2\"/><path d=\"M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4\"/></svg>Live</a><a href=\"#look\">Look</a><a href=\"#setup\">Setup<span>1/3</span></a></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 4px; width: 208px; } .ds-rail a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: #b6aec2; font: 500 15px 'DM Sans', system-ui, sans-serif; text-decoration: none; } .ds-rail a:hover, .ds-rail a[aria-current='page'] { background: #221f2c; color: #f4f0f7; } .ds-rail a:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; } .ds-rail span { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: #c7b3ea; color: #1b1424; font-size: 12px; font-weight: 600; }"
+    },
+    {
+      "name": "Choice chips",
+      "category": "chip",
+      "refersTo": "choice-selected",
+      "description": "Single-choice tiles; the selected one takes the accent ring.",
+      "html": "<div class=\"ds-choices\" role=\"radiogroup\"><button role=\"radio\" aria-checked=\"true\">Short</button><button role=\"radio\" aria-checked=\"false\">Long</button><button role=\"radio\" aria-checked=\"false\">Curly</button></div>",
+      "css": ".ds-choices { display: flex; flex-wrap: wrap; gap: 8px; } .ds-choices button { min-height: 44px; padding: 0 14px; border: 1px solid #2d2939; border-radius: 12px; background: #100f17; color: #f4f0f7; font: 500 15px 'DM Sans', system-ui, sans-serif; } .ds-choices button:hover { border-color: #958da2; } .ds-choices button[aria-checked='true'] { border-color: #c7b3ea; background: #221f2c; box-shadow: 0 0 0 1px #c7b3ea; } .ds-choices button:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; }"
+    },
+    {
+      "name": "Segmented control",
+      "category": "custom",
+      "refersTo": "segmented-option-selected",
+      "description": "A raised track of options; the chosen one sits on the panel color.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\"><button role=\"radio\" aria-checked=\"false\">Rarely</button><button role=\"radio\" aria-checked=\"true\">Sometimes</button><button role=\"radio\" aria-checked=\"false\">Often</button></div>",
+      "css": ".ds-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: #221f2c; } .ds-seg button { min-height: 40px; padding: 0 8px; border: 0; border-radius: 10px; background: transparent; color: #b6aec2; font: 500 15px 'DM Sans', system-ui, sans-serif; } .ds-seg button:hover { color: #f4f0f7; } .ds-seg button[aria-checked='true'] { background: #17151f; color: #f4f0f7; box-shadow: 0 1px 2px rgb(0 0 0 / 0.35); } .ds-seg button:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; }"
+    },
+    {
+      "name": "Switch",
+      "category": "custom",
+      "refersTo": "switch-on",
+      "description": "On/off setting; accent when on.",
+      "html": "<button class=\"ds-switch\" role=\"switch\" aria-checked=\"true\" aria-label=\"Quiet mode\"></button>",
+      "css": ".ds-switch { position: relative; width: 52px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: #2d2939; } .ds-switch::after { content: ''; position: absolute; left: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-switch[aria-checked='true'] { background: #c7b3ea; } .ds-switch[aria-checked='true']::after { transform: translateX(20px); } .ds-switch:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "category": "card",
+      "refersTo": "card",
+      "description": "The panel container for a group of settings.",
+      "html": "<section class=\"ds-card\"><h2>Energy</h2><p>How lively she is between reactions.</p></section>",
+      "css": ".ds-card { display: flex; flex-direction: column; gap: 16px; padding: 20px; border: 1px solid #2d2939; border-radius: 20px; background: #17151f; color: #f4f0f7; font: 15px/1.45 'DM Sans', system-ui, sans-serif; } .ds-card h2 { margin: 0; font-size: 17px; font-weight: 600; } .ds-card p { margin: 0; color: #958da2; font-size: 13px; }"
+    },
+    {
+      "name": "Reaction key",
+      "category": "custom",
+      "refersTo": "reaction-key",
+      "description": "A quick reaction on the pad, with its 1-8 hotkey.",
+      "html": "<button class=\"ds-key\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8a8 8 0 0 0 16 0v-3a2 2 0 0 0-4 0\"/></svg>Wave<kbd>1</kbd></button>",
+      "css": ".ds-key { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 14px; width: 128px; min-height: 92px; padding: 14px; border: 1px solid #2d2939; border-radius: 16px; background: #17151f; color: #f4f0f7; font: 500 15px 'DM Sans', system-ui, sans-serif; text-align: left; transition: background-color 160ms, border-color 160ms, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-key svg { color: #c7b3ea; } .ds-key:hover { background: #221f2c; } .ds-key:active { transform: scale(0.97); border-color: #c7b3ea; } .ds-key:focus-visible { outline: 2px solid #c7b3ea; outline-offset: 2px; } .ds-key kbd { position: absolute; right: 12px; top: 12px; min-width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid #2d2939; border-radius: 6px; font: 600 12px/1 'DM Sans', system-ui, sans-serif; color: #958da2; }"
     }
   ],
   "narrative": {
     "northStar": "A little stage for a little personality",
-    "overview": "Tavi Studio pairs a calm, dark workspace with a lively character stage. The companion is the emotional center of the interface; controls should make it easy to shape and direct that personality without competing with it. The design voice is playful, warm, and character-led, with a soft lavender glow as its recurring accent. Keep the interface simple and stylish, with Georgia headings for warmth, DM Sans controls for clarity, and familiar interactions. Favor a human, expressive feel over a corporate geometric-font look.",
+    "overview": "Tavi Studio is a calm room built around one character. A left rail holds four places (Live, Look, Personality, Setup); each screen shows one focused panel, and the two screens where her appearance matters keep Tavi in view: Live shows a 16:9 “what viewers see” preview, and Look keeps a sticky portrait stage beside the options. The design voice is playful, warm, and character-led, with a soft accent glow marking what is chosen or happening now.\n\nKeep the interface simple and stylish, with approachable type and familiar controls: Georgia for page titles and the occasional value worth reading aloud, DM Sans for everything else, including the lowercase wordmark. Every surface reads one set of theme tokens, so Studio wears three themes (Moonlight by default, Daydream, Afterhours) chosen in the rail and remembered per browser. Themes belong to Studio only; nothing here shows on stream. Avoid adding visual complexity just to make a screen feel designed.",
     "keyCharacteristics": [
-      "A character stage sits above a compact, organized tool deck.",
-      "Dark indigo surfaces create a quiet backdrop; lavender signals action and selection.",
-      "Warmth comes from the character, soft lighting, and tactile details—not decorative UI chrome."
+      "One place per screen, one focused panel per place; Tavi stays visible where her look is being shaped or performed.",
+      "Quiet tonal surfaces with fine borders; the accent marks action, selection, focus, and the current step.",
+      "Generous, touchable controls: 44px targets, 15px body text, softly rounded 12–20px corners.",
+      "Warmth comes from the character, serif titles, and plain words, not decorative UI chrome."
     ],
     "rules": [
       {
         "name": "The Lavender Signal Rule",
-        "body": "Reserve lavender for actions, selection, focus, and a few character-led accents; do not use it as general decoration.",
+        "body": "Reserve the accent (lavender by default; plum in Daydream, apricot in Afterhours) for actions, selection, focus, and the current step; do not use it as general decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Token-Only Rule",
+        "body": "New Studio surfaces read the theme variables, never literal hex, so every screen works in all three themes. Fixed colors are limited to things that show the stream itself (the preview backdrop and its overlay labels) and the theme swatches.",
         "section": "colors"
       },
       {
         "name": "The Warm Clarity Rule",
         "body": "Prefer sentence case and plain language. Let the type feel conversational; avoid corporate all-caps labels, exaggerated tracking, and overly compressed text.",
         "section": "typography"
+      },
+      {
+        "name": "The Earned Glow Rule",
+        "body": "Glow means “this is the one chosen or the one to do next.” Never use it at rest or for decoration.",
+        "section": "elevation"
       }
     ],
     "dos": [
       "Do keep the character as the most distinctive and visually prominent part of the studio.",
+      "Do keep one focused panel per screen, and keep Tavi visible wherever her look or live behavior is being changed.",
       "Do use plain, reassuring language for connection, placement, and error states.",
       "Do keep settings grouped by what the streamer is trying to do, with consistent controls across panels.",
-      "Do preserve keyboard focus visibility, reduced-motion support, and responsive behavior.",
-      "Do use the soft lavender glow to show a meaningful action or selected state."
+      "Do keep every interactive target at least 44px and text at 4.5:1 in all three themes.",
+      "Do build new surfaces from the theme variables so Moonlight, Daydream, and Afterhours all work.",
+      "Do preserve keyboard focus visibility, the 1–8 and Esc reaction keys, reduced-motion support, and the narrow-window top bar.",
+      "Do let section headings stand on their own instead of repeating decorative eyebrow labels.",
+      "Do use the accent glow to show a meaningful choice or the next step."
     ],
     "donts": [
       "Don't make the interface resemble a generic corporate dashboard.",
       "Don't add decorative gradients, badges, or cards where they do not explain hierarchy or state.",
-      "Don't make essential labels or instructions depend on tiny microcopy.",
+      "Don't make essential labels or instructions depend on text smaller than 13px.",
+      "Don't let a Studio theme change anything that shows on stream.",
+      "Don't add watermarks or textures to the stage unless they help the character read more clearly.",
       "Don't use motion only for decoration; transitions should answer an interaction or clarify a state change."
     ]
   }

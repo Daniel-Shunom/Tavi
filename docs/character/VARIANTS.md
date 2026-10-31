@@ -63,7 +63,7 @@ variant ──> applyVariant(mascot-v2.riv)  in-memory edits, same byte layout o
 | `.../variants/apply.ts`, `rivEdit.ts`                                          | In-memory file edits                                               |
 | `.../variants/palettes.ts`, `colorScience.ts`                                  | Undertones, hair and eye palettes, OKLCH and contrast              |
 | `.../variants/overlay/`                                                        | Geometry helpers, hairstyles, features/coverings, compose, drawer  |
-| `src/CharacterCreator.tsx`                                                     | Studio creator section (between Make it yours and Wardrobe)        |
+| `src/CharacterCreator.tsx`                                                     | Studio Look screen: body, hair, face and details tabs              |
 | `tools/variants/sheet.html`                                                    | Contact sheet (presets, hairstyles, ramp × undertones)             |
 | `tools/variants/shoot.mjs`, `creator-check.mjs`                                | Screenshots of the sheet; browser check of the creator and overlay |
 | `tools/variants/probe.html`, `measure.html`, `tune-ramp.ts`, `probe-colors.ts` | Authoring aids                                                     |

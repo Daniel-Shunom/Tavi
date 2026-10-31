@@ -13,10 +13,8 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 page.on('pageerror', (e) => console.log('pageerror', e.message));
-await page.goto(base);
-await page
-  .locator('.portrait-space .avatar-renderer[data-ready="true"]')
-  .waitFor({ timeout: 30000 });
+await page.goto(base + '/studio');
+await page.locator('.st-screen .avatar-renderer[data-ready="true"]').waitFor({ timeout: 30000 });
 await page.waitForTimeout(1500);
 const fps = await page.evaluate(
   () =>
@@ -33,16 +31,16 @@ const fps = await page.evaluate(
 );
 console.log('fps', fps);
 await page
-  .getByRole('group', { name: 'Try an expression' })
+  .getByRole('group', { name: 'Reactions' })
   .getByRole('button', { name: label, exact: true })
   .click();
 for (let i = 0; i < 12; i++) {
   await page.waitForTimeout(250);
   const performance = await page
-    .locator('.portrait-space .avatar-renderer')
+    .locator('.st-screen .avatar-renderer')
     .getAttribute('data-performance');
   await page
-    .locator('.portrait-space')
+    .locator('.st-screen')
     .screenshot({ path: `${out}/${label.replace('?', '')}-${String(i).padStart(2, '0')}.png` });
   console.log(i, performance);
 }

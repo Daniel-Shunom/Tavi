@@ -12,13 +12,11 @@ try {
   const context = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto(base);
+  await page.goto(base + '/studio');
   await expect(page.getByText('Local service connected')).toBeVisible();
-  await expect(page.locator('.portrait-space .avatar-renderer')).toHaveAttribute(
-    'data-ready',
-    'true',
-    { timeout: 30000 },
-  );
+  await expect(page.locator('.st-screen .avatar-renderer')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30000,
+  });
   const overlay = await (
     await browser.newContext({ viewport: { width: 1280, height: 720 } })
   ).newPage();
@@ -29,24 +27,26 @@ try {
   });
   await mkdir('test-results/expressions', { recursive: true });
   // Start from a visible companion regardless of earlier runs.
-  const back = page.getByRole('button', { name: 'Bring Tavi back', exact: true });
-  if (await back.count()) await back.click();
-  await expect(page.getByRole('button', { name: 'Tuck away', exact: true })).toBeVisible();
+  const open = (name) =>
+    page.getByRole('navigation', { name: 'Studio' }).getByRole('link', { name }).click();
+  const tuck = page.getByRole('switch', { name: 'Tuck her away' });
+  if ((await tuck.getAttribute('aria-checked')) === 'true') await tuck.click();
+  await expect(tuck).toHaveAttribute('aria-checked', 'false');
   await page.waitForTimeout(2000);
-  const dock = page.getByRole('group', { name: 'Try an expression' });
+  const dock = page.getByRole('group', { name: 'Reactions' });
   const expected = {
-    wave: ['glance', 'wave', 'content'],
-    listen: ['listening'],
-    'really?': ['skeptical', 'agreeing', 'sassy'],
-    oops: ['startled', 'innocent', 'look-away', 'embarrassed'],
-    nice: ['impressed', 'agreeing'],
-    celebrate: ['startled', 'celebrate', 'proud'],
+    Wave: ['glance', 'wave', 'content'],
+    Listen: ['listening'],
+    'Really?': ['skeptical', 'agreeing', 'sassy'],
+    Oops: ['startled', 'innocent', 'look-away', 'embarrassed'],
+    Nice: ['impressed', 'agreeing'],
+    Celebrate: ['startled', 'celebrate', 'proud'],
   };
   for (const [label, allowed] of Object.entries(expected)) {
     await dock.getByRole('button', { name: label, exact: true }).click();
     await page.waitForTimeout(1300);
     const performance = await page
-      .locator('.portrait-space .avatar-renderer')
+      .locator('.st-screen .avatar-renderer')
       .getAttribute('data-performance');
     if (!allowed.includes(performance))
       throw new Error(
@@ -59,39 +59,41 @@ try {
     if (!allowed.includes(overlayPerformance))
       throw new Error(`${label}: overlay shows ${overlayPerformance}`);
     await page
-      .locator('.portrait-space')
-      .screenshot({ path: `test-results/expressions/${label.replace('?', '')}.png` });
+      .locator('.st-screen')
+      .screenshot({ path: `test-results/expressions/${label.toLowerCase().replace('?', '')}.png` });
     await page.keyboard.press('Escape');
     await expect.poll(async () => (await state(page)).performance.script).toBeNull();
   }
   // Conversation: a typed line goes through the decision provider and shows a caption.
-  await page.getByRole('link', { name: 'Playground', exact: true }).click();
+  await open('Personality');
   await page.getByLabel('Simulated message').fill('That was totally intentional.');
   await page.getByRole('button', { name: 'Say it', exact: true }).click();
   await expect
     .poll(async () => (await state(page)).performance.script?.decidedBy.label)
     .toBe('Rules (not AI)');
+  await expect(page.locator('.ai-active')).toContainText('Rules (not AI)');
+  await expect(page.locator('.ai-active .ai-badge')).toHaveText('Not AI');
+  await open('Look');
   await expect(page.locator('.portrait-space .avatar-caption')).toBeVisible();
   await page
     .locator('.portrait-space')
     .screenshot({ path: 'test-results/expressions/conversation.png' });
-  await expect(page.locator('.ai-active')).toContainText('Rules (not AI)');
-  await expect(page.locator('.ai-badge')).toHaveText('Not AI');
+  await open('Live');
   // Retract and restore emit seeded choreography cues; retract interrupts immediately.
-  await page.getByRole('button', { name: 'Tuck away', exact: true }).click();
+  await tuck.click();
   await expect.poll(async () => (await state(page)).performance.presence?.kind).toBe('exit');
   // The motion layer may exit by walking or climbing out rather than fading, so check state.
-  await expect(page.locator('.portrait-space .avatar-renderer')).toHaveAttribute(
+  await expect(page.locator('.st-screen .avatar-renderer')).toHaveAttribute(
     'data-retracted',
     'true',
   );
-  await page.getByRole('button', { name: 'Bring Tavi back', exact: true }).click();
+  await tuck.click();
   await expect.poll(async () => (await state(page)).performance.presence?.kind).toBe('enter');
-  await expect(page.locator('.portrait-space .avatar-renderer')).toHaveAttribute(
+  await expect(page.locator('.st-screen .avatar-renderer')).toHaveAttribute(
     'data-retracted',
     'false',
   );
-  await expect(page.locator('.portrait-space .avatar-body')).toHaveCSS('opacity', '1', {
+  await expect(page.locator('.st-screen .avatar-body')).toHaveCSS('opacity', '1', {
     timeout: 15000,
   });
   // A reconnecting overlay shows current state without replaying finished cues.
@@ -106,7 +108,8 @@ try {
     timeout: 8000,
   });
   // Wardrobe: equip an item, see it on stage, then remove it.
-  await page.getByRole('link', { name: 'Wardrobe', exact: true }).click();
+  await open('Look');
+  await page.getByRole('tab', { name: 'Outfit' }).click();
   await page.getByRole('radio', { name: 'Pom beanie' }).click();
   await expect
     .poll(async () => (await state(page)).config.wardrobe.attachments['head.top'])
@@ -120,14 +123,17 @@ try {
     .poll(async () => (await state(page)).config.wardrobe.attachments['head.top'])
     .toBeUndefined();
   // Contact shadow: visible while standing, shrinking while airborne during a drop entrance.
-  const spot = page.locator('.portrait-space .avatar-shadow');
+  await open('Setup');
+  const entrance = page.getByRole('radiogroup', { name: 'Coming and going' });
+  await entrance.getByRole('radio', { name: 'Drop in' }).click();
+  await open('Live');
+  const spot = page.locator('.st-screen .avatar-shadow');
   await page.waitForTimeout(1500);
   const standing = Number(await spot.getAttribute('data-opacity'));
   if (!(standing > 0.1)) throw new Error(`Shadow not visible while standing: ${String(standing)}`);
-  await page.getByLabel('Entrance and exit style').selectOption('drop');
-  await page.getByRole('button', { name: 'Tuck away', exact: true }).click();
+  await tuck.click();
   await page.waitForTimeout(2500);
-  await page.getByRole('button', { name: 'Bring Tavi back', exact: true }).click();
+  await tuck.click();
   let smallest = Infinity;
   for (let i = 0; i < 40; i++) {
     const opacity = Number(await spot.getAttribute('data-opacity'));
@@ -137,7 +143,8 @@ try {
   }
   if (!(smallest < 0.9))
     throw new Error(`Shadow did not shrink during the drop: ${String(smallest)}`);
-  await page.getByLabel('Entrance and exit style').selectOption('random');
+  await open('Setup');
+  await entrance.getByRole('radio', { name: 'Surprise me' }).click();
   if (errors.length) throw new Error(errors.join('\n'));
   console.log(
     'Expression browser checks passed: six core reactions, studio/overlay agreement, cancel, conversation caption, provider label, retract/restore choreography, reconnect without replay.',

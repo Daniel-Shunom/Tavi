@@ -85,7 +85,7 @@ Tavi is a customizable animated companion for livestreamers. It lives in an OBS 
 ### Tavi Studio
 
 <p align="center">
-  <img src="docs/assets/readme/studio-app.jpg" alt="Tavi Studio: Tavi on a dark stage with gesture, pose, quiet mode and tuck-away controls, and the character tools below." width="100%" />
+  <img src="docs/assets/readme/studio-app.jpg" alt="Tavi Studio’s Live screen: a preview of what viewers see with Tavi on a sample scene, a pad of reactions with keys 1 to 8, and quiet mode, tuck away, where she is and mood beside it. A sidebar leads to Look, Personality and Setup." width="100%" />
   <br />
   <sub><b>Companion studio.</b> Shape her look, try gestures and poses, set her personality, and copy the overlay URL for OBS.</sub>
 </p>
@@ -108,16 +108,16 @@ Twitch UI smoke check: with the dev server running, execute `node tools/twitch-b
 
 ## Documentation
 
-|                                                       |                                                                                              |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| [Run the proof of concept](docs/RUNNING.md)           | Install, run the landing page and studio, add the OBS overlay, and run the production build. |
-| [What works now](docs/STATUS.md)                      | What the current build does, and what is not connected yet.                                  |
-| [Repository layout](docs/REPOSITORY-LAYOUT.md)        | Where the studio, renderer, service, tests and tooling live.                                 |
-| [Reproduce the tooling](docs/TOOLING.md)              | Vendored agent skills, the lockfile, and how to verify or restore them.                      |
-| [Landing page vision](docs/LANDING-VISION.md)         | The story the landing page tells, and how Tavi moves through it.                             |
-| [Landing page notes](docs/LANDING-NEXT.md)            | Loading, motion language, idle life and the page descent as built.                           |
-| [Development](docs/DEVELOPMENT.md)                    | Validation, formatting, typing, browser smoke checks and pull request reviews.               |
-| [Companion stage UI experiment](docs/STUDIO-STAGE.md) | The studio's stage layout and its browser check.                                             |
-| [Plan](docs/PLAN.md)                                  | The four-day build and four-day refinement targets.                                          |
-| [OBS and webcam](docs/OBS-WEBCAM.md)                  | Placing Tavi in OBS beside a webcam.                                                         |
-| [Desktop app](desktop/README.md)                      | The Tauri shell and its packaging.                                                           |
+|                                                |                                                                                              |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [Run the proof of concept](docs/RUNNING.md)    | Install, run the landing page and studio, add the OBS overlay, and run the production build. |
+| [What works now](docs/STATUS.md)               | What the current build does, and what is not connected yet.                                  |
+| [Repository layout](docs/REPOSITORY-LAYOUT.md) | Where the studio, renderer, service, tests and tooling live.                                 |
+| [Reproduce the tooling](docs/TOOLING.md)       | Vendored agent skills, the lockfile, and how to verify or restore them.                      |
+| [Landing page vision](docs/LANDING-VISION.md)  | The story the landing page tells, and how Tavi moves through it.                             |
+| [Landing page notes](docs/LANDING-NEXT.md)     | Loading, motion language, idle life and the page descent as built.                           |
+| [Development](docs/DEVELOPMENT.md)             | Validation, formatting, typing, browser smoke checks and pull request reviews.               |
+| [Tavi Studio](docs/STUDIO-STAGE.md)            | The four Studio screens, the OBS dock, and their browser checks.                             |
+| [Plan](docs/PLAN.md)                           | The four-day build and four-day refinement targets.                                          |
+| [OBS and webcam](docs/OBS-WEBCAM.md)           | Placing Tavi in OBS beside a webcam.                                                         |
+| [Desktop app](desktop/README.md)               | The Tauri shell and its packaging.                                                           |

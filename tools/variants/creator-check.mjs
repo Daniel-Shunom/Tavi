@@ -16,9 +16,9 @@ const errors = [];
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 page.on('pageerror', (e) => errors.push('studio: ' + e.message));
 page.on('console', (m) => m.type() === 'error' && errors.push('studio: ' + m.text()));
-await page.goto(base + '/');
-await page.waitForSelector('#creator');
-const useButton = page.locator('#creator button', { hasText: /^Use / });
+await page.goto(base + '/studio#look');
+await page.waitForSelector('#look-panel');
+const useButton = page.locator('#look-panel button', { hasText: /^Use / });
 if (await useButton.count()) await useButton.click();
 await page.waitForSelector('.creator-preset');
 const settle = () => page.waitForTimeout(2500);
@@ -31,16 +31,49 @@ await overlay.goto(base + '/overlay');
 const steps = [
   ['preset-locs', async () => page.locator('.creator-preset', { hasText: 'Locs' }).first().click()],
   ['skin-tone-3', async () => page.getByRole('radio', { name: 'Tone 3', exact: true }).click()],
-  ['hair-afro', async () => page.getByRole('radio', { name: 'Coily afro', exact: true }).click()],
-  ['build-broad', async () => page.getByLabel('Build').selectOption('broad')],
-  ['hearing-aids', async () => page.getByLabel('Hearing aids').selectOption('both')],
-  ['covering-hijab', async () => page.getByLabel('Head covering').selectOption('hijab')],
+  [
+    'hair-afro',
+    async () => {
+      await page.getByRole('tab', { name: 'Hair' }).click();
+      await page.getByRole('radio', { name: 'Coily afro', exact: true }).click();
+    },
+  ],
+  [
+    'build-broad',
+    async () => {
+      await page.getByRole('tab', { name: 'Body' }).click();
+      await page
+        .getByRole('radiogroup', { name: 'Build' })
+        .getByRole('radio', { name: 'Broad' })
+        .click();
+    },
+  ],
+  [
+    'hearing-aids',
+    async () => {
+      await page.getByRole('tab', { name: 'Details' }).click();
+      await page
+        .getByRole('radiogroup', { name: 'Hearing aids' })
+        .getByRole('radio', { name: 'Both' })
+        .click();
+    },
+  ],
+  [
+    'covering-hijab',
+    async () => {
+      await page.getByRole('tab', { name: 'Hair' }).click();
+      await page
+        .getByRole('radiogroup', { name: 'Head covering' })
+        .getByRole('radio', { name: 'Hijab' })
+        .click();
+    },
+  ],
 ];
 for (const [name, act] of steps) {
   await act();
   await settle();
-  await page.locator('#creator').scrollIntoViewIfNeeded();
-  await page.locator('#creator').screenshot({ path: `${out}/${name}-creator.png` });
+  await page.locator('#look-panel').scrollIntoViewIfNeeded();
+  await page.locator('#look-panel').screenshot({ path: `${out}/${name}-creator.png` });
   await page
     .locator('.avatar-renderer')
     .first()

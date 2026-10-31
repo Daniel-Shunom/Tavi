@@ -18,14 +18,17 @@ installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
 const studio = location.pathname === '/studio';
 const avatarLab = location.pathname === '/avatar-lab';
+const dock = location.pathname === '/dock';
 const AvatarLab = React.lazy(() =>
   import('./AvatarLab').then((module) => ({ default: module.AvatarLab })),
 );
 // Landing visitors never download the studio.
 const Studio = React.lazy(() => import('./studio').then((module) => ({ default: module.Studio })));
+// The OBS dock: Studio's live controls in a narrow panel (src/studio/Dock.tsx).
+const Dock = React.lazy(() => import('./studio/Dock').then((module) => ({ default: module.Dock })));
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
 if (overlay) document.documentElement.classList.add('overlay');
-const landing = !overlay && !studio && !avatarLab;
+const landing = !overlay && !studio && !avatarLab && !dock;
 if (landing) {
   document.documentElement.classList.add('landing-mode');
   // Start Tavi's runtime, renderer and artwork now, alongside the page, not after it mounts
@@ -50,6 +53,7 @@ function App() {
     );
   if (overlay) return <OverlayApp />;
   if (studio) return <StudioApp />;
+  if (dock) return <DockApp />;
   return <LandingPage />;
 }
 function OverlayApp() {
@@ -58,6 +62,14 @@ function OverlayApp() {
     <main className="overlay-surface">
       <Avatar state={connection.state} serverNow={connection.serverNow} />
     </main>
+  );
+}
+function DockApp() {
+  const connection = useConnection();
+  return (
+    <React.Suspense fallback={null}>
+      <Dock {...connection} />
+    </React.Suspense>
   );
 }
 function StudioApp() {

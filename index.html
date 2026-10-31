@@ -11,14 +11,14 @@
     />
     <style>
       /* The built page carries the landing pre-rendered; other paths never show it. */
-      html:not(.landing-mode) #root > * {
+      html:not(.landing-mode) #root > .tavi-site {
         display: none;
       }
     </style>
     <script>
       // The landing page is white from the first paint (not the studio's dark canvas until the
       // app script runs), and its hero's TV and table are fetched with the page.
-      if (!['/overlay', '/studio', '/avatar-lab'].includes(location.pathname)) {
+      if (!['/overlay', '/studio', '/avatar-lab', '/dock'].includes(location.pathname)) {
         document.documentElement.classList.add('landing-mode');
         for (const name of ['table', 'tv']) {
           const link = document.createElement('link');

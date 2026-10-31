@@ -57,11 +57,16 @@ try {
   expect(await overlay.locator('body').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
     'rgba(0, 0, 0, 0)',
   );
+  // Studio has four screens (Live, Look, Personality, Setup), reached from its sidebar.
+  const open = (name) =>
+    page.getByRole('navigation', { name: 'Studio' }).getByRole('link', { name }).click();
+  await open('Look');
   await page.getByLabel('Companion name').fill('Mochi');
   await expect
     .poll(async () => (await (await page.request.get(base + '/api/state')).json()).config.name)
     .toBe('Mochi');
-  await page.getByRole('button', { name: 'shy', exact: false }).click();
+  await open('Personality');
+  await page.getByRole('radio', { name: /^Shy/ }).click();
   await page.getByRole('button', { name: 'Say it', exact: true }).click();
   // Typed lines go through the active decision provider; without keys that is labelled rules.
   await expect
@@ -71,11 +76,14 @@ try {
           .kind,
     )
     .toMatch(/^(rules|ai|local)$/);
-  await page.getByRole('button', { name: 'Tuck away', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Bring Tavi back' })).toBeVisible();
-  await page.getByRole('button', { name: 'Bring Tavi back' }).click();
-  await page.getByRole('tab', { name: 'Placement' }).click();
-  await page.getByLabel('Favorite perch').selectOption('chat');
+  await open('Live');
+  const tuck = page.getByRole('switch', { name: 'Tuck her away' });
+  await tuck.click();
+  await expect(tuck).toHaveAttribute('aria-checked', 'true');
+  await tuck.click();
+  await expect(tuck).toHaveAttribute('aria-checked', 'false');
+  await open('Setup');
+  await page.getByRole('radio', { name: 'Chat panel', exact: true }).click();
   await expect
     .poll(async () => {
       const { config } = await (await page.request.get(base + '/api/state')).json();
@@ -100,7 +108,7 @@ try {
       socket.onerror = reject;
     });
   }, config.config);
-  await page.getByRole('tab', { name: 'Character', exact: true }).click();
+  await open('Live');
   await mkdir('test-results', { recursive: true });
   await page.screenshot({ path: 'test-results/studio.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });

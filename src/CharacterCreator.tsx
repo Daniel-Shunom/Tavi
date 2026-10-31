@@ -1,7 +1,8 @@
 // Character creator: pick a starting preset, then change skin tone, undertone, face, build, age,
 // eyes, hair style and colour, features and head covering independently. Every control writes the
 // whole variant to the saved configuration; the renderer rebuilds the character on change.
-// Labels describe features only (docs/character/VARIANTS-RESEARCH.md section 7).
+// Labels describe features only (docs/character/VARIANTS-RESEARCH.md section 7). Studio shows it
+// one part at a time (body, hair, face, details), each a column of tap-to-pick choices.
 import { useEffect, useRef, useState } from 'react';
 import {
   ages,
@@ -151,7 +152,8 @@ function Swatches<T extends string>({
   );
 }
 
-function Select<T extends string>({
+/** A short list of choices, picked with one tap (a radio group named by its label). */
+function Choice<T extends string>({
   label,
   options,
   labels,
@@ -164,36 +166,68 @@ function Select<T extends string>({
   value: T;
   onPick: (value: T) => void;
 }) {
+  const id = `creator-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <label className="field">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => {
-          const next = options.find((option) => option === event.target.value);
-          if (next) onPick(next);
-        }}
-      >
+    <div className="creator-group">
+      <span className="creator-label" id={id}>
+        {label}
+      </span>
+      <div className="creator-chips" role="radiogroup" aria-labelledby={id}>
         {options.map((option) => (
-          <option key={option} value={option}>
+          <button
+            key={option}
+            type="button"
+            role="radio"
+            aria-checked={option === value}
+            className="creator-chip"
+            onClick={() => {
+              onPick(option);
+            }}
+          >
             {labels[option]}
-          </option>
+          </button>
         ))}
-      </select>
-    </label>
+      </div>
+    </div>
   );
 }
+
+function pickOne<T>(options: readonly T[]): T {
+  const option = options[Math.floor(Math.random() * options.length)];
+  if (option === undefined) throw new Error('Nothing to pick from');
+  return option;
+}
+
+/** A fresh, random look: skin, face, build, eyes, hair and colour (features left as they are). */
+export function randomVariant(variant: Variant): Variant {
+  return withChanges(variant, {
+    skin: {
+      tone: pickOne(skinTones.filter((tone) => tone !== 'original')),
+      undertone: pickOne(undertones),
+    },
+    face: pickOne(faceShapes),
+    build: pickOne(builds),
+    eyes: pickOne(eyeColors),
+    hair: { style: pickOne(hairStyles), color: pickOne(hairColors).hex },
+  });
+}
+
+export { isOriginal, originalVariant };
+
+export type CreatorPart = 'body' | 'hair' | 'face' | 'details';
 
 export function CharacterCreator({
   characterId,
   variant,
   disabled,
+  part,
   onChange,
   onUseCharacter,
 }: {
   characterId: string;
   variant: Variant;
   disabled: boolean;
+  part: CreatorPart;
   onChange: (variant: Variant) => void;
   onUseCharacter: (id: string) => void;
 }) {
@@ -227,43 +261,46 @@ export function CharacterCreator({
   const hairColor = variant.hair.color;
   return (
     <fieldset className="creator" disabled={disabled}>
-      <div className="creator-group">
-        <span className="creator-label" id="creator-presets">
-          Start from
-        </span>
-        <div className="creator-presets" role="radiogroup" aria-labelledby="creator-presets">
-          {variantPresets.map((preset) => (
-            <button
-              key={preset.preset}
-              type="button"
-              role="radio"
-              aria-checked={preset.preset === variant.preset}
-              className="creator-preset"
-              onClick={() => {
-                onChange(preset);
-              }}
-            >
-              <span className="creator-preset-dots" aria-hidden="true">
-                <i style={{ background: toneColor(preset.skin.tone, preset.skin.undertone) }} />
-                <i
-                  style={{
-                    background:
-                      preset.covering.kind !== 'none'
-                        ? preset.covering.color
-                        : (preset.hair.color ?? '#d80b4c'),
+      {part === 'body' ? (
+        <>
+          <div className="creator-group">
+            <span className="creator-label" id="creator-presets">
+              Start from a look
+            </span>
+            <div className="creator-presets" role="radiogroup" aria-labelledby="creator-presets">
+              {variantPresets.map((preset) => (
+                <button
+                  key={preset.preset}
+                  type="button"
+                  role="radio"
+                  aria-checked={preset.preset === variant.preset}
+                  className="creator-preset"
+                  title={describeVariant(preset, {
+                    hair: hairStyleLabels[preset.hair.style],
+                    covering: coveringLabels[preset.covering.kind],
+                  })}
+                  onClick={() => {
+                    onChange(preset);
                   }}
-                />
-              </span>
-              {describeVariant(preset, {
-                hair: hairStyleLabels[preset.hair.style],
-                covering: coveringLabels[preset.covering.kind],
-              })}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="creator-grid">
-        <div className="control-column">
+                >
+                  <span className="creator-preset-dots" aria-hidden="true">
+                    <i style={{ background: toneColor(preset.skin.tone, preset.skin.undertone) }} />
+                    <i
+                      style={{
+                        background:
+                          preset.covering.kind !== 'none'
+                            ? preset.covering.color
+                            : (preset.hair.color ?? '#d80b4c'),
+                      }}
+                    />
+                  </span>
+                  {preset.covering.kind !== 'none'
+                    ? coveringLabels[preset.covering.kind]
+                    : hairStyleLabels[preset.hair.style]}
+                </button>
+              ))}
+            </div>
+          </div>
           <Swatches
             label="Skin tone"
             options={skinTones.map((tone) => ({
@@ -276,7 +313,7 @@ export function CharacterCreator({
               change({ skin: { tone } });
             }}
           />
-          <Select
+          <Choice
             label="Undertone"
             options={undertones}
             labels={{ warm: 'Warm', neutral: 'Neutral', cool: 'Cool', olive: 'Olive' }}
@@ -285,16 +322,7 @@ export function CharacterCreator({
               change({ skin: { undertone } });
             }}
           />
-          <Select
-            label="Face shape"
-            options={faceShapes}
-            labels={faceLabels}
-            value={variant.face}
-            onPick={(face) => {
-              change({ face });
-            }}
-          />
-          <Select
+          <Choice
             label="Build"
             options={builds}
             labels={buildLabels}
@@ -303,7 +331,7 @@ export function CharacterCreator({
               change({ build });
             }}
           />
-          <Select
+          <Choice
             label="Age"
             options={ages}
             labels={ageLabels}
@@ -312,23 +340,13 @@ export function CharacterCreator({
               change({ age });
             }}
           />
-          <Swatches
-            label="Eyes"
-            options={eyeColors.map((id) => ({
-              id,
-              label: eyePalettes[id].label,
-              color: eyePalettes[id].light,
-            }))}
-            value={variant.eyes}
-            onPick={(eyes) => {
-              change({ eyes });
-            }}
-          />
-        </div>
-        <div className="control-column">
+        </>
+      ) : null}
+      {part === 'hair' ? (
+        <>
           <div className="creator-group">
             <span className="creator-label" id="creator-hair">
-              Hair
+              Style
             </span>
             <div className="creator-chips" role="radiogroup" aria-labelledby="creator-hair">
               {hairStyles.map((style) => (
@@ -348,7 +366,7 @@ export function CharacterCreator({
             </div>
           </div>
           <Swatches
-            label="Natural hair colours"
+            label="Natural colours"
             options={hairColors
               .filter((c) => c.group === 'natural')
               .map((c) => ({ id: c.hex, label: c.label, color: c.hex }))}
@@ -368,13 +386,13 @@ export function CharacterCreator({
             }}
           />
           <ColorInput
-            label="Custom hair colour"
+            label="Any colour"
             value={hairColor ?? '#2a211e'}
             onCommit={(color) => {
               change({ hair: { color } });
             }}
           />
-          <Select
+          <Choice
             label="Head covering"
             options={headCoverings}
             labels={coveringLabels}
@@ -392,37 +410,53 @@ export function CharacterCreator({
               }}
             />
           ) : null}
-        </div>
-        <div className="control-column">
-          <span className="creator-label">Features</span>
-          {(
-            [
-              ['freckles', 'Freckles'],
-              ['blush', 'Blush'],
-              ['glasses', 'Glasses (built in)'],
-            ] as const
-          ).map(([key, label]) => (
-            <label className="field checkbox-field" key={key}>
-              <input
-                type="checkbox"
-                checked={variant.features[key]}
-                onChange={(event) => {
-                  change({ features: { [key]: event.target.checked } });
-                }}
-              />
-              {label}
-            </label>
-          ))}
-          <Select
-            label="Vitiligo"
-            options={vitiligoAreas}
-            labels={vitiligoLabels}
-            value={variant.features.vitiligo}
-            onPick={(vitiligo) => {
-              change({ features: { vitiligo } });
+        </>
+      ) : null}
+      {part === 'face' ? (
+        <>
+          <Choice
+            label="Face shape"
+            options={faceShapes}
+            labels={faceLabels}
+            value={variant.face}
+            onPick={(face) => {
+              change({ face });
             }}
           />
-          <Select
+          <Swatches
+            label="Eyes"
+            options={eyeColors.map((id) => ({
+              id,
+              label: eyePalettes[id].label,
+              color: eyePalettes[id].light,
+            }))}
+            value={variant.eyes}
+            onPick={(eyes) => {
+              change({ eyes });
+            }}
+          />
+          <div className="creator-group">
+            <span className="creator-label">Features</span>
+            {(
+              [
+                ['freckles', 'Freckles'],
+                ['blush', 'Blush'],
+                ['glasses', 'Glasses'],
+              ] as const
+            ).map(([key, label]) => (
+              <label className="field checkbox-field" key={key}>
+                <input
+                  type="checkbox"
+                  checked={variant.features[key]}
+                  onChange={(event) => {
+                    change({ features: { [key]: event.target.checked } });
+                  }}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <Choice
             label="Facial hair"
             options={facialHair}
             labels={facialHairLabels}
@@ -431,7 +465,20 @@ export function CharacterCreator({
               change({ features: { facialHair: value } });
             }}
           />
-          <Select
+        </>
+      ) : null}
+      {part === 'details' ? (
+        <>
+          <Choice
+            label="Vitiligo"
+            options={vitiligoAreas}
+            labels={vitiligoLabels}
+            value={variant.features.vitiligo}
+            onPick={(vitiligo) => {
+              change({ features: { vitiligo } });
+            }}
+          />
+          <Choice
             label="Hearing aids"
             options={sides}
             labels={sideLabels}
@@ -449,7 +496,7 @@ export function CharacterCreator({
               }}
             />
           ) : null}
-          <Select
+          <Choice
             label="Prosthetic forearm"
             options={['none', 'left', 'right'] as const}
             labels={{ none: 'None', left: sideLabels.left, right: sideLabels.right }}
@@ -467,24 +514,12 @@ export function CharacterCreator({
               }}
             />
           ) : null}
-        </div>
-      </div>
-      <div className="creator-actions">
-        <button
-          type="button"
-          className="secondary-button"
-          disabled={isOriginal(variant)}
-          onClick={() => {
-            onChange(originalVariant);
-          }}
-        >
-          Back to the original look
-        </button>
-        <p className="helper-note">
-          Every option works with every other. Hairstyles and features are drawn shape sets that
-          follow the rig; they have not yet had community review.
-        </p>
-      </div>
+          <p className="helper-note">
+            Every option works with every other. Hairstyles and features are drawn shape sets that
+            follow the rig; they have not yet had community review.
+          </p>
+        </>
+      ) : null}
     </fieldset>
   );
 }

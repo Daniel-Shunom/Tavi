@@ -9,6 +9,11 @@
       "source": "/studio",
       "destination": "https://github.com/Daniel-Shunom/Tavi/blob/main/docs/RUNNING.md",
       "permanent": false
+    },
+    {
+      "source": "/dock",
+      "destination": "https://github.com/Daniel-Shunom/Tavi/blob/main/docs/RUNNING.md",
+      "permanent": false
     }
   ],
   "headers": [

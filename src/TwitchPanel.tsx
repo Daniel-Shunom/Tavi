@@ -1,11 +1,23 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, ExternalLink, MessageCircle, Radio, Unplug } from 'lucide-react';
 import { disconnectedTwitch, twitchStatusSchema, type TwitchStatus } from '../shared/twitch';
-export function TwitchPanel({ serviceConnected }: { serviceConnected: boolean }) {
+export function TwitchPanel({
+  serviceConnected,
+  onPhase,
+}: {
+  serviceConnected: boolean;
+  /** Told the connection phase as it changes (Studio's setup checklist ticks off chat). */
+  onPhase?: (phase: TwitchStatus['phase']) => void;
+}) {
   const [status, setStatus] = useState<TwitchStatus>(disconnectedTwitch);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const phaseListener = useRef(onPhase);
+  phaseListener.current = onPhase;
+  useEffect(() => {
+    phaseListener.current?.(status.phase);
+  }, [status.phase]);
   const read = useCallback(async () => {
     const response = await fetch('/api/twitch', { cache: 'no-store' });
     if (!response.ok) throw new Error('Could not read Twitch status.');
