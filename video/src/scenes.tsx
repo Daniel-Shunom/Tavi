@@ -231,6 +231,38 @@ export function Reveal({ offset }: { offset: number }) {
 
 // Feature ---------------------------------------------------------------------------------------
 
+/** A facecam-style bubble of her reacting to what is on screen, bottom right. */
+function Cameo({ media, at }: { media: TaviMedia; at: number }) {
+  const local = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const pop = spring({
+    frame: local - at,
+    fps,
+    config: { damping: 12, stiffness: 240, mass: 0.8 },
+  });
+  const size = 420;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: 96,
+        bottom: 72,
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        background: `radial-gradient(circle at 50% 40%, ${colors.raised}, ${colors.ink})`,
+        border: `3px solid ${colors.lavender}`,
+        boxShadow: `0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(199,179,234,0.35)`,
+        transform: `scale(${(local < at ? 0 : pop).toFixed(4)})`,
+        transformOrigin: '50% 100%',
+      }}
+    >
+      <TaviClip {...media} box={{ width: size, height: size }} />
+    </div>
+  );
+}
+
 export function Feature({
   beat,
   offset,
@@ -299,6 +331,7 @@ export function Feature({
             )}
           </AbsoluteFill>
         </Glitch>
+        {beat.cameo ? <Cameo media={beat.cameo} at={10} /> : null}
         {/* Scrim so the headline reads over anything */}
         <AbsoluteFill
           style={{

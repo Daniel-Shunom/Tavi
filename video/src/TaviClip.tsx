@@ -12,6 +12,7 @@ export function TaviClip({
   anchor = [0.5, 0.5],
   speed = 1,
   hold = true,
+  box,
   style,
 }: {
   shot: TaviShot;
@@ -26,10 +27,15 @@ export function TaviClip({
   speed?: number;
   /** Freeze on the last frame rather than wrapping. */
   hold?: boolean;
+  /** Fit inside this box instead of the whole frame (a cameo bubble, a card). */
+  box?: { width: number; height: number };
   style?: React.CSSProperties;
 }) {
   const frame = useCurrentFrame();
-  const { fps, width, height } = useVideoConfig();
+  const config = useVideoConfig();
+  const { fps } = config;
+  const width = box?.width ?? config.width;
+  const height = box?.height ?? config.height;
   const clip = footage(shot);
   const elapsed = (frame / fps) * speed + from;
   let index = Math.floor(elapsed * clip.fps);

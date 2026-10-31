@@ -46,6 +46,8 @@ export type Beat =
       eyebrow: string;
       headline: string;
       sub?: string;
+      /** A facecam-style bubble of her reacting, for beats whose media is a screen. */
+      cameo?: TaviMedia;
       media:
         | TaviMedia
         | {
@@ -123,6 +125,13 @@ export const copy = {
 };
 
 /** Portrait face framing shared by the chat beat and the montage (face centre ≈ 0.5, 0.58). */
+/** Face-only framing for a cameo bubble: the capture's face (0.5, 0.58) fills the box. */
+const cameoFrame = {
+  zoom: 2.6,
+  focus: [0.5, 0.57] as [number, number],
+  anchor: [0.5, 0.5] as [number, number],
+};
+
 const faceFrame = { zoom: 1.5, focus: [0.5, 0.63] as [number, number] };
 
 export const timeline: Beat[] = [
@@ -192,7 +201,7 @@ export const timeline: Beat[] = [
     media: {
       type: 'tavi',
       shot: 'perch',
-      from: 1.2,
+      from: 2.2,
       zoom: 2.1,
       focus: [0.2, 0.6],
       anchor: [0.68, 0.55],
@@ -204,6 +213,7 @@ export const timeline: Beat[] = [
     eyebrow: 'Tune her in Studio',
     headline: 'Your rules. Her moves.',
     sub: 'Look, personality, hotkeys, scene.',
+    cameo: { type: 'tavi', shot: 'moods-a', from: 0.4 + 2.3 * 1 + 0.2, ...cameoFrame },
     media: {
       type: 'screen',
       src: 'footage/screens/studio',
@@ -218,6 +228,7 @@ export const timeline: Beat[] = [
     at: 56,
     eyebrow: 'Meet her on the site',
     headline: 'Scroll. She follows.',
+    cameo: { type: 'tavi', shot: 'moods-c', from: 0.4 + 2.3 * 2 + 0.2, ...cameoFrame },
     media: {
       type: 'screen',
       src: 'footage/screens/landing',
