@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createCharacterRenderer, type CharacterRenderer } from './renderer/adapter';
 import { getCharacter } from './renderer/characters/registry';
 import {
@@ -30,7 +30,9 @@ export function RigLab() {
   const [ready, setReady] = useState(false);
   const canvases = useRef<(HTMLCanvasElement | null)[]>([]);
   const state = useRef({ scene, playing, time, strength, small, controls });
-  state.current = { scene, playing, time, strength, small, controls };
+  useLayoutEffect(() => {
+    state.current = { scene, playing, time, strength, small, controls };
+  });
   const clock = useRef(0);
   useEffect(() => {
     let cancelled = false,

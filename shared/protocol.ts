@@ -23,7 +23,7 @@ import { defaultSupportSettings, supportPreviewSchema, supportSettingsSchema } f
 
 export const CONFIG_VERSION = 2;
 /** Used when a saved character id is unknown. Characters themselves live in manifests. */
-export const fallbackCharacterId = 'tavi-foundation';
+export const fallbackCharacterId = 'mascot-v2';
 const slug = z.string().regex(/^[a-z0-9-]{1,24}$/);
 export const configObjectSchema = z
   .object({

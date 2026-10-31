@@ -71,7 +71,7 @@ export function BodyStateDock({
               state.retracted ||
               (!possible && entry.state !== 'perch') ||
               (pressed && entry.state !== 'stand') ||
-              (alreadyThere && current === entry.state)
+              (entry.state === 'peek' && alreadyThere)
             }
             title={
               possible

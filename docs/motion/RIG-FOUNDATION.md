@@ -170,7 +170,7 @@ FK matching, reachable lengths, loop boundaries and support release.
 - The real Studio flow enters nap, reconnects a transparent overlay into the held pose,
   wakes without dropping support immediately, then triggers a normal gesture successfully.
 - A pre-existing Studio condition incorrectly disabled changing posture at the same spot.
-  The dock now suppresses redundant same-state commands while allowing Stand ? Nap there.
+  The dock now suppresses redundant same-state commands while allowing Stand → Nap there.
 - The baseline model and artwork binary are unchanged. Native OBS/Tauri capture and a full
   joint-corrective atlas remain delivery gates.
 
