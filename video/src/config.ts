@@ -20,6 +20,13 @@ export const files = {
   },
 };
 
+/**
+ * Seconds into the track to start from, so its drop lands on the reveal (9.5 s below).
+ * For "The Only Thing They Fear Is You": find the second the main riff hits in your file and set
+ * this to (that second - 9.5). 0 plays the track from the top.
+ */
+export const musicStart = 0;
+
 /** When no music is present, cuts fall on this grid instead of detected hits. */
 export const fallbackBpm = 132;
 
@@ -139,7 +146,7 @@ export const timeline: Beat[] = [
     sub: 'Look, personality, hotkeys, scene.',
     media: {
       type: 'screen',
-      src: 'footage/screens/studio.webm',
+      src: 'footage/screens/studio.mp4',
       from: 3,
       zoom: [1.05, 1.18],
       focus: [0.5, 0.45],
@@ -152,7 +159,7 @@ export const timeline: Beat[] = [
     headline: 'Scroll. She follows.',
     media: {
       type: 'screen',
-      src: 'footage/screens/landing.webm',
+      src: 'footage/screens/landing.mp4',
       from: 5,
       zoom: [1, 1.12],
       focus: [0.5, 0.5],

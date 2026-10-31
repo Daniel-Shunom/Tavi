@@ -1,9 +1,10 @@
 // Records real-time screen footage of the landing page and Studio for the trailer:
-//   public/footage/screens/landing.webm   a slow scroll down the site (Tavi follows)
-//   public/footage/screens/studio.webm    the sign-in screen, then every Studio view, dark theme
+//   public/footage/screens/landing.mp4    a slow scroll down the site (Tavi follows)
+//   public/footage/screens/studio.mp4     the sign-in screen, then every Studio view, dark theme
 // Needs the built service running (TAVI_PORT=4325 npx tsx server/index.ts from the repo root).
 // Usage: node capture/screens.mjs [landing|studio]   (from video/; TAVI_SITE_URL overrides the service)
 import { chromium } from '@playwright/test';
+import { spawnSync } from 'node:child_process';
 import { mkdir, readdir, rename, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,9 +39,34 @@ async function record(name, run) {
     await context.close();
   }
   const [file] = await readdir(dir);
-  await rename(join(dir, file), join(out, `${name}.webm`));
+  const webm = join(out, `${name}.webm`);
+  await rename(join(dir, file), webm);
   await rm(dir, { recursive: true, force: true });
-  console.log(`${name}.webm: ${String(Math.round((Date.now() - started) / 1000))}s`);
+  // Playwright's variable-rate WebM has no index Remotion can seek; re-encode to constant-rate MP4.
+  const encode = spawnSync(
+    'npx',
+    [
+      'remotion',
+      'ffmpeg',
+      '-y',
+      '-i',
+      webm,
+      '-r',
+      '30',
+      '-c:v',
+      'libx264',
+      '-crf',
+      '18',
+      '-pix_fmt',
+      'yuv420p',
+      '-an',
+      join(out, `${name}.mp4`),
+    ],
+    { cwd: join(here, '..'), shell: true, stdio: 'ignore' },
+  );
+  if (encode.status !== 0) throw new Error(`ffmpeg failed for ${name}.webm`);
+  await rm(webm, { force: true });
+  console.log(`${name}.mp4: ${String(Math.round((Date.now() - started) / 1000))}s`);
 }
 
 await record('landing', async (page) => {

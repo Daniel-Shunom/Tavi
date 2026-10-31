@@ -3,7 +3,7 @@
 import { useAudioData, visualizeAudio, type AudioData } from '@remotion/media-utils';
 import { useEffect, useMemo, useState } from 'react';
 import { continueRender, delayRender, staticFile, useVideoConfig } from 'remotion';
-import { fallbackBpm } from './config';
+import { fallbackBpm, musicStart } from './config';
 
 export interface Pulse {
   /** 0..1 low-end energy for each frame of the composition. */
@@ -40,8 +40,14 @@ export function useExists(path: string | null): boolean | null {
 
 function analyse(audio: AudioData, fps: number, frames: number): Pulse {
   const raw: number[] = [];
+  const skip = Math.round(musicStart * fps);
   for (let frame = 0; frame < frames; frame++) {
-    const bins = visualizeAudio({ fps, frame, audioData: audio, numberOfSamples: 64 });
+    const bins = visualizeAudio({
+      fps,
+      frame: frame + skip,
+      audioData: audio,
+      numberOfSamples: 64,
+    });
     // Kick and bass live in the lowest bins; ignore the DC bin.
     raw.push((bins[1] + bins[2] + bins[3]) / 3);
   }

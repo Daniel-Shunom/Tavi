@@ -3,7 +3,7 @@
 import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useVideoConfig } from 'remotion';
 import type { ReactNode } from 'react';
 import { useExists, useGridPulse, useLivePulse, type Pulse } from './audio';
-import { files, timeline, totalSeconds } from './config';
+import { files, musicStart, timeline, totalSeconds } from './config';
 import { Feature, Outro, PulseContext, Reveal, Tease } from './scenes';
 import { colors } from './theme';
 
@@ -52,6 +52,7 @@ function Score({
       {music ? (
         <Audio
           src={staticFile(music)}
+          startFrom={Math.round(musicStart * fps)}
           volume={(frame) => {
             // Full for the tease and reveal; under the voiceover (if any) through the features;
             // back up for the outro, then out.
