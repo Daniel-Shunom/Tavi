@@ -34,13 +34,36 @@ const closeups: { zoom: number; focus: [number, number]; from: number }[] = [
   { zoom: 5.5, focus: [0.5, 0.6], from: 11.0 }, // laugh
 ];
 
+/**
+ * Cut points for the tease. The track's own hits when its intro has them; otherwise (a quiet,
+ * building intro like the one this trailer is scored to) an accelerating grid: cuts start slow
+ * and tighten toward the reveal, which is the oldest trick in the trailer book for a reason.
+ */
+function teaseCuts(pulse: Pulse, offset: number, duration: number, fps: number): number[] {
+  const own = pulse.hits.filter((h) => h >= offset && h < offset + duration).map((h) => h - offset);
+  if (own.length >= 8) return own;
+  const cuts: number[] = [];
+  let t = fps * 1.6;
+  let gap = fps * 1.1;
+  while (t < duration - fps * 0.25) {
+    cuts.push(Math.round(t));
+    t += gap;
+    gap = Math.max(fps * 0.22, gap * 0.86);
+  }
+  return cuts;
+}
+
 export function Tease({ offset }: { offset: number }) {
-  const { frame, hit, age, punch: hitPunch, pulse } = usePulseAt(offset);
+  const { frame, pulse } = usePulseAt(offset);
   const { fps, durationInFrames } = useVideoConfig();
   const local = useCurrentFrame();
+  const cuts = teaseCuts(pulse, offset, durationInFrames, fps);
+  const hit = cuts.filter((c) => c <= local).length - 1;
+  const age = hit >= 0 ? local - cuts[hit] : 999;
+  const hitPunch = hit >= 0 ? Math.exp(-age / 6) : 0;
   // Early hits are pure silhouette; light creeps in as the tease goes on.
   const progress = local / durationInFrames;
-  const brightness = interpolate(progress, [0, 0.35, 0.8, 1], [0, 0.08, 0.55, 0.8]);
+  const brightness = interpolate(progress, [0, 0.35, 0.8, 1], [0, 0.08, 0.45, 0.62]);
   const breathing = 0.5 + 0.5 * Math.sin(local / 11);
   const cue = hit < 0 ? -1 : hit % 6; // 0..5 pattern: clip, clip, text, clip, text, clip
   const textAt = cue === 2 || cue === 4;
@@ -85,11 +108,9 @@ export function Tease({ offset }: { offset: number }) {
           }}
         />
       </AbsoluteFill>
-      {pulse.hits
-        .filter((h) => h >= offset && h < offset + durationInFrames)
-        .map((h) => (
-          <Flash key={h} at={h - offset} color={colors.lavender} peak={0.35} decay={3} />
-        ))}
+      {cuts.map((c) => (
+        <Flash key={c} at={c} color={colors.lavender} peak={0.35} decay={3} />
+      ))}
       <Scanlines opacity={0.22} />
       <Grain amount={0.18} />
       <Vignette strength={0.85} />
