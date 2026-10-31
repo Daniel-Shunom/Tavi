@@ -64,8 +64,9 @@ export function createRefinedPostprocessor(board: Artboard, foundation = false) 
   return {
     diagnostics: () => diagnostics,
     update(dt = 0, placement?: Placement, travel?: number) {
+      const rigidLegs = foundation && (mode.x < 1.5 || (mode.x > 3.5 && mode.x < 4.5));
       diagnostics = {
-        owner: foundation && mode.x < 1.5 ? 'contact-solver' : 'authored',
+        owner: rigidLegs ? 'contact-solver' : 'authored',
         contactError: 0,
         lengthError: 0,
         supportResidual: 0,
@@ -166,7 +167,7 @@ export function createRefinedPostprocessor(board: Artboard, foundation = false) 
       } else if (mode.x > 1.5 && mode.x < 2.5) knees = f.map((p) => [p[0], p[1] - SHIN]);
       else knees ??= h.map((p, i) => liftedKnee(p, requiredItem(f, i)));
       const parent = matrix(pelvis);
-      if (foundation && mode.x < 1.5) {
+      if (rigidLegs) {
         // Authored gaits, seated poses and acting keep their own weighted projection.
         knees = h.map((hip, i) => {
           const root = local(parent, hip),
@@ -201,7 +202,7 @@ export function createRefinedPostprocessor(board: Artboard, foundation = false) 
           target.scaleY = 1;
         }
       board.advance(0);
-      if (foundation && mode.x < 1.5) {
+      if (rigidLegs) {
         const inverse = matrix(pelvis);
         for (let i = 0; i < 2; i++) {
           const upperJoint = requiredItem(upper, i),

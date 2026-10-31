@@ -71,6 +71,8 @@ try {
       }
       if (diagnostics.sleepContacts.propWeight > 0.999)
         expect(diagnostics.sleepContacts.groundError).toBeLessThan(0.02);
+      if (scene === 'Sleep' && diagnostics.sleepContacts.weight > 0.999)
+        expect(diagnostics.owner).toBe('contact-solver');
       if (diagnostics.owner === 'contact-solver') {
         expect(diagnostics.contactError).toBeLessThan(0.02); // WASM stores float32 transforms.
         expect(diagnostics.lengthError).toBeLessThan(0.02);

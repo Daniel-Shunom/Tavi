@@ -206,3 +206,38 @@ build, ESLint, formatting and 17 skills / 200 pinned files passed. The productio
 verified 19 new performance poses, planted-wrist residuals, Studio nap, overlay reconnect,
 wake release and post-wake gesture. Next: joint/clothing corrective artwork, final motion
 polish, and native OBS/Tauri review. Resume from this document and RIG-LAB.md in a new thread.
+
+## Final pass: sleep leg projection and native smoke review
+
+The foundation's held sleep mode now uses the same exact-length, fixed-bend two-bone
+projection as its standing solver. The previous sleep fallback shortened the projected
+segments independently and produced sharp changes in width around the knee. Authored
+walking and seated geometry still own their poses; the baseline policy is untouched.
+The browser regression explicitly requires contact-solver ownership for held sleep and
+checks actual Rive endpoint and segment-length residuals below 0.02 artboard units.
+
+Review progress:
+
+- Full browser atlas before this change: 89 sampled poses passed.
+- Sleep projection candidate: 29 sampled sleep/settle/cycle/interruption poses passed;
+  focused mechanics suite: 82 tests passed. Production build passed.
+- OBS 32.1.2: created a separate `Tavi Rig QA` scene collection with a browser source at
+  `http://127.0.0.1:4323/overlay`. Confirmed live mascot-to-foundation replacement and
+  rendered nap/standing states in the actual OBS canvas. The window subsequently closed;
+  colored-background alpha, refresh and final capture review remain pending.
+- Desktop packaging exposed an existing credits collector bug: nested asset credit folders
+  were read as files (EISDIR). The collector now includes nested credits; its Node regression
+  test passed. The complete Tauri debug build passed after the fix. This is build evidence,
+  not a completed native rendering gate: the debug shell hardcodes port 5173, which is
+  occupied by other work, so it was not launched against that unrelated server. No installed
+  app or shared service on port 4318 has been replaced.
+- Full suite after the sleep fix: 67 files / 592 tests passed. The subsequent saved-settings
+  round-trip regression passed with all 7 configuration-migration tests: Refined to Foundation
+  and back preserves appearance, name, personality, energy, placement and remaining config.
+- Live browser recheck: 24 sleep/cycle/interruption poses plus Studio nap, overlay reconnect,
+  wake support release and post-wake gesture passed. Pinned skills and changed-source lint passed.
+
+Remaining promotion gates: review hand/elbow and garment pressure silhouettes, finish
+motion interruption polish, complete OBS alpha/refresh checks and real Tauri rendering.
+Foundation remains explicitly selectable until those checks pass. Existing saved character
+choices need an explicit swap; a new default must not silently overwrite those choices.
