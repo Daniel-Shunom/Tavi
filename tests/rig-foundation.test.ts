@@ -111,10 +111,11 @@ describe('rig foundation mechanics', () => {
     const h = 0.00001;
     expect((softReach(130 + h, 138) - softReach(130, 138)) / h).toBeCloseTo(1, 4);
   });
-  it('keeps the baseline asset, binding and authored ownership; changes only postprocessing', () => {
+  it('keeps baseline bindings and authored ownership with a pressure-only art variant', () => {
     const foundation = getCharacter('tavi-foundation');
     expect(foundation.id).toBe('tavi-foundation');
-    expect(foundation.asset).toBe(getCharacter('tavi-refined').asset);
+    expect(foundation.asset).toBe('tavi-foundation.riv');
+    expect(getCharacter('tavi-refined').asset).toBe('tavi-refined.riv');
     expect(foundationMotion.states?.keys.lie).toEqual(refinedMotion.states?.keys.lie);
     expect(foundationMotion.states?.napStyle).toBe('supported');
     expect(foundationMotion.createPostprocessor).not.toBe(refinedMotion.createPostprocessor);

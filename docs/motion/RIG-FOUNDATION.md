@@ -269,3 +269,36 @@ ownership, Studio nap, overlay reconnect, wake release and a post-wake gesture w
 page errors. Frame-rate checks cover 30/60/120 fps, stale-clock rejection and velocity
 matching at both handoff boundaries. Native delivery checks and authored pressure palms
 remain open; this checkpoint does not promote the candidate to the default.
+
+## Pressure palm checkpoint and next-session handoff
+
+Branch `polish/tavi-pressure-palms`, based on merged main `0e79bdf`.
+Implemented a foundation-only runtime asset with a flat pressure pad and thumb inside the
+existing left-hand Solo. Rest hides it and restores the original variant; the binder fades
+it only during prop support. Wrist inset follows the transformed cap radius and the palm
+edge follows the floor orientation. The original refined binary and expression bindings
+are preserved. Source generator: `tools/tavi-rive-lab/pressure_palms.py`; profile and provenance:
+`src/renderer/characters/tavi-foundation/pressure-palm.json` and README.
+
+Completed: native Rive verify/inspect/export and component screenshot; 87 focused rig tests,
+including 49 awake expression bindings; 19 actual browser poses plus the 18-image contact
+atlas; actual pressure on/off render comparison (66 meaningful changed pixels). Full normal
+checks are run by the push hook. These results do not complete native delivery validation.
+
+Native QA build setup (generated config in `test-results/rig-foundation/native-qa.json`):
+identifier `app.tavi.rigqa`, product name `Tavi Rig QA`. Build from `desktop` with
+`CARGO_PROFILE_DEV_DEBUG_ASSERTIONS=false` and
+`npm run build -- --debug --no-bundle --config ../test-results/rig-foundation/native-qa.json`.
+This compiles the production startup path without the debug shell's fixed 5173 origin.
+The first QA build succeeded; a refresh with the final hand variant was started. Finish or
+check that command before launching. Launch with `TAVI_PORT=4324` and WebView2 remote debugging
+on 9334; check the real WebView, bundled service and served palm asset hash. The app identity
+isolates saved data. No installed Tavi app was replaced.
+
+OBS is open on the separate `Tavi Rig QA` scene collection. Its Browser points to
+`http://127.0.0.1:4323/overlay`, and that isolated service now selects `tavi-foundation`.
+The user confirmed they had closed OBS during earlier attempts. The capture scene also has
+a user-added Video Capture Device: preserve it. Colored-background alpha and source-refresh
+checks remain unfinished. Do not claim OBS completion or promote the default until those
+and the real Tauri runtime check pass. The default remains mascot-v2; saved interaction state
+and explicit character selection remain intact. The permanent lab remains `/rig-lab`.
