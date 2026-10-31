@@ -207,7 +207,7 @@ export function Feature({
   beat: Extract<Beat, { kind: 'feature' }>;
   offset: number;
 }) {
-  const { frame, punch: hitPunch, age } = usePulseAt(offset);
+  const { frame, punch: hitPunch } = usePulseAt(offset);
   const local = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const entry = spring({ frame: local, fps, config: { damping: 16, stiffness: 180 } });
@@ -239,7 +239,7 @@ export function Feature({
   return (
     <Backdrop glow={0.6 + 0.3 * hitPunch}>
       <AbsoluteFill style={{ ...shake(frame, 6 * hitPunch) }}>
-        <Glitch amount={local <= 1 ? 1 : age === 0 ? 0.3 : 0}>
+        <Glitch amount={local <= 1 ? 1 : 0}>
           <AbsoluteFill
             style={{ transform: `scale(${(settle * outro * (1 + 0.03 * hitPunch)).toFixed(4)})` }}
           >
