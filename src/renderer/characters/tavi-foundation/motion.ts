@@ -43,6 +43,17 @@ export const foundationMotion: CharacterMotionRig = {
     }
     const bindingState = state && (napWeight > 0 || prop > 0) ? { ...state, id: 'nap' } : state;
     const result = bindRefined({ ...frame, pose }, bindingState, true);
+    if (prop > 0) {
+      // The seated clip owns the base arm. Relax its free hand beside the hip
+      // as the other hand takes weight; leave the planted chain to contact IK.
+      for (const [id, angle] of [
+        ['arm-r', 0.1],
+        ['arm-r-fore', -0.85],
+      ] as const) {
+        const node = result.nodes[id] ?? {};
+        result.nodes[id] = { ...node, rotation: (node.rotation ?? 0) + angle * prop };
+      }
+    }
     const controls =
       weight > 0 || prop > 0
         ? {

@@ -1,3 +1,4 @@
+import { handoffKey, keyVelocity } from '../src/renderer/motion/states/handoff';
 import { describe, expect, it } from 'vitest';
 import { foundationMotion } from '../src/renderer/characters/tavi-foundation/motion';
 import { refinedMotion } from '../src/renderer/characters/tavi-refined/motion';
@@ -88,6 +89,51 @@ describe('supported sleep performances', () => {
     player.sync(cue('stand'), 0, playerFrame(2));
     const after = player.evaluate(playerFrame(2));
     expect(after.key).toEqual(before.key);
+  });
+  it.each([30, 60, 120])('carries rendered lowering velocity into wake at %i fps', (fps) => {
+    const player = new BodyStatePlayer(context().rig, 1);
+    player.sync(null, 0, playerFrame(0));
+    player.sync(cue('nap'), 0, playerFrame(0));
+    let previous = player.evaluate(playerFrame(0)).key;
+    let current = previous;
+    for (let i = 1; i <= Math.round(1.2 * fps); i++) {
+      previous = current;
+      current = player.evaluate(playerFrame(i / fps)).key;
+    }
+    const velocity = ((current.pose.bob ?? 0) - (previous.pose.bob ?? 0)) * fps;
+    expect(Math.abs(velocity)).toBeGreaterThan(0.001);
+    player.sync(cue('stand'), 0, playerFrame(1.2));
+    expect(player.evaluate(playerFrame(1.2)).key).toEqual(current);
+    const epsilon = 0.00001;
+    const after = player.evaluate(playerFrame(1.2 + epsilon)).key;
+    expect(((after.pose.bob ?? 0) - (current.pose.bob ?? 0)) / epsilon).toBeCloseTo(velocity, 3);
+  });
+  it('does not replay stale motion after a suspended rendering clock', () => {
+    const player = new BodyStatePlayer(context().rig, 1);
+    player.sync(null, 0, playerFrame(0));
+    player.sync(cue('nap'), 0, playerFrame(0));
+    player.evaluate(playerFrame(0));
+    player.evaluate(playerFrame(1.18));
+    const before = player.evaluate(playerFrame(1.2)).key;
+    player.sync(cue('stand'), 0, playerFrame(3.2));
+    const after = player.evaluate(playerFrame(3.20001)).key;
+    expect(after.pose.bob).toBeCloseTo(before.pose.bob ?? 0, 9);
+  });
+  it('drops stale momentum and yields exactly to the new plan after the handoff', () => {
+    const from = { ...restKey, pose: { bob: 0.1 }, sleep: 1, handSupport: 1 };
+    const velocity = keyVelocity(restKey, from, 1 / 60);
+    expect(keyVelocity(restKey, from, 2)).toEqual(restKey);
+    expect(keyVelocity(restKey, from, -1)).toEqual(restKey);
+    expect(handoffKey(from, restKey, velocity, 0.35, 0.35)).toEqual(restKey);
+    const middle = handoffKey(from, restKey, velocity, 0.05, 0.35);
+    expect(middle.sleep).toBeLessThanOrEqual(1);
+    expect(middle.handSupport).toBeLessThanOrEqual(1);
+    const epsilon = 0.00001;
+    const targetBefore = { ...restKey, pose: { bob: 0.4 * (0.35 - epsilon) } };
+    const targetAfter = { ...restKey, pose: { bob: 0.4 * 0.35 } };
+    const beforeEnd = handoffKey(from, targetBefore, velocity, 0.35 - epsilon, 0.35);
+    const atEnd = handoffKey(from, targetAfter, velocity, 0.35, 0.35);
+    expect(((atEnd.pose.bob ?? 0) - (beforeEnd.pose.bob ?? 0)) / epsilon).toBeCloseTo(0.4, 4);
   });
   it('keeps support weights bounded and ends both studies standing', () => {
     for (const scene of ['Sleep cycle', 'Wake interrupt'] as const) {

@@ -1,3 +1,4 @@
+import { handoffKey, keyVelocity } from './handoff';
 // BodyStatePlayer: turns the shared BodyCue (service clock) into a per-frame key pose layered
 // over the MotionLayer frame. Phases: exit the previous state (at its spot), travel (the normal
 // locomotion walk, held back until the exit is done), enter the new state on arrival, hold with
@@ -104,7 +105,9 @@ export class BodyStatePlayer {
   private enter: Timeline | null = null;
   private shortcut: Timeline | null = null;
   private last: KeyPose = restKey;
-  private blendFrom: { key: KeyPose; at: number } | null = null;
+  private blendFrom: { key: KeyPose; at: number; velocity?: KeyPose } | null = null;
+  private sampleAt: number | null = null;
+  private velocity: KeyPose = restKey;
   private mounted = false;
   private stirLocal = -Infinity;
   private lastStir: number | undefined;
@@ -157,7 +160,21 @@ export class BodyStatePlayer {
     }
     if (cue?.id === this.cue?.id) return { place: null };
     const now = frame.now;
-    this.blendFrom = this.cue || this.phase !== 'idle' ? { key: this.last, at: now } : null;
+    this.blendFrom =
+      this.cue || this.phase !== 'idle'
+        ? {
+            key: this.last,
+            at: now,
+            ...(this.rig.napStyle === 'supported' &&
+            this.cue?.state === 'nap' &&
+            this.sampleAt !== null &&
+            now >= this.sampleAt &&
+            now - this.sampleAt <= 0.1 &&
+            !frame.reducedMotion
+              ? { velocity: this.velocity }
+              : {}),
+          }
+        : null;
     const previousSeed = this.cue?.seed ?? 0;
     this.cue = cue;
     this.exit = this.enter = this.shortcut = null;
@@ -273,7 +290,21 @@ export class BodyStatePlayer {
     if (this.blendFrom) {
       const k = (now - this.blendFrom.at) / BLEND;
       if (k >= 1) this.blendFrom = null;
-      else key = lerpKey(this.blendFrom.key, key, k * k * (3 - 2 * k));
+      else
+        key = this.blendFrom.velocity
+          ? handoffKey(
+              this.blendFrom.key,
+              key,
+              this.blendFrom.velocity,
+              now - this.blendFrom.at,
+              BLEND,
+            )
+          : lerpKey(this.blendFrom.key, key, k * k * (3 - 2 * k));
+    }
+    if (this.sampleAt !== now) {
+      this.velocity =
+        this.sampleAt === null ? restKey : keyVelocity(this.last, key, now - this.sampleAt);
+      this.sampleAt = now;
     }
     this.last = key;
     return this.decorate(key, cue, frame, status);

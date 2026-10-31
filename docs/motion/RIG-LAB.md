@@ -79,3 +79,11 @@ loop-hitch separately. Wider angles require authored corrective shapes and revie
 See [the foundation plan](RIG-FOUNDATION.md) for remaining hand contacts, limb matching,
 corrective artwork and contact-aware performance work. Passing browser checks does not
 replace native OBS/Tauri delivery checks.
+
+### Contact atlas and interruption polish
+
+The browser check writes `contact-{held,plant,push-up}-{studio,overlay}-{dark,light,checker}.png`
+under `test-results/rig-foundation/`. These candidate-only crops expose hand, elbow and
+clothing edges at both review sizes. Wake interrupt now carries the sampled incoming
+velocity for 350 ms; support weights remain bounded. Rounded palm-pressure artwork is
+still outstanding. Keep those visual findings separate from contact-residual pass results.

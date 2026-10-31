@@ -241,3 +241,31 @@ Remaining promotion gates: review hand/elbow and garment pressure silhouettes, f
 motion interruption polish, complete OBS alpha/refresh checks and real Tauri rendering.
 Foundation remains explicitly selectable until those checks pass. Existing saved character
 choices need an explicit swap; a new default must not silently overwrite those choices.
+
+## Motion polish: interrupted lowering
+
+Supported nap interruptions now carry velocity estimated from adjacent rendered frames
+into a 350 ms quintic handoff. The carry term preserves incoming velocity and fades with
+zero value, velocity and acceleration at the handoff end. The moving destination plan is
+sampled normally; unconstrained pose/root channels therefore join it with C1 continuity.
+This is not arbitrary acceleration matching. Sleep/hand weights are clamped to 0..1.
+Stale samples, reversed clocks, reduced motion and baseline characters do not carry momentum.
+The lab's Wake interrupt study uses the same handoff with a deterministic source derivative.
+
+The browser check now captures 18 contact-atlas images: held sleep, floor plant and push-up;
+Studio and 220 px scales; ink, ivory and checker surfaces. Inspect the `contact-*.png`
+artifacts in `test-results/rig-foundation/`. Review found continuous limb/clothing contours
+at those samples but the rounded capsule hands lack a flattened palm-pressure silhouette.
+That remains an authored replacement/deformation task; this pass does not claim new palm art.
+
+The foundation support pose also relaxes the free arm beside the hip. This additive
+correction follows the authored seated clip and fades with prop support; the planted
+arm remains owned by contact IK. The existing calibrated ground target is retained.
+
+Polish validation: 598 full-suite tests and 87 focused rig tests passed. Production build,
+changed-source lint and pinned-skill verification passed. The final built browser check
+passed 8 interruption poses, 18 contact-atlas captures, neutral restoration, authored gait
+ownership, Studio nap, overlay reconnect, wake release and a post-wake gesture with no
+page errors. Frame-rate checks cover 30/60/120 fps, stale-clock rejection and velocity
+matching at both handoff boundaries. Native delivery checks and authored pressure palms
+remain open; this checkpoint does not promote the candidate to the default.

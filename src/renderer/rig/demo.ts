@@ -1,3 +1,4 @@
+import { handoffKey, keyVelocity } from '../motion/states/handoff';
 import { neutralPose, type MotionFrame } from '../motion/types';
 import { foundationMotion } from '../characters/tavi-foundation/motion';
 import { sleepControls, settleWeight } from './sleep';
@@ -194,10 +195,20 @@ export function performanceKey(scene: RigScene, time: number, candidate: boolean
     const interruptAt = Math.min(2.7, entry.duration * 0.65);
     if (time <= interruptAt) return sampleTimeline(entry, time);
     const from = sampleTimeline(entry, interruptAt);
-    return sampleTimeline(
+    const elapsed = time - interruptAt;
+    const target = sampleTimeline(
       exitPlan('nap', null, context, 'urgent', candidate ? from : undefined),
-      time - interruptAt,
+      elapsed,
     );
+    return candidate
+      ? handoffKey(
+          from,
+          target,
+          keyVelocity(sampleTimeline(entry, interruptAt - 1 / 240), from, 1 / 240),
+          elapsed,
+          0.35,
+        )
+      : target;
   }
   if (time < entry.duration) return sampleTimeline(entry, time);
   if (time < entry.duration + 2) return heldKey('nap', null, context);

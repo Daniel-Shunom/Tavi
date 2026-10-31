@@ -83,6 +83,32 @@ try {
       path: `test-results/rig-foundation/${scene.toLowerCase().replaceAll(' ', '-')}.png`,
     });
   }
+  // Permanent contact atlas: inspect pressure silhouettes at delivery and authoring scales.
+  await page.getByLabel('Strength', { exact: true }).fill('1');
+  for (const [scene, time, name] of [
+    ['Sleep', 6, 'held'],
+    ['Sleep cycle', 3.4, 'plant'],
+    ['Sleep cycle', 9.6, 'push-up'],
+  ]) {
+    await page.getByLabel('Study', { exact: true }).selectOption({ label: scene });
+    await page.getByLabel('Pose time', { exact: true }).fill(String(time));
+    await expect(page.getByText('Comparison ready')).toBeVisible();
+    await expect(canvases.nth(1)).toHaveAttribute('data-sample-time', time.toFixed(4));
+    for (const scale of ['studio', 'overlay']) {
+      await page.getByLabel('Scale', { exact: true }).selectOption(scale);
+      for (const surface of ['dark', 'light', 'checker']) {
+        await page.getByLabel('Surface', { exact: true }).selectOption(surface);
+        await page
+          .locator('.rig-stage')
+          .nth(1)
+          .screenshot({
+            path: `test-results/rig-foundation/contact-${name}-${scale}-${surface}.png`,
+          });
+      }
+    }
+  }
+  await page.getByLabel('Scale', { exact: true }).selectOption('studio');
+  await page.getByLabel('Surface', { exact: true }).selectOption('dark');
   // Exercise the same live instance: turning a control off must restore its
   // exact neutral pixels, not just produce the right pose after a reload.
   await page.getByLabel('Study', { exact: true }).selectOption('Neutral');
