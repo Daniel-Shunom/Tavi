@@ -1,7 +1,7 @@
 // Builds THIRD-PARTY-NOTICES.txt for everything the installer redistributes: the Node runtime,
 // npm packages bundled into the frontend or installed for the service, the Rust crates linked
 // into the shell, and the third-party character artwork.
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -137,8 +137,11 @@ export async function collectNotices({ root, service, nodeLicense, nodeVersion, 
   const desktop = fileURLToPath(new URL('../', import.meta.url));
   const credits = join(root, 'public', 'credits');
   const artwork = [];
-  for (const name of (await readdir(credits)).sort())
-    artwork.push((await readFile(join(credits, name), 'utf8')).trim());
+  // Credits can be grouped in folders (public/credits/avatar-lab/); include every file.
+  for (const name of (await readdir(credits, { recursive: true })).sort()) {
+    const path = join(credits, name);
+    if ((await stat(path)).isFile()) artwork.push((await readFile(path, 'utf8')).trim());
+  }
   const npm = await npmSections([...npmPackageDirs(root), ...npmPackageDirs(service)]);
   const crates = await crateSections(join(desktop, 'src-tauri'));
   return [

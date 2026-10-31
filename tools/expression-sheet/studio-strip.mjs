@@ -14,6 +14,8 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
 page.on('pageerror', (e) => console.log('pageerror', e.message));
 await page.goto(base + '/studio');
+// A fresh browser meets the Twitch sign-in screen first.
+await page.getByRole('button', { name: 'Skip for now' }).click();
 await page.locator('.st-screen .avatar-renderer[data-ready="true"]').waitFor({ timeout: 30000 });
 await page.waitForTimeout(1500);
 const fps = await page.evaluate(

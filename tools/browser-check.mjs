@@ -41,6 +41,10 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   // The public landing page now lives at `/`; exercise the editable Studio explicitly.
   await page.goto(base + '/studio');
+  // First the Twitch sign-in screen; skipping is remembered, and Setup still offers Twitch.
+  await expect(page.getByRole('heading', { name: /^Say hi to / })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Connect with Twitch' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Skip for now' }).click();
   await expect(page.getByText('Local service connected')).toBeVisible();
   await expect(page.locator('canvas[aria-label]')).toBeVisible();
   const config = await (await page.request.get(base + '/api/state')).json();

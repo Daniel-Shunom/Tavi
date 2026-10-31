@@ -31,7 +31,8 @@ const app = await createApp(
 await app.register(staticFiles, {
   root: resolve(dirname(fileURLToPath(import.meta.url)), 'dist'),
 });
-app.get('/overlay', async (_, reply) => reply.sendFile('index.html'));
+for (const page of ['/studio', '/overlay', '/dock'])
+  app.get(page, async (_, reply) => reply.sendFile('index.html'));
 await app.listen({ host: '127.0.0.1', port });
 console.log(
   `${new Date().toISOString()} Tavi Studio ${version} service (Node ${process.version}): http://127.0.0.1:${String(port)} data=${directory}`,

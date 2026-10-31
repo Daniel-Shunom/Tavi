@@ -183,7 +183,8 @@ fn main() {
             let window = WebviewWindowBuilder::new(
                 app,
                 STUDIO_LABEL,
-                WebviewUrl::External(origin.parse()?),
+                // The site root is the public landing page; the app opens Studio itself.
+                WebviewUrl::External(format!("{origin}/studio").parse()?),
             )
             .title("Tavi Studio")
             .inner_size(1360.0, 900.0)
