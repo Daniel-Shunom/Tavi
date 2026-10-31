@@ -40,7 +40,7 @@ describe('configuration migration', () => {
       anchor: 'chat',
       x: 0.82,
       y: 0.63,
-      character: 'mascot-v2',
+      character: 'tavi-foundation',
       appearance: { hair: 'orange', outfit: 'light-green', glasses: 'grey' },
       initiative: 'occasional',
     });
@@ -77,7 +77,7 @@ describe('configuration migration', () => {
     );
     expect(invalid.config.appearance).toEqual({ hair: 'pink', outfit: 'green', glasses: 'blue' });
     const unknown = reduce(state, { type: 'configure', patch: { character: 'nobody' } }, catalog);
-    expect(unknown.config.character).toBe('mascot-v2');
+    expect(unknown.config.character).toBe('tavi-foundation');
   });
   it('keeps the WebSocket protocol strict', () => {
     for (const input of [
