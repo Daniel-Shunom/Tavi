@@ -212,7 +212,7 @@ export function RigLab() {
             type="checkbox"
             checked={Boolean(
               controls.headStabilize ??
-              (scene === 'Head stabilization' || scene === 'Body flow' || scene === 'Sleep'
+              (scene === 'Head stabilization' || scene === 'Body flow' || scene.startsWith('Sleep')
                 ? 1
                 : 0),
             )}
@@ -233,7 +233,7 @@ export function RigLab() {
       </fieldset>
       {error && <p role="alert">{error}</p>}
       <div
-        className={`rig-comparison rig-surface-${background}${scene === 'Sleep' ? ' rig-sleep' : ''}`}
+        className={`rig-comparison rig-surface-${background}${scene.startsWith('Sleep') ? ' rig-sleep' : ''}`}
       >
         {['Refined / baseline', 'Foundation / candidate'].map((label, i) => (
           <section className="rig-stage" key={label} aria-label={label}>

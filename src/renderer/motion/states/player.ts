@@ -57,6 +57,8 @@ export interface PlayerFrame {
   personality: 'cozy' | 'playful' | 'shy';
 }
 export interface PlayerResult {
+  /** Retain nap contact ownership while leaving nap, even when the requested state changed. */
+  napSupport?: number;
   key: KeyPose;
   /** Surface under the character when it is not the floor (canvas y), for the contact shadow. */
   surfaceY: number | null;
@@ -454,7 +456,19 @@ export class BodyStatePlayer {
       surfaceY !== null
         ? { x: frame.position.x, y: surfaceY, width: (0.9 * stage.bodyHeight) / stage.aspect }
         : null;
-    return { key, surfaceY, height, floorShadow, effects, ledge, status };
+    const nap =
+      cue?.state === 'nap' ||
+      ((this.phase === 'exit' || this.phase === 'shortcut') && cue?.from?.state === 'nap');
+    return {
+      key,
+      surfaceY,
+      height,
+      floorShadow,
+      effects,
+      ledge,
+      status,
+      ...(nap ? { napSupport: key.sleep } : {}),
+    };
   }
 }
 

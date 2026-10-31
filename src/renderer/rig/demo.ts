@@ -1,4 +1,7 @@
 import { neutralPose, type MotionFrame } from '../motion/types';
+import { foundationMotion } from '../characters/tavi-foundation/motion';
+import { sleepControls, settleWeight } from './sleep';
+export { sleepEnvelope } from './sleep';
 import { refinedMotion, bindRefined } from '../characters/tavi-refined/motion';
 import type { BodyControls } from './body';
 import type { RenderFrame } from '../adapter';
@@ -14,6 +17,7 @@ export const rigScenes = [
   'Head stabilization',
   'Body flow',
   'Sleep',
+  'Sleep settle',
   'Weight shift',
   'Support stress',
   'Turn',
@@ -96,15 +100,13 @@ export function demoFrame(
     bodyControls.headStabilize = manual.headStabilize ?? 0.75;
   }
   let sleepState: { id: string; result: PlayerResult } | undefined;
-  if (scene === 'Sleep') {
-    const key = sleepKey();
+  if (scene === 'Sleep' || scene === 'Sleep settle') {
+    const key = { ...sleepKey(), sleep: scene === 'Sleep settle' ? sleepSettle(time) : 1 };
     applyStateKey(frame.pose, key);
-    // Both panels use the existing held nap pose. The candidate adds restrained
-    // thoracic/neck motion instead of rotating or bobbing the whole character.
-    const breath = sleepEnvelope(time);
-    bodyControls.chestTilt = (manual.chestTilt ?? 0) + (breath - 0.5) * 0.008 * strength;
-    bodyControls.neckTilt = (manual.neckTilt ?? 0) + (breath - 0.5) * 0.003 * strength;
-    bodyControls.headStabilize = manual.headStabilize ?? 1;
+    const support = sleepControls(time, key.sleep);
+    Object.assign(bodyControls, support, manual);
+    bodyControls.chestTilt = (manual.chestTilt ?? 0) + (support.chestTilt ?? 0) * strength;
+    bodyControls.neckTilt = (manual.neckTilt ?? 0) + (support.neckTilt ?? 0) * strength;
     sleepState = {
       id: 'nap',
       result: {
@@ -118,7 +120,10 @@ export function demoFrame(
       },
     };
   }
-  const result = bindRefined(frame, sleepState, candidate);
+  frame.bodyControls = bodyControls;
+  const result: Pick<RenderFrame, 'tracks' | 'nodes' | 'bodyControls'> = candidate
+    ? foundationMotion.bind(frame, sleepState)
+    : bindRefined(frame, sleepState);
   if (scene === 'Floor sit' || scene === 'Perch sit') {
     const weight = smooth((1 - Math.cos(phase)) / 2);
     result.tracks.unshift({
@@ -133,15 +138,15 @@ export function demoFrame(
   }
   return {
     ...result,
-    bodyControls,
+    bodyControls: result.bodyControls ?? bodyControls,
     inputs: {},
     travel: scene === 'Walk' ? (time * (60 / 600)) / (56 / 60) : 0,
   };
 }
 
-export function sleepEnvelope(time: number) {
-  const phase = (((time % 4) + 4) % 4) / 4;
-  return phase < 0.4 ? smooth(phase / 0.4) : 1 - smooth((phase - 0.4) / 0.6);
+export function sleepSettle(time: number) {
+  const t = Math.max(0, Math.min(8, time));
+  return t < 2 ? settleWeight(t / 2) : t < 6 ? 1 : 1 - settleWeight((t - 6) / 2);
 }
 function sleepKey() {
   const rig = refinedMotion.states;
@@ -150,7 +155,7 @@ function sleepKey() {
 }
 /** Use the same lie geometry as the app, with horizontal room for the rotated silhouette. */
 export function demoPlacement(scene: RigScene, size: number, width: number, height: number) {
-  const key = scene === 'Sleep' ? sleepKey() : null;
+  const key = scene === 'Sleep' || scene === 'Sleep settle' ? sleepKey() : null;
   return {
     x: width / 2 + (key ? size * 0.19 : 0),
     y: height - (key ? 100 : 24) + (key?.dy ?? 0) * size,

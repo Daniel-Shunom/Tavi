@@ -25,6 +25,7 @@ try {
     'Head stabilization',
     'Body flow',
     'Sleep',
+    'Sleep settle',
     'Weight shift',
     'Support stress',
     'Turn',
@@ -36,12 +37,23 @@ try {
     await page
       .getByLabel('Strength', { exact: true })
       .fill(scene === 'Support stress' ? '1.5' : '1');
+    let supportedHead = null;
     for (const t of [0, 1, 2, 3.9, 6]) {
       await page.getByLabel('Pose time', { exact: true }).fill(String(t));
       await expect(page.getByText('Comparison ready')).toBeVisible();
       await expect(canvases.nth(1)).toHaveAttribute('data-sample-time', t.toFixed(4));
       const diagnostics = JSON.parse(await canvases.nth(1).getAttribute('data-rig-diagnostics'));
       measurements.push({ scene, time: t, ...diagnostics });
+      if (scene.startsWith('Sleep') && diagnostics.sleepContacts.weight > 0.999) {
+        const anchor = diagnostics.sleepContacts.headAnchor;
+        if (supportedHead)
+          expect(
+            Math.hypot(anchor[0] - supportedHead[0], anchor[1] - supportedHead[1]),
+          ).toBeLessThan(0.02);
+        else supportedHead = anchor;
+        expect(diagnostics.sleepContacts.wristError).toBeLessThan(0.02);
+        expect(diagnostics.sleepContacts.reachError).toBeLessThan(0.02);
+      }
       if (diagnostics.owner === 'contact-solver') {
         expect(diagnostics.contactError).toBeLessThan(0.02); // WASM stores float32 transforms.
         expect(diagnostics.lengthError).toBeLessThan(0.02);
@@ -185,6 +197,21 @@ try {
       await expect(
         page.locator('canvas[data-character-id="tavi-foundation"]').first(),
       ).toBeVisible();
+      const studioCanvas = page.locator('canvas[data-character-id="tavi-foundation"]').first();
+      await page.getByRole('button', { name: /^stand$/i }).click();
+      await page.getByRole('button', { name: /^nap$/i }).click();
+      await expect
+        .poll(
+          async () =>
+            JSON.parse(await studioCanvas.getAttribute('data-rig-diagnostics')).sleepContacts
+              .weight,
+          { timeout: 15000 },
+        )
+        .toBeGreaterThan(0.999);
+      expect(
+        JSON.parse(await studioCanvas.getAttribute('data-rig-diagnostics')).sleepContacts
+          .wristError,
+      ).toBeLessThan(0.02);
       await page.screenshot({ path: 'test-results/rig-foundation/studio.png' });
       const overlay = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
       overlay.on('pageerror', (e) => errors.push(e.message));
@@ -193,10 +220,55 @@ try {
       expect(
         await overlay.locator('body').evaluate((el) => getComputedStyle(el).backgroundColor),
       ).toBe('rgba(0, 0, 0, 0)');
+      await expect
+        .poll(
+          async () =>
+            JSON.parse(
+              await overlay
+                .locator('canvas[data-character-id="tavi-foundation"]')
+                .getAttribute('data-rig-diagnostics'),
+            ).sleepContacts.weight,
+          { timeout: 15000 },
+        )
+        .toBeGreaterThan(0.999);
+      await expect
+        .poll(async () => {
+          const a = JSON.parse(await studioCanvas.getAttribute('data-rig-diagnostics')).body;
+          const b = JSON.parse(
+            await overlay
+              .locator('canvas[data-character-id="tavi-foundation"]')
+              .getAttribute('data-rig-diagnostics'),
+          ).body;
+          return Math.abs(a.chestTilt - b.chestTilt);
+        })
+        .toBeLessThan(0.0005);
       await overlay.screenshot({
         path: 'test-results/rig-foundation/overlay.png',
         omitBackground: true,
       });
+      await page.getByRole('button', { name: /^stand$/i }).click();
+      await expect
+        .poll(
+          async () =>
+            JSON.parse(await studioCanvas.getAttribute('data-rig-diagnostics')).sleepContacts
+              .weight,
+        )
+        .toBeGreaterThan(0);
+      await expect
+        .poll(
+          async () =>
+            JSON.parse(await studioCanvas.getAttribute('data-rig-diagnostics')).sleepContacts
+              .weight,
+          { timeout: 15000 },
+        )
+        .toBe(0);
+      await page.getByRole('button', { name: /^wave/i }).click();
+      expect(
+        JSON.parse(await studioCanvas.getAttribute('data-rig-diagnostics')).sleepContacts.weight,
+      ).toBe(0);
+      console.log(
+        'Live Studio nap, overlay reconnect, wake release and post-wake gesture verified.',
+      );
       await overlay.close();
     } finally {
       await select(original.config.character);

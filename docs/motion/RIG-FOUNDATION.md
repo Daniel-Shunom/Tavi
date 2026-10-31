@@ -117,9 +117,9 @@ The public motion-frame/renderer contract carries optional controls end to end.
 
 The permanent lab now has manual offsets, isolated body studies, combined body flow and
 a sleep study. A foundation-only binding correction prioritizes nap over the raised-foot
-perch heuristic; the baseline retains its old behavior for comparison. Sleep breathing is
-a lab study; production state-player breathing and the complete sleep performance are not
-yet replaced. Head/hand support, wider-angle corrective art and FK/IK matching remain next.
+perch heuristic; the baseline retains its old behavior for comparison. At the articulation checkpoint, sleep breathing was a lab study. The sleep support
+milestone below adds a foundation runtime profile and wrist contacts; wider-angle
+corrective art and a complete sleep performance remain.
 
 The lab regression changes multiple controls on one live renderer, clears them, and compares
 neutral imagery. A maximum four pixels with one channel level of error allows observed GPU
@@ -135,3 +135,44 @@ also tested numerically. The lab guide and npm commands are permanent developmen
   transparent overlay and Studio smoke checks. No page errors.
 - Sleep uses the same held nap geometry as the app. The candidate fixes raised-foot
   misclassification; head/hand support calibration and a finished sleep performance remain.
+
+## Sleep support milestone
+
+Implemented on top of the existing expression and body-state pipeline:
+
+- `BodyRig.headSupport` preserves the sampled head origin while the chest/neck breathe.
+- Reusable two-bone wrist targeting matches the closest FK elbow and blends rotations over
+  the shortest angle. No bone length, scale, drawable ID or source asset is changed.
+- The foundation nap places the left wrist at the cheek and right wrist at the torso.
+  Targets are calibrated in the existing art's head/shirt coordinates. Finger/palm pressure
+  and wider-angle elbow correctives remain art tasks.
+- Whole-body sleep squash and foot twitches yield to the held silhouette. Small C2-continuous
+  chest/neck motion replaces them; reduced motion suppresses that breathing motion.
+- `PlayerResult.napSupport` carries source-state contact weight through wake-up even after
+  the requested state changes to stand. It fades with the existing sleep envelope, keeping
+  the service's event/expression IDs, cooldowns and personality rules unchanged.
+- The lab adds a deterministic Sleep settle study; full standing-to-lying choreography still
+  comes from the existing state planner. Head support preserves its sampled pose reference,
+  not a newly measured hair-to-floor silhouette.
+
+The compatibility sweep covers all 49 existing awake expression IDs. Contact metrics are
+measured in the actual Rive renderer; the pure solvers also cover mirrored parent spaces,
+FK matching, reachable lengths, loop boundaries and support release.
+
+### Sleep verification
+
+- Full suite: 66 files, 585 tests passed; subsequent focused rig suite: 76 tests passed,
+  including a shared-clock reconnect check.
+- All 49 awake expression bindings match the existing binder. Wake-up source-state support,
+  fixed head origin, mirrored contact math, loop endpoints and reduced motion are covered.
+  Breathing uses service time rather than local mount time so reconnecting preserves phase.
+- Production build, TypeScript, changed-source ESLint and pinned skills passed.
+- The real Studio flow enters nap, reconnects a transparent overlay into the held pose,
+  wakes without dropping support immediately, then triggers a normal gesture successfully.
+- A pre-existing Studio condition incorrectly disabled changing posture at the same spot.
+  The dock now suppresses redundant same-state commands while allowing Stand ? Nap there.
+- The baseline model and artwork binary are unchanged. Native OBS/Tauri capture and a full
+  joint-corrective atlas remain delivery gates.
+
+- Production browser sweep: 70 poses across 14 studies passed, including full-contact wrist
+  residuals and stable supported-head anchors. The live nap/reconnect/wake/gesture flow passed.

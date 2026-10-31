@@ -16,3 +16,6 @@ art/mascot-v2-export/
 art/tavi-rive-lab/**/scene.rml
 art/tavi-rive-lab/**/rive.yaml
 art/tavi-rive-lab/*/
+
+# Native Chromium diagnostics emitted by local browser checks.
+/debug.log

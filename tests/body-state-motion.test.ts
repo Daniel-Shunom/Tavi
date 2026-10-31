@@ -201,6 +201,28 @@ const frame = (now: number, partial: Partial<PlayerFrame> = {}): PlayerFrame => 
 });
 
 describe('body state player', () => {
+  it('carries nap support through wake-up even after the requested state becomes stand', () => {
+    const player = new BodyStatePlayer(mascotStates, 1);
+    player.sync(cue({ state: 'nap', spot: floor }), 120, frame(0));
+    expect(player.evaluate(frame(0)).napSupport).toBe(1);
+    player.sync(
+      cue({
+        id: 'wake',
+        state: 'stand',
+        spot: null,
+        from: { state: 'nap', spot: floor },
+        wake: 'normal',
+      }),
+      0,
+      frame(1),
+    );
+    expect(player.state).toBe('stand');
+    expect(player.evaluate(frame(1)).napSupport).toBe(1);
+    expect(player.evaluate(frame(1.2)).napSupport).toBeGreaterThan(0);
+    for (let t = 1.3; t < 12; t += 0.1) player.evaluate(frame(t));
+    expect(player.evaluate(frame(12)).napSupport).toBeUndefined();
+  });
+
   it('a reconnect long after the cue started shows the held state without replaying', () => {
     const player = new BodyStatePlayer(mascotStates, 1);
     const result = player.sync(cue({}), 120, frame(10));

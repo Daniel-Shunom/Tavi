@@ -310,6 +310,8 @@ export function createHookLayer(
       }
       lastTime = now;
       const frame = layer.update(now, face);
+      frame.reducedMotion = input.reducedMotion;
+      if (input.body?.cue) frame.serviceTime = input.body.cue.startAt / 1000 + input.body.elapsed;
       facing = frame.placement.facing < 0 ? -1 : 1;
       const state: PlayerResult | null = bodyStates ? bodyStates.evaluate(playerFrame()) : null;
       if (state) applyStateKey(frame.pose, state.key, facing);

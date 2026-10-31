@@ -17,7 +17,8 @@ local service. The comparison always uses the same licensed artwork and clock.
 - Chest / pelvis / neck isolation: one additive control at a time.
 - Head stabilization: the head counters chest and neck rotation.
 - Body flow: a restrained pelvis/chest/neck sequence with phase offsets.
-- Sleep: the existing held nap geometry, with corrected nap ownership and subtle chest/neck breathing in the candidate. This is a development study, not a completed sleep animation. Its ground guide is hidden until head and hand support constraints are calibrated.
+- Sleep: head support, cheek/torso wrist contacts and restrained chest/neck breathing.
+- Sleep settle: acquire those supports, hold, then release without a loop snap.
 - Weight shift / support stress: foot support and extension resistance.
 - Turn / walk / floor sit / perch sit: compare against existing authored ownership.
 
@@ -25,6 +26,9 @@ Manual offsets affect the candidate only. Values are radians internally and degr
 UI. Clear removes manual offsets; select Neutral to remove a study's automatic acting.
 Strength scales the animated study. Steady head overrides the study's stabilization.
 Pelvis rotation yields during authored lower-body actions, including walking and sitting.
+Sleep support owns wrists only while the sleep weight is active. Awake expressions retain
+their existing bindings. The ground guide stays hidden: the rig preserves the sampled nap
+head origin; it does not scan the drawn hair contour against arbitrary surfaces.
 
 Use Pause and the timeline for fixed poses, Overlay scale for 220 px inspection, and
 Ivory or Alpha check to expose seams and transparent fringes. Scrubbing reloads the
@@ -49,7 +53,9 @@ artwork. The source, study definitions, test scripts and this guide belong in Gi
 
 `data-rig-diagnostics` on each canvas records the owner, contact error, segment-length
 error and support residual. The candidate also reports the bounded body controls actually
-applied. Authored clips are not measured by the procedural solver; their zero diagnostic
+applied, sleep-contact weight, wrist/reach residuals and sampled head anchor. Full-contact
+checks require wrist error below 0.02 artboard units and a stable head during breathing.
+Partial-contact frames intentionally blend toward the contact rather than claiming a lock. Authored clips are not measured by the procedural solver; their zero diagnostic
 values are placeholders, not evidence of a perfect authored pose.
 
 ## Extending the rig

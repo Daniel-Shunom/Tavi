@@ -7,6 +7,10 @@ export interface BodyControls {
   neckTilt?: number;
   headTilt?: number;
   headStabilize?: number;
+  /** Translation lock to the sampled support pose; weights 0..1. */
+  headSupport?: number;
+  /** Character-specific sleeping wrist contacts; weight 0..1. */
+  sleepSupport?: number;
 }
 export const bodyLimits = {
   pelvisTilt: 0.08,
@@ -14,6 +18,8 @@ export const bodyLimits = {
   neckTilt: 0.1,
   headTilt: 0.18,
   headStabilize: 1,
+  headSupport: 1,
+  sleepSupport: 1,
 } as const;
 export interface BodyTransform {
   x: number;
@@ -33,7 +39,9 @@ export function boundedBody(controls: BodyControls = {}): Required<BodyControls>
     const value = controls[key] ?? 0;
     if (!Number.isFinite(value)) throw new Error('Non-finite body control: ' + key);
     return Math.max(
-      key === 'headStabilize' ? 0 : -bodyLimits[key],
+      key === 'headStabilize' || key === 'headSupport' || key === 'sleepSupport'
+        ? 0
+        : -bodyLimits[key],
       Math.min(bodyLimits[key], value),
     );
   };
@@ -43,6 +51,8 @@ export function boundedBody(controls: BodyControls = {}): Required<BodyControls>
     neckTilt: read('neckTilt'),
     headTilt: read('headTilt'),
     headStabilize: read('headStabilize'),
+    headSupport: read('headSupport'),
+    sleepSupport: read('sleepSupport'),
   };
 }
 export function rotatePart(part: BodyTransform, pivot: Vec2, angle: number) {
@@ -93,6 +103,7 @@ export class BodyRig {
         rotation: part.rotation,
       }));
     const { pelvis, head, neck, collar, chest } = this.parts;
+    const headRest: Vec2 = [head.x, head.y];
     const waist: Vec2 = [pelvis.x, pelvis.y];
     for (const part of chest) rotatePart(part, waist, controls.chestTilt);
     pelvis.rotation += controls.pelvisTilt;
@@ -101,6 +112,8 @@ export class BodyRig {
     rotatePart(neck, neckPivot, controls.neckTilt);
     head.rotation +=
       controls.headTilt - (controls.chestTilt + controls.neckTilt) * controls.headStabilize;
+    head.x += (headRest[0] - head.x) * controls.headSupport;
+    head.y += (headRest[1] - head.y) * controls.headSupport;
     return controls;
   }
 }

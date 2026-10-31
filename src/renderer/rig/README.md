@@ -6,6 +6,8 @@ coordinates and writes the resulting transforms; the library never reads the DOM
 | Component          | Contract                                                                                                   | Current use                                                       |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | `BodyRig`          | Independent bounded pelvis/chest/neck/head articulation; restore before sampling; preserve draw order      | Foundation rig and lab                                            |
+| `solveContact`     | Match FK elbow and solve fixed-length wrist target; shortest-angle blend                                   | Sleeping cheek/torso wrist contacts                               |
+| `sleepControls`    | C2 breath and support weights; reduced-motion handling                                                     | Foundation nap and lab                                            |
 | `solveLimb`        | Exact rigid segment lengths; explicit bend; finite clamped endpoint and target error                       | Procedural standing legs                                          |
 | `softReach`        | Continuous extension resistance; contact targets do not move                                               | Pelvis support                                                    |
 | `projectSupport`   | Minimum common translation for compatible reach disks; explicit residual otherwise                         | Planted-foot support                                              |
