@@ -5,8 +5,9 @@ export { sleepEnvelope } from './sleep';
 import { refinedMotion, bindRefined } from '../characters/tavi-refined/motion';
 import type { BodyControls } from './body';
 import type { RenderFrame } from '../adapter';
-import { heldKey } from '../motion/states/plan';
+import { heldKey, enterPlan, exitPlan, sampleTimeline } from '../motion/states/plan';
 import { applyStateKey } from '../motion/states/apply';
+import { type KeyPose } from '../motion/states/types';
 import type { PlayerResult } from '../motion/states/player';
 import { Transition } from './transition';
 export const rigScenes = [
@@ -18,6 +19,8 @@ export const rigScenes = [
   'Body flow',
   'Sleep',
   'Sleep settle',
+  'Sleep cycle',
+  'Wake interrupt',
   'Weight shift',
   'Support stress',
   'Turn',
@@ -27,6 +30,7 @@ export const rigScenes = [
 ] as const;
 export type RigScene = (typeof rigScenes)[number];
 export const demoDuration = 8;
+export const durationFor = (scene: RigScene) => (scene === 'Sleep cycle' ? 16 : 8);
 const smooth = (t: number) => {
   const transition = new Transition();
   transition.to(0, 1, 1);
@@ -100,15 +104,18 @@ export function demoFrame(
     bodyControls.headStabilize = manual.headStabilize ?? 0.75;
   }
   let sleepState: { id: string; result: PlayerResult } | undefined;
-  if (scene === 'Sleep' || scene === 'Sleep settle') {
-    const key = { ...sleepKey(), sleep: scene === 'Sleep settle' ? sleepSettle(time) : 1 };
+  if (scene.startsWith('Sleep') || scene === 'Wake interrupt') {
+    const key =
+      scene === 'Sleep cycle' || scene === 'Wake interrupt'
+        ? performanceKey(scene, time, candidate)
+        : { ...sleepKey(), sleep: scene === 'Sleep settle' ? sleepSettle(time) : 1 };
     applyStateKey(frame.pose, key);
     const support = sleepControls(time, key.sleep);
     Object.assign(bodyControls, support, manual);
     bodyControls.chestTilt = (manual.chestTilt ?? 0) + (support.chestTilt ?? 0) * strength;
     bodyControls.neckTilt = (manual.neckTilt ?? 0) + (support.neckTilt ?? 0) * strength;
     sleepState = {
-      id: 'nap',
+      id: key.sleep === 0 && key.rot === 0 && !(key.handSupport ?? 0) ? 'stand' : 'nap',
       result: {
         key,
         surfaceY: null,
@@ -117,6 +124,7 @@ export function demoFrame(
         effects: [],
         ledge: null,
         status: 'sleep study',
+        napSupport: key.sleep,
       },
     };
   }
@@ -154,8 +162,20 @@ function sleepKey() {
   return heldKey('nap', null, { rig, gap: 0, edgeDistance: 0, reducedMotion: false });
 }
 /** Use the same lie geometry as the app, with horizontal room for the rotated silhouette. */
-export function demoPlacement(scene: RigScene, size: number, width: number, height: number) {
-  const key = scene === 'Sleep' || scene === 'Sleep settle' ? sleepKey() : null;
+export function demoPlacement(
+  scene: RigScene,
+  size: number,
+  width: number,
+  height: number,
+  time = 0,
+  candidate = false,
+) {
+  const performance = scene === 'Sleep cycle' || scene === 'Wake interrupt';
+  const key = performance
+    ? performanceKey(scene, time, candidate)
+    : scene.startsWith('Sleep')
+      ? sleepKey()
+      : null;
   return {
     x: width / 2 + (key ? size * 0.19 : 0),
     y: height - (key ? 100 : 24) + (key?.dy ?? 0) * size,
@@ -163,4 +183,23 @@ export function demoPlacement(scene: RigScene, size: number, width: number, heig
     height: size,
     rotation: key?.rot ?? 0,
   };
+}
+
+export function performanceKey(scene: RigScene, time: number, candidate: boolean): KeyPose {
+  const rig = candidate ? foundationMotion.states : refinedMotion.states;
+  if (!rig) throw new Error('Performance study needs a body-state rig.');
+  const context = { rig, gap: 0, edgeDistance: 0, reducedMotion: false };
+  const entry = enterPlan('nap', null, context);
+  if (scene === 'Wake interrupt') {
+    const interruptAt = Math.min(2.7, entry.duration * 0.65);
+    if (time <= interruptAt) return sampleTimeline(entry, time);
+    const from = sampleTimeline(entry, interruptAt);
+    return sampleTimeline(
+      exitPlan('nap', null, context, 'urgent', candidate ? from : undefined),
+      time - interruptAt,
+    );
+  }
+  if (time < entry.duration) return sampleTimeline(entry, time);
+  if (time < entry.duration + 2) return heldKey('nap', null, context);
+  return sampleTimeline(exitPlan('nap', null, context, 'normal'), time - entry.duration - 2);
 }

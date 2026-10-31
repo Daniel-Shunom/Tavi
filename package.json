@@ -20,7 +20,7 @@
     "prepare": "node tools/install-hooks.mjs",
     "pretest": "python tools/tavi-rive-lab/build.py",
     "rig:lab": "vite --host 127.0.0.1 --port 5175",
-    "test:rig": "vitest run tests/rig-foundation.test.ts tests/rig-body.test.ts tests/rig-sleep.test.ts --maxWorkers=1",
+    "test:rig": "vitest run tests/rig-foundation.test.ts tests/rig-body.test.ts tests/rig-sleep.test.ts tests/rig-performance.test.ts --maxWorkers=1",
     "check:rig-browser": "node tools/rig-foundation-check.mjs"
   },
   "dependencies": {

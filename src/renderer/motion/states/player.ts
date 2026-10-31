@@ -181,14 +181,22 @@ export class BodyStatePlayer {
         ? Math.abs(fromSpot.approach.x - cue.spot.approach.x) < 1e-3 &&
           Math.abs(fromSpot.approach.y - cue.spot.approach.y) < 1e-3
         : false;
+    const fromPose =
+      !first && from === 'nap' && this.rig.napStyle === 'supported' ? this.last : undefined;
     const shortcut = same
-      ? shortcutPlan(from, cue.state, cue.spot, this.context(cue.spot, frame), cue.wake)
+      ? shortcutPlan(from, cue.state, cue.spot, this.context(cue.spot, frame), cue.wake, fromPose)
       : null;
     if (shortcut) {
       this.shortcut = shortcut;
       this.phase = 'shortcut';
     } else {
-      this.exit = exitPlan(from, fromSpot, this.context(fromSpot, frame, previousSeed), cue.wake);
+      this.exit = exitPlan(
+        from,
+        fromSpot,
+        this.context(fromSpot, frame, previousSeed),
+        cue.wake,
+        fromPose,
+      );
       this.phase = 'exit';
     }
     return { place: null };

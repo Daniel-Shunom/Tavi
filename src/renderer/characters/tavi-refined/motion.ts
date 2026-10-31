@@ -101,7 +101,8 @@ export function bindRefined(
   const key = body?.result.key.pose ?? {},
     bob = (key.bob ?? 0) * 600;
   const isFloor =
-    !body?.result.ledge && (bob > 45 || ((key.footLX ?? 0) > 0 && (key.footRX ?? 0) < 0));
+    !body?.result.ledge &&
+    ((preferNap ? bob > 1 : bob > 45) || ((key.footLX ?? 0) > 0 && (key.footRX ?? 0) < 0));
   const floorWeight = isFloor ? clamp(bob / 126.217996) : 0;
   const perchWeight = !isFloor ? clamp(((key.footLY ?? 0) * 600) / 68) : 0;
   const side = Math.abs(p.turnBody) < 0.2 ? 0 : p.turnBody < 0 ? -1 : 1;
@@ -132,7 +133,7 @@ export function bindRefined(
         .map((t) => ({ ...t, track: `runtime.acting.${t.track}` })),
     );
   }
-  if (preferNap && body?.id === 'nap') {
+  if (preferNap && body?.id === 'nap' && floorWeight < 0.001) {
     // A raised sleeping foot is not a seated/perched pose.
     mode = 4;
   } else if (floorWeight > 0.001) {
@@ -157,9 +158,14 @@ export function bindRefined(
       result.nodes[id] = { rotation: 0 };
   } else if (body && /nap|doze/.test(body.id)) mode = 4;
   if (mode === 6 || mode === 8) {
-    result.nodes['body'] = { x: 0, y: 0, scaleX: 1, scaleY: 1 };
-    result.nodes['foot-l'] = { x: 0, y: 0 };
-    result.nodes['foot-r'] = { x: 0, y: 0 };
+    const napBlend = preferNap && body?.id === 'nap' ? 1 - floorWeight : 0;
+    const napOffset = (value: number | undefined) => (napBlend > 0 ? (value ?? 0) * napBlend : 0);
+    const rawBody = result.nodes['body'],
+      rawLeft = result.nodes['foot-l'],
+      rawRight = result.nodes['foot-r'];
+    result.nodes['body'] = { x: napOffset(rawBody?.x), y: 0, scaleX: 1, scaleY: 1 };
+    result.nodes['foot-l'] = { x: napOffset(rawLeft?.x), y: napOffset(rawLeft?.y) };
+    result.nodes['foot-r'] = { x: napOffset(rawRight?.x), y: napOffset(rawRight?.y) };
     if (floorWeight > 0.001 || perchWeight > 0.001) {
       result.nodes['arm-l'] = {
         rotation: (result.nodes['arm-l']?.rotation ?? 0) - (key.armL ?? 0),

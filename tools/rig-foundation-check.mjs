@@ -26,6 +26,8 @@ try {
     'Body flow',
     'Sleep',
     'Sleep settle',
+    'Sleep cycle',
+    'Wake interrupt',
     'Weight shift',
     'Support stress',
     'Turn',
@@ -38,13 +40,26 @@ try {
       .getByLabel('Strength', { exact: true })
       .fill(scene === 'Support stress' ? '1.5' : '1');
     let supportedHead = null;
-    for (const t of [0, 1, 2, 3.9, 6]) {
+    const times =
+      scene === 'Sleep cycle'
+        ? [0, 1, 2, 3.4, 4, 6, 8, 9.6, 10, 12, 15.9]
+        : scene === 'Wake interrupt'
+          ? [0, 1, 2, 2.7, 2.71, 3, 4, 7.9]
+          : [0, 1, 2, 3.9, 6];
+    for (const t of times) {
       await page.getByLabel('Pose time', { exact: true }).fill(String(t));
       await expect(page.getByText('Comparison ready')).toBeVisible();
       await expect(canvases.nth(1)).toHaveAttribute('data-sample-time', t.toFixed(4));
       const diagnostics = JSON.parse(await canvases.nth(1).getAttribute('data-rig-diagnostics'));
       measurements.push({ scene, time: t, ...diagnostics });
-      if (scene.startsWith('Sleep') && diagnostics.sleepContacts.weight > 0.999) {
+      if (scene === 'Sleep cycle' && (t === 3.4 || t === 9.6))
+        await page.screenshot({
+          path: `test-results/rig-foundation/sleep-contact-${String(t)}.png`,
+        });
+      if (
+        (scene === 'Sleep' || scene === 'Sleep settle') &&
+        diagnostics.sleepContacts.weight > 0.999
+      ) {
         const anchor = diagnostics.sleepContacts.headAnchor;
         if (supportedHead)
           expect(
@@ -54,6 +69,8 @@ try {
         expect(diagnostics.sleepContacts.wristError).toBeLessThan(0.02);
         expect(diagnostics.sleepContacts.reachError).toBeLessThan(0.02);
       }
+      if (diagnostics.sleepContacts.propWeight > 0.999)
+        expect(diagnostics.sleepContacts.groundError).toBeLessThan(0.02);
       if (diagnostics.owner === 'contact-solver') {
         expect(diagnostics.contactError).toBeLessThan(0.02); // WASM stores float32 transforms.
         expect(diagnostics.lengthError).toBeLessThan(0.02);

@@ -19,6 +19,8 @@ local service. The comparison always uses the same licensed artwork and clock.
 - Body flow: a restrained pelvis/chest/neck sequence with phase offsets.
 - Sleep: head support, cheek/torso wrist contacts and restrained chest/neck breathing.
 - Sleep settle: acquire those supports, hold, then release without a loop snap.
+- Sleep cycle: a 16-second stand/lower/plant/sleep/push-up/stretch/stand study.
+- Wake interrupt: interrupt a partial lie-down and wake from the sampled pose.
 - Weight shift / support stress: foot support and extension resistance.
 - Turn / walk / floor sit / perch sit: compare against existing authored ownership.
 
@@ -55,7 +57,10 @@ artwork. The source, study definitions, test scripts and this guide belong in Gi
 error and support residual. The candidate also reports the bounded body controls actually
 applied, sleep-contact weight, wrist/reach residuals and sampled head anchor. Full-contact
 checks require wrist error below 0.02 artboard units and a stable head during breathing.
-Partial-contact frames intentionally blend toward the contact rather than claiming a lock. Authored clips are not measured by the procedural solver; their zero diagnostic
+Partial-contact frames intentionally blend toward the contact rather than claiming a lock.
+The prop-hand diagnostics include `propWeight` and `groundError`; only a fully owned
+plant is tested as a locked contact. The prop target uses the calibrated 600-unit artboard
+sole plane and compensates the external body rotation. Authored clips are not measured by the procedural solver; their zero diagnostic
 values are placeholders, not evidence of a perfect authored pose.
 
 ## Extending the rig

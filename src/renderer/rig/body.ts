@@ -11,6 +11,7 @@ export interface BodyControls {
   headSupport?: number;
   /** Character-specific sleeping wrist contacts; weight 0..1. */
   sleepSupport?: number;
+  propSupport?: number;
 }
 export const bodyLimits = {
   pelvisTilt: 0.08,
@@ -20,6 +21,7 @@ export const bodyLimits = {
   headStabilize: 1,
   headSupport: 1,
   sleepSupport: 1,
+  propSupport: 1,
 } as const;
 export interface BodyTransform {
   x: number;
@@ -39,7 +41,10 @@ export function boundedBody(controls: BodyControls = {}): Required<BodyControls>
     const value = controls[key] ?? 0;
     if (!Number.isFinite(value)) throw new Error('Non-finite body control: ' + key);
     return Math.max(
-      key === 'headStabilize' || key === 'headSupport' || key === 'sleepSupport'
+      key === 'headStabilize' ||
+        key === 'headSupport' ||
+        key === 'sleepSupport' ||
+        key === 'propSupport'
         ? 0
         : -bodyLimits[key],
       Math.min(bodyLimits[key], value),
@@ -53,6 +58,7 @@ export function boundedBody(controls: BodyControls = {}): Required<BodyControls>
     headStabilize: read('headStabilize'),
     headSupport: read('headSupport'),
     sleepSupport: read('sleepSupport'),
+    propSupport: read('propSupport'),
   };
 }
 export function rotatePart(part: BodyTransform, pivot: Vec2, angle: number) {

@@ -176,3 +176,33 @@ FK matching, reachable lengths, loop boundaries and support release.
 
 - Production browser sweep: 70 poses across 14 studies passed, including full-contact wrist
   residuals and stable supported-head anchors. The live nap/reconnect/wake/gesture flow passed.
+
+## Complete sleep-performance checkpoint
+
+The foundation StateRig opts into a support-aware nap plan. The baseline keeps its existing
+plans. Entry now stages a weight shift, controlled lowering, hand acquisition, supported
+pause, lowering to the head and final settle. Normal wake plants the hand before push-up,
+pauses, releases it, stretches, then rises. Urgent wake takes a shorter supported route.
+
+`KeyPose.handSupport` blends independently of sleep/face ownership. The wrist adapter can
+blend a calibrated floor plant into the cheek contact, compensating the external canvas
+rotation. Nap's seated corrective track now fades its foot offsets toward the lying pose
+rather than dropping those offsets when the ownership mode changes.
+
+For the supported rig, exit and same-spot wake plans may start at the actual sampled pose.
+The live state player supplies that pose on interruption; a raid during lowering no longer
+assumes the character has already reached the fully sleeping key. This guarantees matched
+position; arbitrary incoming velocity matching and final contact-shape art remain polish.
+
+The preserved lab includes Sleep cycle and Wake interrupt, with a longer timeline for the
+full cycle. Unit checks cover support ordering, end states, sampled interruption matching,
+live-player continuity, bounded values and reduced-motion bypass. The existing expression
+compatibility sweep remains in place. No source binary, default character or event routing
+has changed. Elbow/hand pressure shapes and the extreme-pose atlas remain an artwork pass;
+this checkpoint does not claim that those corrections have been authored.
+
+Checkpoint validation: 67 files / 592 tests passed; focused rig suite 82 passed. Production
+build, ESLint, formatting and 17 skills / 200 pinned files passed. The production browser
+verified 19 new performance poses, planted-wrist residuals, Studio nap, overlay reconnect,
+wake release and post-wake gesture. Next: joint/clothing corrective artwork, final motion
+polish, and native OBS/Tauri review. Resume from this document and RIG-LAB.md in a new thread.

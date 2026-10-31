@@ -115,7 +115,8 @@ describe('rig foundation mechanics', () => {
     const foundation = getCharacter('tavi-foundation');
     expect(foundation.id).toBe('tavi-foundation');
     expect(foundation.asset).toBe(getCharacter('tavi-refined').asset);
-    expect(foundationMotion.states).toBe(refinedMotion.states);
+    expect(foundationMotion.states?.keys.lie).toEqual(refinedMotion.states?.keys.lie);
+    expect(foundationMotion.states?.napStyle).toBe('supported');
     expect(foundationMotion.createPostprocessor).not.toBe(refinedMotion.createPostprocessor);
   });
 });

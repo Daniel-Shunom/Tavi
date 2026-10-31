@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createCharacterRenderer, type CharacterRenderer } from './renderer/adapter';
 import { getCharacter } from './renderer/characters/registry';
 import {
-  demoDuration,
+  durationFor,
   demoFrame,
   demoPlacement,
   rigScenes,
@@ -58,7 +58,9 @@ export function RigLab() {
         const elapsed = previous === null ? 0 : Math.min(0.05, (now - previous) / 1000);
         previous = now;
         const dt = current.playing ? elapsed : 0;
-        clock.current = current.playing ? (clock.current + dt) % demoDuration : current.time;
+        clock.current = current.playing
+          ? (clock.current + dt) % durationFor(current.scene)
+          : current.time;
         for (const [i, view] of views.entries()) {
           const canvas = canvases.current[i];
           if (!canvas) continue;
@@ -75,7 +77,7 @@ export function RigLab() {
           view.applyFrame(
             demoFrame(current.scene, clock.current, current.strength, current.controls, i === 1),
           );
-          view.draw(dt, demoPlacement(current.scene, size, width, height));
+          view.draw(dt, demoPlacement(current.scene, size, width, height, clock.current, i === 1));
           canvas.dataset['sampleTime'] = clock.current.toFixed(4);
           canvas.dataset['scene'] = current.scene;
         }
@@ -233,7 +235,7 @@ export function RigLab() {
       </fieldset>
       {error && <p role="alert">{error}</p>}
       <div
-        className={`rig-comparison rig-surface-${background}${scene.startsWith('Sleep') ? ' rig-sleep' : ''}`}
+        className={`rig-comparison rig-surface-${background}${scene.startsWith('Sleep') || scene === 'Wake interrupt' ? ' rig-sleep' : ''}`}
       >
         {['Refined / baseline', 'Foundation / candidate'].map((label, i) => (
           <section className="rig-stage" key={label} aria-label={label}>
@@ -256,7 +258,7 @@ export function RigLab() {
           aria-label="Pose time"
           type="range"
           min="0"
-          max={demoDuration}
+          max={durationFor(scene)}
           step="0.01"
           value={time}
           onChange={(e) => {
@@ -267,7 +269,7 @@ export function RigLab() {
             setEpoch((v) => v + 1);
           }}
         />
-        <span>{demoDuration.toFixed(2)} s</span>
+        <span>{durationFor(scene).toFixed(2)} s</span>
       </div>
       <footer>
         <p>Same art. Same clock. New contact and settling mechanics.</p>
