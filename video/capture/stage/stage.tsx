@@ -31,7 +31,7 @@ const id = (prefix: string) => `${prefix}-${String(++sequence)}`;
 type Listener = (state: State) => void;
 let current: State = initialState({
   ...defaults,
-  character: 'tavi-refined',
+  character: params.get('character') ?? 'tavi-refined',
   name: 'Tavi',
   captions: { studio: false, overlay: false },
   // Autonomy lives in the service; the stage only plays what the shot list asks for.

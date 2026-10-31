@@ -36,7 +36,9 @@ async function capture(name) {
       errors.push(message.text());
   });
   await page.clock.install({ time: START });
-  await page.goto(`${base}/video/capture/stage/?presentation=${shot.presentation}`);
+  await page.goto(
+    `${base}/video/capture/stage/?presentation=${shot.presentation}${process.env.STAGE_CHARACTER ? '&character=' + process.env.STAGE_CHARACTER : ''}`,
+  );
   await page.waitForFunction(
     () => document.body.dataset.ready || document.body.dataset.error,
     null,

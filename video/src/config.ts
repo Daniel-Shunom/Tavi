@@ -196,15 +196,16 @@ export const timeline: Beat[] = [
     kind: 'feature',
     at: 40.5,
     eyebrow: 'Knows the room',
-    headline: 'Climbs your webcam.',
-    sub: 'Sits, naps, peeks at chat, wanders home.',
+    headline: 'Walks over to chat.',
+    sub: 'She knows where your panels are.',
+    // The peek capture: she crosses the overlay to the chat panel and leans in.
     media: {
       type: 'tavi',
-      shot: 'perch',
-      from: 2.2,
-      zoom: 2.1,
-      focus: [0.2, 0.6],
-      anchor: [0.68, 0.55],
+      shot: 'peek',
+      from: 1.2,
+      zoom: 1.6,
+      focus: [0.66, 0.76],
+      anchor: [0.66, 0.55],
     },
   },
   {
@@ -243,14 +244,9 @@ export const timeline: Beat[] = [
     at: 62.5,
     eyebrow: 'Even when it is quiet',
     headline: 'She is still there.',
-    media: {
-      type: 'tavi',
-      shot: 'nap',
-      from: 4.5,
-      zoom: 2.2,
-      focus: [0.23, 0.66],
-      anchor: [0.68, 0.55],
-    },
+    sub: 'Yawns, fidgets, waits for the next message.',
+    // Sleepy, then bored, from the third mood reel.
+    media: { type: 'tavi', shot: 'moods-c', from: 0.4 + 0.6, ...faceFrame, anchor: [0.68, 0.56] },
   },
   { kind: 'outro', at: 68.5 },
 ];

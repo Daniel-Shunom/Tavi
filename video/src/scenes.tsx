@@ -288,6 +288,7 @@ export function Feature({
     ) : beat.media.type === 'screen' ? (
       <Screen
         src={beat.media.src}
+        frames={beat.media.frames}
         from={beat.media.from}
         zoom={beat.media.zoom}
         focus={beat.media.focus}
