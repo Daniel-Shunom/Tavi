@@ -16,6 +16,7 @@ export default tseslint.config(
       'test-results/**',
       'playwright-report/**',
       'tools/**',
+      'video/**',
     ],
   },
   js.configs.recommended,

@@ -13,3 +13,7 @@ docs/PERSONALITY.md
 
 # Rive CLI art sources (third-party and generated RML)
 art/
+
+# Trailer footage, renders and the user's own media (video/README.md)
+video/public/
+video/out/

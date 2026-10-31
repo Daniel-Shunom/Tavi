@@ -1,0 +1,27 @@
+{
+  "name": "tavi-trailer",
+  "private": true,
+  "type": "module",
+  "description": "Tavi product trailer, authored in Remotion from footage captured off the real site and Studio.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render Trailer out/tavi-trailer.mp4",
+    "still": "remotion still Trailer",
+    "capture": "node capture/tavi.mjs && node capture/screens.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.539",
+    "@remotion/google-fonts": "^4.0.539",
+    "@remotion/media-utils": "^4.0.539",
+    "@remotion/transitions": "^4.0.539",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.539"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}
