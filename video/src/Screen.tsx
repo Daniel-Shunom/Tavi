@@ -1,7 +1,10 @@
-// Screen footage (capture/screens.mjs) or one of your own clips, inside a soft window with a slow
-// push-in. Missing files show a labelled placeholder so the render never breaks.
+// Screen footage (capture/screens.mjs) as a JPEG sequence, or one of your own clips as a video,
+// with a slow push-in. A missing clip shows a labelled placeholder so the render never breaks.
+// Captured footage is a sequence rather than a video on purpose: Remotion's video decoder gave up
+// on seeks into our screen recordings mid-render, and an image per frame cannot.
 import {
   AbsoluteFill,
+  Img,
   interpolate,
   OffthreadVideo,
   staticFile,
@@ -9,17 +12,25 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { useExists } from './audio';
+import { pad } from './footage';
 import { colors } from './theme';
 import { Label, sans } from './type';
 
+export interface ScreenSource {
+  /** A folder of 00000.jpg… at 30 fps (captured footage), or a single video file (your clip). */
+  src: string;
+  /** Frame count of a sequence; omit for a video file. */
+  frames?: number;
+}
+
 export function Screen({
   src,
+  frames,
   from = 0,
   zoom = [1, 1.1],
   focus = [0.5, 0.5],
   label,
-}: {
-  src: string;
+}: ScreenSource & {
   from?: number;
   zoom?: [number, number];
   focus?: [number, number];
@@ -27,8 +38,16 @@ export function Screen({
 }) {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
-  const exists = useExists(src);
+  const sequence = frames !== undefined;
+  const exists = useExists(sequence ? `${src}/${pad(0)}.jpg` : src);
   const scale = interpolate(frame, [0, durationInFrames], zoom, { extrapolateRight: 'clamp' });
+  const style = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover' as const,
+    transform: `scale(${scale.toFixed(4)})`,
+    transformOrigin: `${(focus[0] * 100).toFixed(1)}% ${(focus[1] * 100).toFixed(1)}%`,
+  };
   if (exists === false)
     return (
       <AbsoluteFill
@@ -49,20 +68,17 @@ export function Screen({
       </AbsoluteFill>
     );
   if (exists === null) return null;
+  const start = Math.round(from * 30);
   return (
     <AbsoluteFill style={{ overflow: 'hidden', background: colors.panel }}>
-      <OffthreadVideo
-        src={staticFile(src)}
-        startFrom={Math.round(from * 30)}
-        muted
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          transform: `scale(${scale.toFixed(4)})`,
-          transformOrigin: `${(focus[0] * 100).toFixed(1)}% ${(focus[1] * 100).toFixed(1)}%`,
-        }}
-      />
+      {sequence ? (
+        <Img
+          src={staticFile(`${src}/${pad(Math.min(frames - 1, start + frame))}.jpg`)}
+          style={style}
+        />
+      ) : (
+        <OffthreadVideo src={staticFile(src)} startFrom={start} muted style={style} />
+      )}
     </AbsoluteFill>
   );
 }

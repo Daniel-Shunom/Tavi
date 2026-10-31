@@ -50,7 +50,9 @@ export type Beat =
         | TaviMedia
         | {
             type: 'screen';
+            /** A captured sequence folder (with frames) or a video file. */
             src: string;
+            frames?: number;
             from?: number;
             zoom?: [number, number];
             focus?: [number, number];
@@ -204,7 +206,8 @@ export const timeline: Beat[] = [
     sub: 'Look, personality, hotkeys, scene.',
     media: {
       type: 'screen',
-      src: 'footage/screens/studio.mp4',
+      src: 'footage/screens/studio',
+      frames: 784,
       from: 3,
       zoom: [1.05, 1.18],
       focus: [0.5, 0.45],
@@ -217,7 +220,8 @@ export const timeline: Beat[] = [
     headline: 'Scroll. She follows.',
     media: {
       type: 'screen',
-      src: 'footage/screens/landing.mp4',
+      src: 'footage/screens/landing',
+      frames: 1205,
       from: 5,
       zoom: [1, 1.12],
       focus: [0.5, 0.5],

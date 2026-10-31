@@ -1,6 +1,7 @@
 // Records real-time screen footage of the landing page and Studio for the trailer:
-//   public/footage/screens/landing.mp4    a slow scroll down the site (Tavi follows)
-//   public/footage/screens/studio.mp4     the sign-in screen, then every Studio view, dark theme
+//   public/footage/screens/landing/       a slow scroll down the site (Tavi follows), one JPEG per frame
+//   public/footage/screens/studio/        the sign-in screen, then every Studio view, dark theme
+// (plus landing.mp4 / studio.mp4 for reference). The frame counts it prints go in src/config.ts.
 // Needs the built service running (TAVI_PORT=4325 npx tsx server/index.ts from the repo root).
 // Usage: node capture/screens.mjs [landing|studio]   (from video/; TAVI_SITE_URL overrides the service)
 import { chromium } from '@playwright/test';
@@ -13,6 +14,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const base = process.env.TAVI_SITE_URL ?? 'http://127.0.0.1:4325';
 const out = join(here, '..', 'public', 'footage', 'screens');
 const size = { width: 1920, height: 1080 };
+const ffmpeg = join(
+  here,
+  '..',
+  'node_modules',
+  '@remotion',
+  `compositor-${process.platform}-${process.arch}${process.platform === 'win32' ? '-msvc' : process.platform === 'linux' ? '-gnu' : ''}`,
+  process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg',
+);
 await mkdir(out, { recursive: true });
 
 const browser = await chromium.launch({
@@ -42,12 +51,13 @@ async function record(name, run) {
   const webm = join(out, `${name}.webm`);
   await rename(join(dir, file), webm);
   await rm(dir, { recursive: true, force: true });
-  // Playwright's variable-rate WebM has no index Remotion can seek; re-encode to constant-rate MP4.
+  // Playwright's variable-rate WebM is not something Remotion can seek reliably, so re-encode it
+  // to a constant-rate MP4 (for reference) and extract a JPEG per frame, which the composition
+  // reads like the Tavi sequences (src/Screen.tsx). Remotion bundles ffmpeg; call it directly.
+  const mp4 = join(out, `${name}.mp4`);
   const encode = spawnSync(
-    'npx',
+    ffmpeg,
     [
-      'remotion',
-      'ffmpeg',
       '-y',
       '-i',
       webm,
@@ -60,13 +70,25 @@ async function record(name, run) {
       '-pix_fmt',
       'yuv420p',
       '-an',
-      join(out, `${name}.mp4`),
+      mp4,
     ],
-    { cwd: join(here, '..'), shell: true, stdio: 'ignore' },
+    { stdio: 'ignore' },
   );
   if (encode.status !== 0) throw new Error(`ffmpeg failed for ${name}.webm`);
   await rm(webm, { force: true });
-  console.log(`${name}.mp4: ${String(Math.round((Date.now() - started) / 1000))}s`);
+  const folder = join(out, name);
+  await rm(folder, { recursive: true, force: true });
+  await mkdir(folder, { recursive: true });
+  const extract = spawnSync(
+    ffmpeg,
+    ['-y', '-i', mp4, '-q:v', '3', '-f', 'image2', '-start_number', '0', join(folder, '%05d.jpg')],
+    { stdio: 'ignore' },
+  );
+  if (extract.status !== 0) throw new Error(`ffmpeg failed to extract ${name}.mp4`);
+  const frames = (await readdir(folder)).length;
+  console.log(
+    `${name}: ${String(frames)} frames (${String(Math.round((Date.now() - started) / 1000))}s); set frames: ${String(frames)} in src/config.ts`,
+  );
 }
 
 await record('landing', async (page) => {
