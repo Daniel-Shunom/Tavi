@@ -28,11 +28,11 @@ Keep Tavi Studio open while you stream. Closing it stops the overlay.
 
 Changes you make in the studio (name, personality, placement, reactions, quiet mode, tuck away) appear in OBS right away. If you start Tavi Studio after OBS, the overlay reconnects on its own; if it stays blank, right-click the source and choose **Refresh**.
 
-In the studio, **Open transparent overlay** opens the overlay in your normal browser so you can preview it.
+In the studio, **Open the overlay** opens the overlay in your normal browser so you can preview it. Setup also gives the link for the OBS dock (`/dock`), Studio's live controls in an OBS **Custom Browser Dock**.
 
 ## Twitch chat
 
-Use the Twitch panel in the studio to connect. Tavi shows a code; **Authorize on Twitch** opens `https://www.twitch.tv/activate` in your default browser, where you sign in and enter the code if asked. Tavi only asks for read access to chat. Live chat reactions are bounded rules, not AI.
+Tavi Studio opens on a sign-in screen: **Connect with Twitch**, or **Skip for now** and connect later in **Setup › Let her hear chat**. Twitch sign-in is kept in memory, so after restarting Tavi the screen asks you to reconnect (unless you skipped it). Tavi shows a code; **Authorize on Twitch** opens `https://www.twitch.tv/activate` in your default browser, where you sign in and enter the code if asked. Tavi only asks for read access to chat. Live chat reactions are bounded rules, not AI.
 
 ## Where Tavi stores things
 
@@ -57,7 +57,7 @@ Paste a path into the File Explorer address bar to open it. Twitch sign-in is ke
 
 ## How the app works
 
-- The Tauri 2 shell (`src-tauri/`) starts the bundled `resources/runtime/node.exe resources/service/server.mjs` with `TAVI_DATA_DIR` set to the per-user app data folder, writes its output to `service.log`, waits for `/api/health`, and then opens the studio at `http://127.0.0.1:4318`.
+- The Tauri 2 shell (`src-tauri/`) starts the bundled `resources/runtime/node.exe resources/service/server.mjs` with `TAVI_DATA_DIR` set to the per-user app data folder, writes its output to `service.log`, waits for `/api/health`, and then opens the studio at `http://127.0.0.1:4318/studio` (the site root is the public landing page).
 - The service runs inside a Windows job object with "kill on close", so it stops when Tavi exits, crashes, or is ended from Task Manager. A normal exit also stops it directly.
 - If port 4318 is taken, or the service fails to start, the app shows an error dialog and exits. It never stops or reuses another process.
 - The studio is an ordinary loopback web page, so the relative `/ws` and `/api` URLs and the service's origin checks work unchanged, and the renderer does not depend on Tauri.

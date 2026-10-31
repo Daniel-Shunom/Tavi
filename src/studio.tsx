@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowUpRight, Heart, Plug, Radio, Sparkles, Wifi, WifiOff } from 'lucide-react';
 import type { useConnection } from './useConnection';
 import { catalog } from './renderer/characters/registry';
@@ -7,6 +7,7 @@ import { LiveView } from './studio/LiveView';
 import { LookView } from './studio/LookView';
 import { PersonalityView } from './studio/PersonalityView';
 import { SetupView, type SetupProgress } from './studio/SetupView';
+import { Welcome, readTwitchChoice } from './studio/Welcome';
 import { quickCues, supports, typing } from './studio/parts';
 import './studio.css';
 
@@ -96,6 +97,11 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
   const [view, setView] = useState<View>(readView);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [progress, setProgress] = useState<SetupProgress>(readProgress);
+  // The Twitch door first, unless they skipped it before (Setup has it later).
+  const [welcome, setWelcome] = useState(() => readTwitchChoice() !== 'skipped');
+  const enter = useCallback(() => {
+    setWelcome(false);
+  }, []);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -130,7 +136,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
   // Streamer-first keys, anywhere in Studio: 1–8 fire the quick reactions, Esc stops.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (!connected || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (welcome || !connected || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === 'Escape') {
         send({ type: 'cancel' });
         return;
@@ -145,7 +151,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
     return () => {
       removeEventListener('keydown', onKey);
     };
-  }, [connected, send, character, state.retracted]);
+  }, [welcome, connected, send, character, state.retracted]);
 
   const go = (next: View) => {
     setView(next);
@@ -165,6 +171,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
           ? 'Enjoying the quiet'
           : 'Hanging out';
   const props = { ...connection, performing, statusLine };
+  if (welcome) return <Welcome connection={connection} theme={theme} onDone={enter} />;
   const stepsDone = [progress.look, progress.obs, progress.chat].filter(Boolean).length;
   const page = views[view];
 

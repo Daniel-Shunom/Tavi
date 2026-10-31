@@ -17,6 +17,8 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 page.on('pageerror', (e) => errors.push('studio: ' + e.message));
 page.on('console', (m) => m.type() === 'error' && errors.push('studio: ' + m.text()));
 await page.goto(base + '/studio#look');
+// A fresh browser meets the Twitch sign-in screen first.
+await page.getByRole('button', { name: 'Skip for now' }).click();
 await page.waitForSelector('#look-panel');
 const useButton = page.locator('#look-panel button', { hasText: /^Use / });
 if (await useButton.count()) await useButton.click();

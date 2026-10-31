@@ -34,6 +34,8 @@ try {
     return route.fulfill({ json: status });
   });
   await page.goto('http://127.0.0.1:5173/studio#setup');
+  // A fresh browser meets the Twitch sign-in screen first.
+  await page.getByRole('button', { name: 'Skip for now' }).click();
   await expect(page.getByRole('button', { name: 'Connect Twitch', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Connect Twitch', exact: true }).click();
   await expect(page.getByText('BROWSER-TEST', { exact: true })).toBeVisible();

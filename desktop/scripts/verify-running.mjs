@@ -42,7 +42,9 @@ try {
   };
   const studio = await context.newPage();
   watch(studio, 'studio');
-  await studio.goto(base);
+  await studio.goto(`${base}/studio`);
+  // A fresh browser meets the Twitch sign-in screen first.
+  await studio.getByRole('button', { name: 'Skip for now' }).click();
   await studio.getByText('Local service connected').waitFor({ timeout: 15000 });
   await studio.locator('canvas').first().waitFor({ timeout: 15000 });
   check(true, 'studio connected and rendered a canvas');
