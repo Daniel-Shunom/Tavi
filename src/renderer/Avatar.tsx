@@ -331,6 +331,7 @@ export function Avatar({
           inputs: { ...output.inputs },
           nodes: { ...output.nodes },
         };
+        if (output.bodyControls) renderFrame.bodyControls = output.bodyControls;
         if (manifest.idleLoop)
           renderFrame.tracks.push({
             track: manifest.idleLoop.track,

@@ -128,6 +128,10 @@ export interface ClipRequest {
 }
 
 export interface MotionFrame {
+  /** Shared service seconds when a body cue is active, independent of mount time. */
+  serviceTime?: number;
+  reducedMotion?: boolean;
+  bodyControls?: import('../rig/body').BodyControls;
   time: number;
   pose: Pose;
   clips: ClipRequest[];

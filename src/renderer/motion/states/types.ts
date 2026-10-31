@@ -20,6 +20,8 @@ export interface KeyPose {
   dy: number;
   rot: number;
   sleep: number;
+  /** Weight of a supporting hand on the floor during lowering/push-up. */
+  handSupport?: number;
 }
 
 export const restKey: KeyPose = { pose: {}, lift: 0, dx: 0, dy: 0, rot: 0, sleep: 0 };
@@ -46,6 +48,8 @@ export type KeyName =
   | 'airTuck';
 
 export interface StateRig {
+  /** Opt-in support-aware nap choreography; existing rigs keep their current plans. */
+  napStyle?: 'supported';
   /** Key poses (pose channels only; lift/rotation are solved by the planner). */
   keys: Record<KeyName, Partial<Pose>>;
   /** Seat contact above the soles when seated on a ledge (body heights). */

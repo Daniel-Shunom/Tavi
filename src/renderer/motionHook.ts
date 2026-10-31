@@ -2,6 +2,7 @@
 // The expression system decides WHAT and WHEN; a motion layer decides HOW things move.
 // Outputs refer only to manifest handles (motionTracks, nodes, inputs) and are combined
 // additively over the base pose. Register from src/renderer/motion/ with registerMotionLayer().
+import type { BodyControls } from './rig/body';
 import type { Target } from '../../shared/expressions';
 import type { Movement, Point } from '../../shared/locomotion';
 import type { PresenceTransition } from '../../shared/presence';
@@ -80,6 +81,7 @@ export interface MotionInput {
   };
 }
 export interface MotionOutput {
+  bodyControls?: BodyControls;
   /** Extra track samples (handles from manifest.motionTracks or locomotion.walk). */
   tracks?: TrackApplication[];
   /** State machine input handle -> value. */

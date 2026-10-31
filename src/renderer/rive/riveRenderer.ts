@@ -223,6 +223,7 @@ export async function createRiveRenderer(
       activeRenderer = renderer;
     const postprocessor = rig?.createPostprocessor?.(activeBoard);
     let travel: number | undefined;
+    let bodyControls: RenderFrame['bodyControls'];
     if (attachments || variantRig) world = riveTransformSource(activeBoard);
     const characterBounds = bounds(activeBoard);
     function apply(handle: string, position: number, mix: number) {
@@ -255,7 +256,9 @@ export async function createRiveRenderer(
       },
       applyFrame(frame: RenderFrame) {
         if (disposed) return;
+        postprocessor?.prepare?.();
         travel = frame.travel;
+        bodyControls = frame.bodyControls;
         // Report the renderer actually drawing, not an older async load that
         // finishes after its Avatar effect has already been cancelled.
         canvas.dataset['characterId'] = manifest.id;
@@ -312,7 +315,9 @@ export async function createRiveRenderer(
         const ratio = Math.min(devicePixelRatio || 1, 2);
         machine?.advance(dt);
         activeBoard.advance(dt);
-        postprocessor?.update(dt, placement, travel);
+        postprocessor?.update(dt, placement, travel, bodyControls);
+        if (postprocessor?.diagnostics)
+          canvas.dataset['rigDiagnostics'] = JSON.stringify(postprocessor.diagnostics());
         // eslint-disable-next-line @typescript-eslint/no-deprecated -- the pinned 2.45 runtime lacks beginFrame.
         activeRenderer.clear();
         activeRenderer.save();
@@ -357,6 +362,7 @@ export async function createRiveRenderer(
       dispose,
       debugClips: () => [...tracks.keys()],
       debugSample(track, position) {
+        postprocessor?.prepare?.();
         applyRest();
         if (track) apply(track, position, 1);
         applyAppearance();

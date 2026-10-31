@@ -81,6 +81,7 @@ if (existsSync(resolve('dist/index.html'))) {
       );
     },
   });
+  app.get('/rig-lab', async (_, reply) => reply.sendFile('index.html'));
   app.get('/studio', async (_, reply) => reply.sendFile('index.html'));
   app.get('/overlay', async (_, reply) => reply.sendFile('index.html'));
   app.get('/dock', async (_, reply) => reply.sendFile('index.html'));
