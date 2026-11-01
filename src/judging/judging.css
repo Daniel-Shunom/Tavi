@@ -1,0 +1,92 @@
+.judge-start {
+  min-height: 100dvh;
+}
+.studio.judge-bar {
+  height: auto;
+  flex: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 24px;
+  background: var(--panel);
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  font:
+    14px/20px 'DM Sans',
+    sans-serif;
+}
+.judge-bar > span:first-child {
+  margin-right: auto;
+}
+.judge-bar time {
+  margin-left: 8px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.judge-bar button {
+  min-height: 44px;
+  padding: 8px 12px;
+  color: inherit;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.judge-bar button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.judge-bar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.judge-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.judge-workspace {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.judge-workspace > .studio {
+  height: 100%;
+}
+.judge-message {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: #100f17;
+  color: #f4f0f7;
+}
+.judge-message a {
+  color: #c7b3ea;
+}
+.judge-test-label {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #17151f;
+  color: #f4f0f7;
+  font:
+    14px/20px 'DM Sans',
+    sans-serif;
+}
+@media (max-width: 600px) {
+  .studio.judge-bar {
+    padding: 8px 16px;
+    gap: 8px;
+  }
+  .judge-bar > span:first-child {
+    flex-basis: 100%;
+  }
+}

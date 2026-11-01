@@ -10,6 +10,8 @@ import { SetupView, type SetupProgress } from './studio/SetupView';
 import { Welcome, readTwitchChoice } from './studio/Welcome';
 import { quickCues, supports, typing } from './studio/parts';
 import './studio.css';
+import { isJudgingSession } from './judging/transport';
+import { useOverlayUrl } from './judging/Session';
 
 // Tavi Studio: four places, one character. Live is the control room while streaming; Look,
 // Personality and Setup are where she is made, given a character and put on stream. The theme is
@@ -59,6 +61,7 @@ function readView(): View {
   return viewIds.find((view) => view === id) ?? 'live';
 }
 function readTheme(): Theme {
+  if (isJudgingSession()) return 'moonlight';
   try {
     const stored = localStorage.getItem(THEME_KEY);
     return themes.find((theme) => theme.id === stored)?.id ?? 'moonlight';
@@ -68,6 +71,7 @@ function readTheme(): Theme {
 }
 function readProgress(): SetupProgress {
   const none = { look: false, obs: false, chat: false, dock: false };
+  if (isJudgingSession()) return none;
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(SETUP_KEY) ?? '{}');
     if (!stored || typeof stored !== 'object') return none;
@@ -83,6 +87,7 @@ function readProgress(): SetupProgress {
   }
 }
 function remember(key: string, value: string) {
+  if (isJudgingSession()) return;
   try {
     localStorage.setItem(key, value);
   } catch {
@@ -91,6 +96,7 @@ function remember(key: string, value: string) {
 }
 
 export function Studio(connection: ReturnType<typeof useConnection>) {
+  const overlayUrl = useOverlayUrl();
   const { state, connected, error, send, serverNow } = connection;
   const c = state.config;
   const character = catalog[c.character];
@@ -230,7 +236,11 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
           </div>
           <span className="st-conn" role="status" data-online={connected || undefined}>
             {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
-            {connected ? 'Local service connected' : 'Reconnecting to service'}
+            {connected
+              ? isJudgingSession()
+                ? 'Preview connected'
+                : 'Local service connected'
+              : 'Reconnecting to service'}
           </span>
         </div>
       </aside>
@@ -242,7 +252,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
             <p>{page.lede}</p>
           </div>
           {view === 'live' ? (
-            <a className="st-pill" href="/overlay" target="_blank" rel="noreferrer">
+            <a className="st-pill" href={overlayUrl} target="_blank" rel="noreferrer">
               Open the overlay <ArrowUpRight size={14} />
             </a>
           ) : null}

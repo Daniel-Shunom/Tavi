@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { initialState, serverMessageSchema, type Command, type State } from '../shared/protocol';
+import { serviceSocketUrl } from './judging/transport';
 export function useConnection() {
   const [state, setState] = useState<State>(initialState);
   const [connected, setConnected] = useState(false);
@@ -11,9 +12,7 @@ export function useConnection() {
     let disposed = false;
     let retry: ReturnType<typeof setTimeout>;
     function connect() {
-      const socket = new WebSocket(
-        `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`,
-      );
+      const socket = new WebSocket(serviceSocketUrl());
       ws.current = socket;
       socket.onopen = () => {
         if (!disposed) {

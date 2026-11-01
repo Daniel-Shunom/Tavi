@@ -3,6 +3,7 @@ import { ArrowRight, Check, ExternalLink } from 'lucide-react';
 import { Avatar } from '../renderer/Avatar';
 import type { useConnection } from '../useConnection';
 import { disconnectedTwitch, twitchStatusSchema, type TwitchStatus } from '../../shared/twitch';
+import { fetchService, isJudgingSession } from '../judging/transport';
 
 // The door into Studio: connect Twitch first, or skip and do it later in Setup. Twitch sign-in is
 // kept in memory by the service, so a streamer who has connected before sees this again after
@@ -12,6 +13,7 @@ const KEY = 'tavi.studio.twitch';
 export type TwitchChoice = 'connected' | 'skipped' | null;
 
 export function readTwitchChoice(): TwitchChoice {
+  if (isJudgingSession()) return null;
   try {
     const stored = localStorage.getItem(KEY);
     return stored === 'connected' || stored === 'skipped' ? stored : null;
@@ -20,6 +22,7 @@ export function readTwitchChoice(): TwitchChoice {
   }
 }
 function rememberChoice(choice: Exclude<TwitchChoice, null>) {
+  if (isJudgingSession()) return;
   try {
     localStorage.setItem(KEY, choice);
   } catch {
@@ -46,7 +49,7 @@ export function Welcome({
   const [error, setError] = useState('');
 
   const read = useCallback(async () => {
-    const response = await fetch('/api/twitch', { cache: 'no-store' });
+    const response = await fetchService('/api/twitch', { cache: 'no-store' });
     if (!response.ok) throw new Error('Could not read Twitch status.');
     return twitchStatusSchema.parse(await response.json());
   }, []);
@@ -89,7 +92,7 @@ export function Welcome({
     setBusy(true);
     setError('');
     try {
-      const response = await fetch('/api/twitch/' + value, {
+      const response = await fetchService('/api/twitch/' + value, {
         method: 'POST',
         headers: { 'x-tavi-request': 'studio' },
       });

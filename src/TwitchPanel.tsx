@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy, ExternalLink, MessageCircle, Radio, Unplug } from 'lucide-react';
 import { disconnectedTwitch, twitchStatusSchema, type TwitchStatus } from '../shared/twitch';
+import { fetchService, isJudgingSession } from './judging/transport';
 export function TwitchPanel({
   serviceConnected,
   onPhase,
@@ -19,7 +20,7 @@ export function TwitchPanel({
     phaseListener.current?.(status.phase);
   }, [status.phase]);
   const read = useCallback(async () => {
-    const response = await fetch('/api/twitch', { cache: 'no-store' });
+    const response = await fetchService('/api/twitch', { cache: 'no-store' });
     if (!response.ok) throw new Error('Could not read Twitch status.');
     return twitchStatusSchema.parse(await response.json());
   }, []);
@@ -53,7 +54,7 @@ export function TwitchPanel({
     setBusy(true);
     setError('');
     try {
-      const response = await fetch('/api/twitch/' + value, {
+      const response = await fetchService('/api/twitch/' + value, {
         method: 'POST',
         headers: { 'x-tavi-request': 'studio' },
       });
@@ -92,7 +93,11 @@ export function TwitchPanel({
         </h2>
         <span className={`twitch-phase ${status.phase === 'connected' ? 'online' : ''}`}>
           <Radio size={12} />
-          {serviceConnected ? labels[status.phase] : 'Local service disconnected'}
+          {serviceConnected
+            ? labels[status.phase]
+            : isJudgingSession()
+              ? 'Preview disconnected'
+              : 'Local service disconnected'}
         </span>
       </div>
       <div className="twitch-content">

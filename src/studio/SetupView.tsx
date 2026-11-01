@@ -8,6 +8,7 @@ import { choreographies, choreographyIds } from '../../shared/presence';
 import type { Config } from '../../shared/protocol';
 import type { StudioProps } from './types';
 import { Card, SwitchRow } from './parts';
+import { judgingDockUrl, useOverlayUrl } from '../judging/Session';
 
 // Setup: getting her onto a stream, once. Three steps (make her yours, add her to OBS, let her
 // hear chat), an optional OBS dock, and where she hangs out. The service cannot see OBS, so the
@@ -109,6 +110,7 @@ export function SetupView({
   onProgress: (change: Partial<SetupProgress>) => void;
   onOpenLook: () => void;
 }) {
+  const overlayUrl = useOverlayUrl();
   const c = state.config;
   const patch = (value: Partial<Config>) => {
     send({ type: 'configure', patch: value });
@@ -161,7 +163,7 @@ export function SetupView({
               </span>
             </li>
           </ol>
-          <CopyField label="Overlay link" value={`${location.origin}/overlay`} />
+          <CopyField label="Overlay link" value={overlayUrl} />
           <div className="st-inline">
             <button
               type="button"
@@ -173,7 +175,7 @@ export function SetupView({
             >
               <Check size={16} /> {progress.obs ? 'Added' : 'I’ve added her'}
             </button>
-            <a className="st-link" href="/overlay" target="_blank" rel="noreferrer">
+            <a className="st-link" href={overlayUrl} target="_blank" rel="noreferrer">
               Preview the overlay <ArrowUpRight size={14} />
             </a>
           </div>
@@ -208,7 +210,7 @@ export function SetupView({
             Add a small Tavi panel inside OBS, so you can make her react without leaving it. In OBS,
             open <b>Docks</b> › <b>Custom Browser Docks</b>, name it Tavi and paste this link.
           </p>
-          <CopyField label="Dock link" value={`${location.origin}/dock`} />
+          <CopyField label="Dock link" value={judgingDockUrl()} />
           <div className="st-inline">
             <button
               type="button"

@@ -1,0 +1,15 @@
+.git
+.claude
+.codex
+.agents
+.env
+.env.*
+node_modules
+desktop
+video
+dist
+test-results
+experiments
+art
+public
+docs
