@@ -5,3 +5,5 @@ public/footage/
 # Your own files: the music track, voiceover and clips are never committed.
 public/audio/
 public/clips/
+# Copied from ../brand/screenshots for the gallery stills.
+public/screens-hq/

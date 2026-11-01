@@ -2,10 +2,12 @@ import { Composition } from 'remotion';
 import { FPS, HEIGHT, totalSeconds, WIDTH } from './config';
 import { Trailer } from './Trailer';
 import { Ad, AD_FRAMES } from './ad/Ad';
+import { BrandStills } from './brand/Brand';
 
 export function Root() {
   return (
     <>
+    <BrandStills />
     <Composition
       id="Ad45"
       component={Ad}
