@@ -12,11 +12,14 @@ import { motionRigs } from './renderer/characters/motionRigs';
 import { installMotionLayer } from './renderer/motion/hook';
 import './style.css';
 import riveWasm from '@rive-app/webgl2/rive.wasm?url';
-import taviArtwork from './renderer/characters/tavi-refined/tavi-refined.riv?url';
+import taviArtwork from './renderer/characters/tavi-foundation/tavi-foundation.riv?url';
+import { JudgeStart, SessionBoundary } from './judging/Session';
+import { isJudgingSession } from './judging/transport';
 
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
 const studio = location.pathname === '/studio';
+const judge = location.pathname === '/judge';
 const rigLab = location.pathname === '/rig-lab';
 const RigLab = React.lazy(() => import('./RigLab').then((module) => ({ default: module.RigLab })));
 if (rigLab) document.documentElement.classList.add('rig-lab-mode');
@@ -31,7 +34,8 @@ const Studio = React.lazy(() => import('./studio').then((module) => ({ default: 
 const Dock = React.lazy(() => import('./studio/Dock').then((module) => ({ default: module.Dock })));
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
 if (overlay) document.documentElement.classList.add('overlay');
-const landing = !overlay && !studio && !avatarLab && !dock && !rigLab;
+const landing = !overlay && !studio && !avatarLab && !dock && !rigLab && !judge;
+const prerenderedLanding = location.pathname === '/';
 if (landing) {
   document.documentElement.classList.add('landing-mode');
   // Start Tavi's runtime, renderer and artwork now, alongside the page, not after it mounts
@@ -48,6 +52,8 @@ if (landing) {
   void import('./renderer/rive/riveRenderer');
 }
 function App() {
+  if (judge || (studio && import.meta.env['VITE_TAVI_JUDGING'] === 'true' && !isJudgingSession()))
+    return <JudgeStart />;
   if (rigLab)
     return (
       <React.Suspense fallback={<p>Loading rig...</p>}>
@@ -93,12 +99,14 @@ const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Tavi root element is missing');
 const app = (
   <React.StrictMode>
-    <App />
+    <SessionBoundary>
+      <App />
+    </SessionBoundary>
   </React.StrictMode>
 );
 // The built page carries the landing pre-rendered (tools/prerender-landing.mjs): hydrate it, or
 // clear it for the studio, overlay and avatar lab.
-if (landing && rootElement.hasChildNodes()) hydrateRoot(rootElement, app);
+if (prerenderedLanding && rootElement.hasChildNodes()) hydrateRoot(rootElement, app);
 else {
   rootElement.replaceChildren();
   createRoot(rootElement).render(app);

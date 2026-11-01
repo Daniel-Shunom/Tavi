@@ -37,6 +37,7 @@ import { TaviLife, type LifeCue, type Posture } from './landing/life';
 import { AWAY, VisitorReactions } from './landing/reactions';
 import { HeroGaze, type GazeFrame } from './landing/heroGaze';
 import { sceneLayoutRect } from './landing/sceneLayout';
+import { DownloadOptions } from './landing/DownloadOptions';
 import './landing.css';
 
 /**
@@ -109,6 +110,16 @@ function demoState(
 }
 
 export function LandingPage() {
+  const downloadPage = typeof window !== 'undefined' && window.location.pathname === '/download';
+  useEffect(() => {
+    if (!downloadPage) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById('download')?.scrollIntoView({ block: 'start' });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [downloadPage]);
   const deskRef = useRef<HTMLDivElement>(null);
   const webcamRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<HTMLDivElement>(null);
@@ -819,6 +830,7 @@ export function LandingPage() {
         <nav aria-label="Main navigation">
           <a href="#the-scene">Meet Tavi</a>
           <a href="#personality">How it feels</a>
+          <a href="/download">Download</a>
           <a className="nav-cta" href="/studio">
             Open Studio <ArrowUpRight size={15} />
           </a>
@@ -849,6 +861,9 @@ export function LandingPage() {
               {demoPlaying ? 'Replay the scene' : 'Watch the product demo'}{' '}
               <Play size={15} fill="currentColor" />
             </button>
+            <a className="download-hero-link" href="/download">
+              Get Tavi <ArrowDown size={15} />
+            </a>
           </div>
         </div>
 
@@ -1066,13 +1081,22 @@ export function LandingPage() {
 
       <StudioBeat perchRef={studioPerchRef} />
 
-      <section className="closing-scene" data-cue="ending">
+      <section className="closing-scene" id="download" data-cue="ending">
         <div className="closing-light" />
         <canvas className="closing-dither" ref={closingDitherRef} aria-hidden="true" />
         <div className="closing-copy" ref={closingCopyRef}>
           <h2>
-            <span className="reveal-line">Make a little</span>
-            <span className="reveal-line">you.</span>
+            {downloadPage ? (
+              <>
+                <span className="reveal-line">Take Tavi</span>
+                <span className="reveal-line">with you.</span>
+              </>
+            ) : (
+              <>
+                <span className="reveal-line">Make a little</span>
+                <span className="reveal-line">you.</span>
+              </>
+            )}
           </h2>
           <p className="section-knot">
             <Sparkles size={14} /> There’s room for one more
@@ -1081,9 +1105,13 @@ export function LandingPage() {
             Shape a familiar face, choose a favorite perch, and let Tavi find its place in your
             stream.
           </p>
-          <a className="button-primary closing-button" href="/studio" ref={closingButtonRef}>
-            Make Tavi yours <ArrowUpRight size={16} />
-          </a>
+          {downloadPage ? (
+            <DownloadOptions buttonRef={closingButtonRef} />
+          ) : (
+            <a className="button-primary closing-button" href="/studio" ref={closingButtonRef}>
+              Make Tavi yours <ArrowUpRight size={16} />
+            </a>
+          )}
           <span className="closing-footnote">
             Start in Studio. Bring Tavi to your stream when you’re ready.
           </span>

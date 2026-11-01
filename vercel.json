@@ -1,22 +1,37 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "buildCommand": "tsc --noEmit && vite build && node tools/prerender-landing.mjs",
+  "buildCommand": "npm run build:judging",
   "outputDirectory": "dist",
   "cleanUrls": true,
-  "redirects": [
-    {
-      "source": "/studio",
-      "destination": "https://github.com/Daniel-Shunom/Tavi/blob/main/docs/RUNNING.md",
-      "permanent": false
-    },
-    {
-      "source": "/dock",
-      "destination": "https://github.com/Daniel-Shunom/Tavi/blob/main/docs/RUNNING.md",
-      "permanent": false
+  "functions": { "api/server.ts": { "maxDuration": 300 } },
+  "daemons": {
+    "judging-worker": {
+      "root": ".",
+      "entrypoint": "Dockerfile.judging",
+      "instances": { "iad1": 1 },
+      "resources": { "requests": { "memory": "1Gi" } },
+      "terminationGracePeriodSeconds": 30
     }
+  },
+  "rewrites": [
+    { "source": "/ws", "destination": "/api/server?path=ws" },
+    { "source": "/api/:path*", "destination": "/api/server?path=:path*" },
+    { "source": "/judge", "destination": "/index.html" },
+    { "source": "/studio", "destination": "/index.html" },
+    { "source": "/overlay", "destination": "/index.html" },
+    { "source": "/dock", "destination": "/index.html" },
+    { "source": "/download", "destination": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/(judge|studio|overlay|dock)",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    },
     {
       "source": "/assets/(.*)\\.riv",
       "headers": [{ "key": "Content-Type", "value": "text/plain; charset=x-user-defined" }]

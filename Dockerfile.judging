@@ -1,0 +1,10 @@
+FROM node:24-alpine
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY server ./server
+COPY shared ./shared
+COPY src/renderer ./src/renderer
+COPY assets/catalog.json ./assets/catalog.json
+USER node
+CMD ["node", "--import", "tsx", "server/judging/daemon.ts"]

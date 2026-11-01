@@ -6,11 +6,12 @@ This is the development record for OpenAI Codex's role in Tavi. It describes dev
 
 ## Session IDs
 
-| Recorded ID                            | Evidence                                                                                        | Submission status                                                   |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `01a17704-cc9a-7d01-822a-754a6062ab3c` | [Repository session file](../../.session_id) and [connection handoff](../CHATGPT-CONNECTION.md) | Primary build thread, confirmed by the creator on October 30, 2026. |
+| Recorded ID                            | Evidence                                                                                                                | Submission status                                                                                                                                                                                                          |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `01a17704-cc9a-7d01-822a-754a6062ab3c` | [Repository session file](../../.session_id) and [connection handoff](../CHATGPT-CONNECTION.md)                         | Primary build thread, confirmed by the creator on October 30, 2026.                                                                                                                                                        |
+| `01a18a34-1887-7b23-856c-37b639a87cea` | [Supporting session list](../../.sessions); verified from `CODEX_THREAD_ID` and `CODEX_SESSION_ID` on November 1, 2026. | Foundation installer integration/verification and the isolated browser judging preview, including session lifecycle, Studio/overlay wiring, tests, and Vercel deployment scaffolding. Cloud deployment remains unverified. |
 
-The hackathon requests the main build thread's ID. The creator confirmed that the recorded thread contains most of the build. Use `/status` in that thread if you need to retrieve the ID again; `.session_id` remains its repository copy. Add genuinely recorded supporting thread IDs with their scope when available; do not substitute Git commits, subagent names, or CodeRabbit run IDs. No other Codex session IDs have been verified for this registry.
+The hackathon requests the main build thread's ID. The creator confirmed that the recorded thread contains most of the build. Use `/status` in that thread if you need to retrieve the ID again; `.session_id` remains its repository copy. The [`.sessions` list](../../.sessions) records the primary and verified supporting IDs. Add genuinely recorded supporting thread IDs with their scope when available; do not substitute Git commits, subagent names, or CodeRabbit run IDs.
 
 ## Collaboration and ownership
 

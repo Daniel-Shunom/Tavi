@@ -44,6 +44,7 @@ export const foundationMotion: CharacterMotionRig = {
     const bindingState = state && (napWeight > 0 || prop > 0) ? { ...state, id: 'nap' } : state;
     const result = bindRefined({ ...frame, pose }, bindingState, true);
     if (prop > 0) {
+      result.tracks.push({ track: 'runtime.palm-pressure', time: prop, mix: 1 });
       // The seated clip owns the base arm. Relax its free hand beside the hip
       // as the other hand takes weight; leave the planted chain to contact IK.
       for (const [id, angle] of [

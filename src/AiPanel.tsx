@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Brain, Check, CircleAlert } from 'lucide-react';
 import { aiStatusSchema, providerIds, type AiStatus } from '../shared/ai';
+import { fetchService, isJudgingSession } from './judging/transport';
 
 /** Chooses which decision provider directs expressions. Keys stay on the service. */
 export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
@@ -11,7 +12,7 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
   const read = useCallback(async () => {
-    const response = await fetch('/api/ai', { cache: 'no-store' });
+    const response = await fetchService('/api/ai', { cache: 'no-store' });
     if (!response.ok) throw new Error('Could not read AI status.');
     return aiStatusSchema.parse(await response.json());
   }, []);
@@ -51,7 +52,7 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
     setBusy(true);
     setError('');
     try {
-      const response = await fetch('/api/ai', {
+      const response = await fetchService('/api/ai', {
         method: 'POST',
         headers: { 'x-tavi-request': 'studio', 'content-type': 'application/json' },
         body: JSON.stringify(
@@ -78,7 +79,12 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
         </span>
         <span className={`ai-badge ${isAi ? 'live' : ''}`}>{isAi ? 'AI' : 'Not AI'}</span>
       </p>
-      <fieldset disabled={!serviceConnected || busy} className="ai-controls">
+      {isJudgingSession() && (
+        <p className="helper-note">
+          Rules preview. AI connections are available in the desktop app.
+        </p>
+      )}
+      <fieldset disabled={!serviceConnected || busy || isJudgingSession()} className="ai-controls">
         <label className="field">
           Decision provider
           <select
@@ -131,7 +137,7 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
       {chosen && !chosen.configured && chosen.hint ? (
         <p className="helper-note">{chosen.hint}</p>
       ) : null}
-      <details className="ai-connections">
+      <details className="ai-connections" hidden={isJudgingSession()}>
         <summary>Account connection options</summary>
         <ul>
           {status?.connections.map((connection) => (

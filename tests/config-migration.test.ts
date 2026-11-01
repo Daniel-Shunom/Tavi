@@ -31,7 +31,7 @@ describe('configuration migration', () => {
   it('loads unversioned saved characters without losing name, personality or placement', () => {
     const config = configSchema.parse(legacy);
     expect(config).toMatchObject({
-      version: 2,
+      version: 3,
       name: 'Existing companion',
       attitude: 'spicy',
       personality: 'shy',
@@ -61,6 +61,28 @@ describe('configuration migration', () => {
     expect(configSchema.parse(JSON.parse(JSON.stringify(defaults)))).toEqual(defaults);
     expect(configSchema.safeParse({ ...defaults, secret: 'value' }).success).toBe(false);
   });
+  it('moves existing default-model settings to Foundation without losing streamer choices', () => {
+    const saved = {
+      ...defaults,
+      version: 2,
+      character: 'mascot-v2',
+      name: 'Nova',
+      personality: 'shy',
+      energy: 42,
+      x: 0.72,
+      appearance: { hair: 'orange', outfit: 'light-green', glasses: 'grey' },
+    };
+    const upgraded = normalizeConfig(configSchema.parse(saved), catalog);
+    expect(upgraded).toMatchObject({
+      version: 3,
+      character: 'tavi-foundation',
+      name: 'Nova',
+      personality: 'shy',
+      energy: 42,
+      x: 0.72,
+      appearance: { hair: 'orange', outfit: 'light-green', glasses: 'grey' },
+    });
+  });
   it('validates appearance against the character manifest', () => {
     const state = initialState(normalizeConfig(defaults, catalog));
     const next = reduce(
@@ -77,7 +99,18 @@ describe('configuration migration', () => {
     );
     expect(invalid.config.appearance).toEqual({ hair: 'pink', outfit: 'green', glasses: 'blue' });
     const unknown = reduce(state, { type: 'configure', patch: { character: 'nobody' } }, catalog);
-    expect(unknown.config.character).toBe('mascot-v2');
+    expect(unknown.config.character).toBe('tavi-foundation');
+  });
+  it('keeps customized version-2 looks on the rig that supports them', () => {
+    const variant = { ...defaults.variant, hair: { ...defaults.variant.hair, style: 'bob' } };
+    const upgraded = configSchema.parse({
+      ...defaults,
+      version: 2,
+      character: 'mascot-v2',
+      variant,
+    });
+    expect(upgraded.character).toBe('mascot-v2');
+    expect(upgraded.variant).toEqual(variant);
   });
   it('swaps refined and foundation without losing saved appearance or stream settings', () => {
     const original = normalizeConfig(

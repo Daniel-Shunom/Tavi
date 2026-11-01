@@ -1,0 +1,16 @@
+# Vercel needs the app, API, build tools, shared code, and public runtime assets only.
+.claude
+.codex
+.agents
+.vercel
+.env
+.env.*
+.session_id
+.sessions
+art
+desktop
+docs
+experiments
+playwright-report
+test-results
+video

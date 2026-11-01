@@ -477,6 +477,8 @@ for climb_view in ('front','left','right','rear'):
     create_climbing_project(board,resolved['neutral'],sample,animation,new_id,write_project,WORK/('climbing-'+climb_view),climb_view)
 create_turnaround_project(board,resolved['neutral'],sample,animation,new_id,write_project,WORK/'turnaround')
 create_runtime_project(walk_project,resolved['neutral'],sample,animation,new_id,write_project,WORK/'runtime')
+from pressure_palms import create_pressure_projects
+create_pressure_projects()
 
 (WORK / 'poses.json').write_text(json.dumps({'neutral': NEUTRAL, 'poses': POSES,
     'fallback_sha256': snapshot, 'references': [

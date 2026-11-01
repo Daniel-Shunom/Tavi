@@ -10,15 +10,25 @@ import { beat } from '../shared/cue';
 import { decisionJsonSchema, decisionSchema } from '../shared/decision';
 import { capabilitiesOf, manifestSchema } from '../src/renderer/characters/manifest';
 import { motionRigs } from '../src/renderer/characters/motionRigs';
-import { catalog, characters, getCharacter } from '../src/renderer/characters/registry';
+import {
+  catalog,
+  characters,
+  getCharacter,
+  studioCharacterIds,
+} from '../src/renderer/characters/registry';
 import { testCharacter } from './fixtures/test-character';
 
 describe('character manifests', () => {
   it('registers a valid default character with generic appearance slots', () => {
     const mascot = getCharacter('mascot');
     expect(Object.keys(mascot.appearance)).toEqual(['hair', 'outfit', 'glasses']);
-    expect(getCharacter('unknown-character').id).toBe('mascot-v2');
+    expect(getCharacter('unknown-character').id).toBe('tavi-foundation');
     expect(catalog['mascot']?.expressions.length).toBeGreaterThan(20);
+  });
+  it('keeps beta models in the lab and exposes Foundation as the only Studio model', () => {
+    expect(studioCharacterIds).toEqual(['tavi-foundation']);
+    expect(characters.has('mascot-v2')).toBe(true);
+    expect(characters.has('tavi-refined')).toBe(true);
   });
   it('binds only animations that really exist in the shipped artwork', () => {
     for (const manifest of characters.values()) {

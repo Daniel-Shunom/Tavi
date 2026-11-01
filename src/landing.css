@@ -183,6 +183,31 @@ html.landing-mode body #root {
   flex-wrap: wrap;
   margin-top: 34px;
 }
+.download-hero-link,
+.download-web-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #675872;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color var(--dur-quick) ease;
+}
+.download-hero-link:hover,
+.download-web-link:hover {
+  color: #382541;
+}
+.download-status {
+  margin: 0 0 18px;
+  color: #d6cbd9;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.download-web-link {
+  margin-top: 14px;
+  color: #e1c6d2;
+  font-size: 12px;
+}
 /* The primary button: a deep plum key with a lit edge (after Aceternity's lit-up border and
    hover border gradient buttons, written for our palette and motion rules). The icon sits in its
    own soft chip. On hover the button lifts, an arc of lavender-to-peach light travels once around

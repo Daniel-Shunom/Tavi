@@ -18,7 +18,7 @@ const check = (ok, label) => {
 const browser = await chromium.connectOverCDP(cdp);
 try {
   const [context] = browser.contexts();
-  const page = context.pages().find((candidate) => /127\.0\.0\.1:\d+\/?$/.test(candidate.url()));
+  const page = context.pages().find((candidate) => /127\.0\.0\.1:\d+\/studio(#.*)?$/.test(candidate.url()));
   if (!page) throw new Error(`Studio page not found: ${context.pages().map((p) => p.url())}`);
   console.log(`studio page: ${page.url()}`);
   const errors = [];
@@ -29,6 +29,14 @@ try {
   });
   page.on('pageerror', (error) => errors.push(error.message));
   await page.reload();
+  // The app opens on the Twitch sign-in screen until it is skipped once.
+  const skip = page.getByRole('button', { name: 'Skip for now' });
+  await page
+    .getByText('Local service connected')
+    .or(skip)
+    .first()
+    .waitFor({ timeout: 15000 });
+  if (await skip.isVisible()) await skip.click();
   await page.getByText('Local service connected').waitFor({ timeout: 15000 });
   await page.locator('canvas').first().waitFor({ timeout: 15000 });
   const loaded = await page.evaluate(() =>

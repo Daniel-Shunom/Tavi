@@ -3,6 +3,7 @@ import { obsStatusSchema, type ObsStatus } from '../shared/obs';
 import type { Config } from '../shared/protocol';
 import { webcamPerchStatus } from '../shared/states';
 import './obs.css';
+import { fetchService, isJudgingSession } from './judging/transport';
 
 export function ObsWebcamPanel({
   config,
@@ -25,12 +26,12 @@ export function ObsWebcamPanel({
     onFollowingChange(serviceConnected && status?.phase === 'connected');
   }, [serviceConnected, status?.phase, onFollowingChange]);
   useEffect(() => {
-    if (!serviceConnected) return;
+    if (!serviceConnected || isJudgingSession()) return;
     let disposed = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     async function read() {
       try {
-        const response = await fetch('/api/obs', { cache: 'no-store' });
+        const response = await fetchService('/api/obs', { cache: 'no-store' });
         if (!response.ok) throw new Error('OBS status unavailable.');
         const next = obsStatusSchema.parse(await response.json());
         if (!disposed) setStatus(next);
@@ -54,7 +55,7 @@ export function ObsWebcamPanel({
     setBusy(true);
     setError('');
     try {
-      const response = await fetch(`/api/obs/${name}`, {
+      const response = await fetchService(`/api/obs/${name}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-tavi-request': 'studio' },
         body: JSON.stringify(data),
@@ -78,6 +79,11 @@ export function ObsWebcamPanel({
   const perch = webcamPerchStatus({ scene: config.scene, home: { x: config.x, y: config.y } });
   return (
     <section className="obs-awareness">
+      {isJudgingSession() && (
+        <p className="helper-note">
+          OBS camera detection requires the desktop app. Use a manual webcam region here.
+        </p>
+      )}
       <label className="field">
         Webcam region source
         <select
@@ -87,7 +93,9 @@ export function ObsWebcamPanel({
             onSourceChange(event.target.value === 'manual' ? 'manual' : 'obs');
           }}
         >
-          <option value="obs">Detect in OBS</option>
+          <option value="obs" disabled={isJudgingSession()}>
+            Detect in OBS
+          </option>
           <option value="manual">Manual region — not verified by OBS</option>
         </select>
       </label>
@@ -104,7 +112,10 @@ export function ObsWebcamPanel({
           In OBS, open Tools → WebSocket Server Settings and enable the server. Tavi reads the
           active scene on this computer.
         </p>
-        <fieldset className="obs-controls" disabled={!serviceConnected || busy}>
+        <fieldset
+          className="obs-controls"
+          disabled={!serviceConnected || busy || isJudgingSession()}
+        >
           {!following ? (
             <>
               <div className="obs-credentials">

@@ -23,5 +23,5 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false
   },
-  "include": ["src", "shared", "server", "tests", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "shared", "server", "api", "tests", "vite.config.ts", "vitest.config.ts"]
 }

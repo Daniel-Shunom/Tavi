@@ -178,12 +178,13 @@ fn main() {
                 // Leaked once at startup so the navigation handlers can borrow it.
                 Box::leak(format!("http://127.0.0.1:{}", port()).into_boxed_str())
             };
+            let studio_url = format!("{origin}/studio");
             let navigate_handle = app.handle().clone();
             let popup_handle = app.handle().clone();
             let window = WebviewWindowBuilder::new(
                 app,
                 STUDIO_LABEL,
-                WebviewUrl::External(origin.parse()?),
+                WebviewUrl::External(studio_url.parse()?),
             )
             .title("Tavi Studio")
             .inner_size(1360.0, 900.0)

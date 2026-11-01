@@ -971,6 +971,19 @@
   font-size: 17px;
   font-weight: 600;
 }
+.st-model-current {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+}
+.st-model-beta {
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 400;
+}
 .st-look-panel {
   flex: 1 1 400px;
   max-width: 500px;
@@ -1695,6 +1708,122 @@
 
 /* ---- Narrow windows: the rail becomes a top bar. ----------------------------------------- */
 
+/* ---- Welcome: the Twitch door ----------------------------------------------------------- */
+
+.st-welcome {
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 24px 16px;
+  overflow: auto;
+}
+.st-welcome-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: min(880px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+  box-shadow: 0 32px 80px -40px var(--shadow);
+}
+.st-welcome-figure {
+  position: relative;
+  min-height: 460px;
+  background: radial-gradient(90% 70% at 50% 100%, var(--glow), transparent 70%), var(--raised);
+}
+.st-welcome-figure .avatar-renderer {
+  position: absolute;
+  inset: 6% 8% 0;
+}
+.st-welcome-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 44px;
+}
+.st-welcome-body .st-brand {
+  padding: 0;
+  margin-bottom: 12px;
+}
+.st-welcome-body h1 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 38px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.st-welcome-lede {
+  margin: 0 0 12px;
+  color: var(--sub);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.st-twitch {
+  min-height: 52px;
+  font-size: 16px;
+}
+.st-welcome-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 18px;
+  background: var(--raised);
+  text-align: center;
+}
+.st-welcome-code p {
+  margin: 0;
+  color: var(--sub);
+  font-size: 14px;
+}
+.st-welcome-code strong {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+.st-welcome-wait {
+  animation: st-breathe 1.8s ease-in-out infinite;
+}
+@keyframes st-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+.st-welcome-done {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--raised);
+  color: var(--good);
+  font-weight: 600;
+}
+.st-welcome-error {
+  margin: 0;
+  color: var(--warn);
+  font-size: 14px;
+}
+.st-welcome-skip {
+  align-self: center;
+  border: 0;
+  background: none;
+  color: var(--sub);
+  cursor: pointer;
+}
+.st-welcome-fine {
+  margin: 8px 0 0;
+  color: var(--faint);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 @media (max-width: 860px) {
   .studio:not(.st-dock) {
     flex-direction: column;
@@ -1748,6 +1877,17 @@
   }
 }
 
+@media (max-width: 720px) {
+  .st-welcome-card {
+    grid-template-columns: 1fr;
+  }
+  .st-welcome-figure {
+    min-height: 240px;
+  }
+  .st-welcome-body {
+    padding: 28px 24px 32px;
+  }
+}
 @media (max-width: 480px) {
   .st-nav a {
     padding: 0 12px;
@@ -1758,6 +1898,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .st-welcome-wait {
+    animation: none;
+  }
   .studio *,
   .studio *::after {
     transition: none !important;

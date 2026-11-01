@@ -13,6 +13,8 @@ try {
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(base + '/studio');
+  // A fresh browser meets the Twitch sign-in screen first.
+  await page.getByRole('button', { name: 'Skip for now' }).click();
   await expect(page.getByText('Local service connected')).toBeVisible();
   await expect(page.locator('.st-screen .avatar-renderer')).toHaveAttribute('data-ready', 'true', {
     timeout: 30000,

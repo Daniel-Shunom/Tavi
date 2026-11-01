@@ -1,6 +1,12 @@
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
-import { commandSchema, defaults, type Config, type State } from '../shared/protocol.js';
+import {
+  commandSchema,
+  defaults,
+  type Command,
+  type Config,
+  type State,
+} from '../shared/protocol.js';
 import type { CharacterCatalog } from '../shared/capabilities.js';
 import type { WebSocket } from 'ws';
 import { catalog as characterCatalog } from '../src/renderer/characters/registry.js';
@@ -20,6 +26,18 @@ export interface AppOptions {
   /** Persists the non-secret provider/model selection. */
   saveAi?: (selection: ReturnType<AiManager['selection']>) => Promise<void>;
   now?: () => number;
+  isActive?: () => boolean;
+}
+export type AppRuntime = {
+  companion: Companion;
+  twitch: TwitchIntegration;
+  command: (command: Command) => Promise<void>;
+};
+const runtimes = new WeakMap<object, AppRuntime>();
+export function runtimeOf(app: object): AppRuntime {
+  const runtime = runtimes.get(app);
+  if (!runtime) throw new Error('Unknown companion runtime.');
+  return runtime;
 }
 const localOrigins = [
   'http://127.0.0.1:5173',
@@ -65,19 +83,33 @@ export async function createApp(
   });
   const clients = new Set<WebSocket>();
   let mutations = Promise.resolve();
+  const active = () => options.isActive?.() ?? true;
+  const command = (input: Command) => {
+    const change = mutations.then(async () => {
+      if (!active()) throw new Error('This preview has ended.');
+      if (input.type === 'say' || input.type === 'simulate')
+        void companion.handle(input).catch(() => undefined);
+      else await companion.handle(input);
+    });
+    mutations = change.catch(() => undefined);
+    return change;
+  };
   const message = (state: State) =>
     JSON.stringify({ type: 'state', state, now: companion.clock() });
   companion.subscribe((state) => {
+    if (!active()) return;
     const payload = message(state);
     for (const client of clients) if (client.readyState === 1) client.send(payload);
   });
   const twitch = new TwitchIntegration({
     ...twitchOptions,
     onModeration: (event) => {
+      if (!active()) return;
       companion.moderate(event);
       twitchOptions.onModeration?.(event);
     },
     onMessage: (chat) => {
+      if (!active()) return;
       void companion.chat(chat);
       twitchOptions.onMessage?.(chat);
     },
@@ -195,13 +227,9 @@ export async function createApp(
     socket.send(message(companion.state));
     socket.on('close', () => clients.delete(socket));
     socket.on('message', (raw) => {
-      mutations = mutations.then(async () => {
+      void (async () => {
         try {
-          const command = commandSchema.parse(JSON.parse(decodeFrame(raw)));
-          // Conversation decisions may take seconds; do not block other commands on them.
-          if (command.type === 'say' || command.type === 'simulate')
-            void companion.handle(command).catch(() => undefined);
-          else await companion.handle(command);
+          await command(commandSchema.parse(JSON.parse(decodeFrame(raw))));
         } catch {
           if (socket.readyState === 1)
             socket.send(
@@ -211,12 +239,13 @@ export async function createApp(
               }),
             );
         }
-      });
+      })();
     });
   });
   app.addHook('preClose', (done) => {
     for (const socket of clients) socket.close(1001, 'Server shutting down');
     done();
   });
+  runtimes.set(app, { companion, twitch, command });
   return app;
 }

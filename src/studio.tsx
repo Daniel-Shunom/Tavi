@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowUpRight, Heart, Plug, Radio, Sparkles, Wifi, WifiOff } from 'lucide-react';
 import type { useConnection } from './useConnection';
 import { catalog } from './renderer/characters/registry';
@@ -7,8 +7,11 @@ import { LiveView } from './studio/LiveView';
 import { LookView } from './studio/LookView';
 import { PersonalityView } from './studio/PersonalityView';
 import { SetupView, type SetupProgress } from './studio/SetupView';
+import { Welcome, readTwitchChoice } from './studio/Welcome';
 import { quickCues, supports, typing } from './studio/parts';
 import './studio.css';
+import { isJudgingSession } from './judging/transport';
+import { useOverlayUrl } from './judging/Session';
 
 // Tavi Studio: four places, one character. Live is the control room while streaming; Look,
 // Personality and Setup are where she is made, given a character and put on stream. The theme is
@@ -58,6 +61,7 @@ function readView(): View {
   return viewIds.find((view) => view === id) ?? 'live';
 }
 function readTheme(): Theme {
+  if (isJudgingSession()) return 'moonlight';
   try {
     const stored = localStorage.getItem(THEME_KEY);
     return themes.find((theme) => theme.id === stored)?.id ?? 'moonlight';
@@ -67,6 +71,7 @@ function readTheme(): Theme {
 }
 function readProgress(): SetupProgress {
   const none = { look: false, obs: false, chat: false, dock: false };
+  if (isJudgingSession()) return none;
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(SETUP_KEY) ?? '{}');
     if (!stored || typeof stored !== 'object') return none;
@@ -82,6 +87,7 @@ function readProgress(): SetupProgress {
   }
 }
 function remember(key: string, value: string) {
+  if (isJudgingSession()) return;
   try {
     localStorage.setItem(key, value);
   } catch {
@@ -90,12 +96,18 @@ function remember(key: string, value: string) {
 }
 
 export function Studio(connection: ReturnType<typeof useConnection>) {
+  const overlayUrl = useOverlayUrl();
   const { state, connected, error, send, serverNow } = connection;
   const c = state.config;
   const character = catalog[c.character];
   const [view, setView] = useState<View>(readView);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [progress, setProgress] = useState<SetupProgress>(readProgress);
+  // The Twitch door first, unless they skipped it before (Setup has it later).
+  const [welcome, setWelcome] = useState(() => readTwitchChoice() !== 'skipped');
+  const enter = useCallback(() => {
+    setWelcome(false);
+  }, []);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -130,7 +142,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
   // Streamer-first keys, anywhere in Studio: 1–8 fire the quick reactions, Esc stops.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (!connected || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (welcome || !connected || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === 'Escape') {
         send({ type: 'cancel' });
         return;
@@ -145,7 +157,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
     return () => {
       removeEventListener('keydown', onKey);
     };
-  }, [connected, send, character, state.retracted]);
+  }, [welcome, connected, send, character, state.retracted]);
 
   const go = (next: View) => {
     setView(next);
@@ -165,6 +177,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
           ? 'Enjoying the quiet'
           : 'Hanging out';
   const props = { ...connection, performing, statusLine };
+  if (welcome) return <Welcome connection={connection} theme={theme} onDone={enter} />;
   const stepsDone = [progress.look, progress.obs, progress.chat].filter(Boolean).length;
   const page = views[view];
 
@@ -223,7 +236,11 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
           </div>
           <span className="st-conn" role="status" data-online={connected || undefined}>
             {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
-            {connected ? 'Local service connected' : 'Reconnecting to service'}
+            {connected
+              ? isJudgingSession()
+                ? 'Preview connected'
+                : 'Local service connected'
+              : 'Reconnecting to service'}
           </span>
         </div>
       </aside>
@@ -235,7 +252,7 @@ export function Studio(connection: ReturnType<typeof useConnection>) {
             <p>{page.lede}</p>
           </div>
           {view === 'live' ? (
-            <a className="st-pill" href="/overlay" target="_blank" rel="noreferrer">
+            <a className="st-pill" href={overlayUrl} target="_blank" rel="noreferrer">
               Open the overlay <ArrowUpRight size={14} />
             </a>
           ) : null}

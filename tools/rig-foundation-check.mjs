@@ -69,8 +69,10 @@ try {
         expect(diagnostics.sleepContacts.wristError).toBeLessThan(0.02);
         expect(diagnostics.sleepContacts.reachError).toBeLessThan(0.02);
       }
-      if (diagnostics.sleepContacts.propWeight > 0.999)
+      if (diagnostics.sleepContacts.propWeight > 0.999) {
         expect(diagnostics.sleepContacts.groundError).toBeLessThan(0.02);
+        expect(diagnostics.sleepContacts.palmError).toBeLessThan(0.02);
+      }
       if (scene === 'Sleep' && diagnostics.sleepContacts.weight > 0.999)
         expect(diagnostics.owner).toBe('contact-solver');
       if (diagnostics.owner === 'contact-solver') {

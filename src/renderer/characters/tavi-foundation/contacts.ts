@@ -1,3 +1,4 @@
+import pressurePalm from './pressure-palm.json';
 import type {
   Artboard,
   TransformComponent,
@@ -37,6 +38,7 @@ export function createSleepContacts(board: Artboard) {
   const a = origin(footL),
     b = origin(footR);
   const floor: Vec2 = [300, Math.max(a[1], b[1])];
+  const palm = node('tavi/contact/palm');
   const head = node('tavi/head'),
     shirt = node('shirt');
   const chains = [
@@ -56,6 +58,7 @@ export function createSleepContacts(board: Artboard) {
     weight: 0,
     propWeight: 0,
     groundError: 0,
+    palmError: 0,
     wristError: 0,
     reachError: 0,
     headAnchor: [0, 0] as Vec2,
@@ -71,6 +74,7 @@ export function createSleepContacts(board: Artboard) {
         weight,
         propWeight: prop,
         groundError: 0,
+        palmError: 0,
         wristError: 0,
         reachError: 0,
         headAnchor: origin(head),
@@ -88,10 +92,18 @@ export function createSleepContacts(board: Artboard) {
         [c.upper, c.fore].map((node) => ({ node, rotation: node.rotation })),
       );
       const targets: Vec2[] = [];
-      const ground: Vec2 = [
-        floor[0] - 48 * Math.cos((rotation * Math.PI) / 180),
-        floor[1] + 48 * Math.sin((rotation * Math.PI) / 180),
-      ];
+      const theta = (rotation * Math.PI) / 180;
+      const up: Vec2 = [-Math.sin(theta), -Math.cos(theta)];
+      const surface: Vec2 = [floor[0] - 48 * Math.cos(theta), floor[1] + 48 * Math.sin(theta)];
+      const palmParent = matrix(palm, true);
+      const radius =
+        pressurePalm.wristInset *
+        Math.hypot(
+          up[0] * palmParent[0] + up[1] * palmParent[1],
+          up[0] * palmParent[2] + up[1] * palmParent[3],
+        );
+      const inset = radius * prop;
+      const ground: Vec2 = [surface[0] + up[0] * inset, surface[1] + up[1] * inset];
       for (const [index, chain] of chains.entries()) {
         const { upper, fore } = chain;
         const parent = matrix(upper, true),
@@ -121,7 +133,25 @@ export function createSleepContacts(board: Artboard) {
         const endpoint = transformPoint(matrix(chain.fore), [chain.fore.length, 0]);
         if (weight > 0)
           diagnostics.wristError = Math.max(diagnostics.wristError, distance(endpoint, target));
-        if (i === 0 && prop > 0) diagnostics.groundError = distance(endpoint, target);
+        if (i === 0 && prop > 0) {
+          diagnostics.groundError = distance(endpoint, target);
+          // Follow the wrist during acquisition; at full weight the flat edge is on the surface.
+          const parent = matrix(palm, true);
+          const anchor: Vec2 = [endpoint[0] - up[0] * inset, endpoint[1] - up[1] * inset];
+          const point = inversePoint(parent, anchor);
+          const foreMatrix = matrix(chain.fore);
+          const foreAngle = Math.atan2(foreMatrix[1], foreMatrix[0]);
+          const angle = foreAngle + angleDelta(foreAngle, -theta) * prop;
+          const axis = inversePoint(parent, [
+            anchor[0] + Math.cos(angle),
+            anchor[1] + Math.sin(angle),
+          ]);
+          palm.x = point[0];
+          palm.y = point[1];
+          palm.rotation = Math.atan2(axis[1] - point[1], axis[0] - point[0]);
+          board.advance(0);
+          diagnostics.palmError = distance(origin(palm), surface);
+        }
       }
     },
   };

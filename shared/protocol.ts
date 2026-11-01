@@ -13,6 +13,7 @@ import {
 // Body states (sit, nap, peek...) and scene geometry: shared/states.ts.
 import {
   defaultVariant,
+  isOriginal,
   hairStyles,
   nearestSkinTone,
   variantSchema,
@@ -21,9 +22,9 @@ import {
 import { bodyCueSchema, defaultScene, requestableStates, sceneSchema } from './states.js';
 import { defaultSupportSettings, supportPreviewSchema, supportSettingsSchema } from './support.js';
 
-export const CONFIG_VERSION = 2;
+export const CONFIG_VERSION = 3;
 /** Used when a saved character id is unknown. Characters themselves live in manifests. */
-export const fallbackCharacterId = 'mascot-v2';
+export const fallbackCharacterId = 'tavi-foundation';
 const slug = z.string().regex(/^[a-z0-9-]{1,24}$/);
 export const configObjectSchema = z
   .object({
@@ -93,6 +94,13 @@ export function migrateConfig(raw: unknown): unknown {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
   const input = raw as Record<string, unknown>;
   if (input['version'] === CONFIG_VERSION) return { ...defaults, ...input };
+  if (input['version'] === 2) {
+    const next = { ...defaults, ...input, version: CONFIG_VERSION };
+    const variant = variantSchema.safeParse(next['variant']);
+    if (next['character'] === 'mascot-v2' && variant.success && isOriginal(variant.data))
+      next['character'] = fallbackCharacterId;
+    return next;
+  }
   if (input['version'] !== undefined && input['version'] !== 1) return raw;
   const next: Record<string, unknown> = { ...defaults };
   const appearance: Record<string, string> = {};
@@ -108,6 +116,9 @@ export function migrateConfig(raw: unknown): unknown {
   }
   next['appearance'] = appearance;
   next['variant'] = legacyVariant(input);
+  // Keep customized legacy looks on their supported rig; Studio offers an explicit switch.
+  if (input['character'] === 'mascot-v2' || input['character'] === undefined)
+    next['character'] = isOriginal(legacyVariant(input)) ? fallbackCharacterId : 'mascot-v2';
   next['version'] = CONFIG_VERSION;
   return next;
 }
