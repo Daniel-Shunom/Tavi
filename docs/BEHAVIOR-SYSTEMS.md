@@ -130,12 +130,25 @@ tired, bored and overwhelmed, updated from the service. Simulated chat and suppo
 move it. The legacy motion lab (`tools/motion-lab`) still renders the old Lyla mascot and is not
 the current model, so it is not used for this.
 
+## Implemented: autonomous life
+
+`server/behavior/life.ts`: when nothing else is going on, Tavi picks an activity every 20-150 s
+(by initiative, personality, energy and mood): wander the stage, visit chat, check on the
+streamer at the webcam, watch the game, look around, stretch, play (a dance or hop) or go home.
+Each is scored from mood and drives (bored and lively: travel and play; tired: stretch and stay
+put; bold: approach the webcam; shy: sneak and keep to the edges). The last activities score
+lower and she picks among the real contenders (within 60% of the best), weighted by score
+squared. Her walk carries her mood: skip when happy and excited, trudge when tired, amble when
+bored, sneak when shy. She gets up from sitting when bored enough; sleep, peeks and perches are
+left alone. Nothing happens in quiet mode, while tucked away, while the streamer or a reaction
+has the floor, right after a manual pose, or while the pacing director is relaxing. Places are
+visited on the scene floor. The Studio's "Last reaction" note shows the choice and top scores.
+Reserved initiative stays in place.
+
 ## Roadmap
 
-1. **Autonomous-life utility selector** replacing the fixed roam rotation: candidates (idle
-   variants, move to anchor, nap, peek, look around) scored on drives, mood, time since last use,
-   recently-used penalty and a commitment bonus; top-K weighted random; anchors advertise.
-   Studio debug view of scores.
+1. **Life tuning and a debug view**: per-activity cooldowns, a commitment bonus, and a score
+   panel in the Studio.
 2. **Mood in gait and travel mood**: pleasure picks trot vs. trudge; dominance picks approach vs.
    peek. Extension point: `selectGait`.
 3. **Most-specific-rule reactions** for stream and support events; subscribe to follows,

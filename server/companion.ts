@@ -47,11 +47,13 @@ import { StateDirector, type Engagement, type StateAction } from './behavior/sta
 import { supportEventSchema, supportTier, type SupportEvent } from '../shared/support.js';
 import { supportBeats } from './behavior/support.js';
 import { PacingDirector, type ReactionSize } from './behavior/pacing.js';
+import { LifeDirector, type LifeAction } from './behavior/life.js';
 import { Affect, restScale, type AffectPersona, type Stimulus } from '../shared/affect.js';
 import { clampIntensity } from '../shared/expressions.js';
 import {
   atSpotApproach,
   bodyStates,
+  floorOf,
   hash01,
   resolveSpot,
   sameSpot,
@@ -100,6 +102,8 @@ export class Companion {
   private readonly affect: Affect;
   /** Intensity budget for automatic reactions. */
   private readonly pacing: PacingDirector;
+  /** Autonomous life: what Tavi does by herself when nothing is happening. */
+  private readonly life: LifeDirector;
   private lastAiState = -Infinity;
   private timer: ReturnType<typeof setInterval> | null = null;
   constructor(private readonly options: CompanionOptions) {
@@ -107,6 +111,7 @@ export class Companion {
     this.director = new StateDirector(this.now());
     this.affect = new Affect(this.now(), affectPersona(options.config));
     this.pacing = new PacingDirector(this.now());
+    this.life = new LifeDirector(this.now());
     if (options.tickMs) {
       this.timer = setInterval(() => {
         this.tick();
@@ -257,6 +262,7 @@ export class Companion {
     priority: number;
     sourceEventId: string;
     gait?: Movement['gait'];
+    mood?: Movement['mood'];
     stay?: number;
   }): boolean {
     const active = this.current.performance.movement;
@@ -279,6 +285,7 @@ export class Companion {
       expiresAt: now + 3000,
       ...(input.anchor ? { anchor: input.anchor } : {}),
       ...(input.gait ? { gait: input.gait } : {}),
+      ...(input.mood ? { mood: input.mood } : {}),
       ...(input.stay !== undefined ? { stay: input.stay } : {}),
     };
     this.perform({ movement });
@@ -896,6 +903,110 @@ export class Companion {
       initiative: this.pacing.allowsInitiative(now),
     });
     if (action) this.applyAction(action);
+    else this.live(now);
+  }
+  /** Autonomous life: when nothing else is going on, pick something to do. */
+  private live(now: number) {
+    const state = this.current;
+    const body = state.performance.body;
+    const movement = state.performance.movement;
+    const home = this.home();
+    const affect = state.performance.affect;
+    if (!affect) return;
+    const moving = !!movement && now - movement.startAt < ((movement.stay ?? 0) + 8) * 1000;
+    const action = this.life.tick({
+      now,
+      persona: {
+        personality: state.config.personality,
+        initiative: state.config.initiative,
+        energy: state.config.energy,
+      },
+      affect,
+      body: body?.state ?? null,
+      manualHold: body?.source === 'manual' && now - body.startAt < 120_000,
+      quiet: state.quiet,
+      retracted: state.retracted,
+      busy: this.pending !== null || this.activeScript() !== null || moving,
+      initiative: this.pacing.allowsInitiative(now),
+      awayFromHome:
+        !!movement &&
+        movement.stay === undefined &&
+        Math.hypot(movement.to.x - home.x, movement.to.y - home.y) > 0.05,
+      places: {
+        chat: state.config.scene.chat.enabled,
+        webcam: state.config.scene.webcam.enabled,
+        game: state.config.scene.game.enabled,
+      },
+    });
+    if (action) this.applyLife(action, now);
+  }
+  private applyLife(action: LifeAction, now: number) {
+    const eventId = this.id('life');
+    const home = this.home();
+    if (action.standUp) {
+      const stood = this.setBody('stand', {
+        source: 'idle',
+        decidedBy: lifeDecider,
+        priority: priorities.idle,
+        sourceEventId: eventId,
+        keepMovement: true,
+      });
+      if (!stood) return;
+      // Up and about: restart the quiet clock so she does not sit straight back down.
+      this.director.engage(now, 'activity');
+    }
+    let travel = 0;
+    const destination = action.destination;
+    const floor = floorOf(this.current.config.scene, home);
+    if (destination) {
+      // Places are visited on the floor below them, never mid-air.
+      const to =
+        'anchor' in destination
+          ? { x: anchorPoint(destination.anchor, this.current.config.scene).x, y: floor }
+          : 'stageX' in destination
+            ? { x: destination.stageX, y: floor }
+            : home;
+      const from = this.current.performance.movement?.to ?? home;
+      travel = Math.hypot(to.x - from.x, to.y - from.y) / 0.22;
+      const moved = this.movement({
+        kind: 'home' in destination ? 'return' : 'move-to',
+        to,
+
+        source: 'idle',
+        decidedBy: lifeDecider,
+        priority: priorities.idle,
+        sourceEventId: eventId,
+        ...(action.gait ? { gait: action.gait } : {}),
+        ...(action.mood ? { mood: action.mood } : {}),
+        ...(action.stay !== undefined ? { stay: action.stay } : {}),
+      });
+      if (!moved) return;
+    }
+    const note = `${action.note} (life: ${action.scores
+      .map((entry) => `${entry.id} ${entry.score.toFixed(2)}`)
+      .join(', ')})`;
+    if (!action.beats.length) {
+      this.perform({ note });
+      return;
+    }
+    // Act once she gets there.
+    const lead = destination ? Math.min(6, 0.6 + travel) : 0;
+    const { script } = this.script({
+      source: 'idle',
+      sourceEventId: eventId,
+      decidedBy: lifeDecider,
+      priority: priorities.idle,
+      beats: action.beats.map((value) =>
+        beat(value.expression, {
+          ...(value.target ? { target: value.target } : {}),
+          ...(value.hold !== undefined ? { hold: value.hold } : {}),
+          ...(value.intensity !== undefined ? { intensity: value.intensity } : {}),
+          offset: lead + (value.offset ?? 0),
+        }),
+      ),
+      settle: true,
+    });
+    if (!this.schedule(script, 'idle', note)) this.perform({ note });
   }
   private applyAction(action: StateAction) {
     if (action.state === 'peek' && action.source === 'chat') {
@@ -1081,6 +1192,7 @@ export class Companion {
 }
 
 const rulesDecider: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
+const lifeDecider: DecidedBy = { kind: 'rules', label: 'Autonomous life rules (not AI)' };
 
 function describe(
   by: DecidedBy | ProviderInfo,

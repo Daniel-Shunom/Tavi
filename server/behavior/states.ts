@@ -69,7 +69,8 @@ export class ChatBurst {
   }
 }
 
-export type Engagement = 'studio' | 'streamer' | 'addressed' | 'burst';
+/** `activity`: Tavi got up to do something on her own (restarts the quiet clock only). */
+export type Engagement = 'studio' | 'streamer' | 'addressed' | 'burst' | 'activity';
 
 export interface DirectorContext {
   now: number;
