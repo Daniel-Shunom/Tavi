@@ -11,20 +11,23 @@
     />
     <style>
       /* The built page carries the landing pre-rendered; other paths never show it. */
-      html:not(.landing-mode) #root > .tavi-site {
+      html:not(.landing-mode) #root > .tavi-site,
+      html.download-mode #root > .tavi-site:not(.download-page) {
         display: none;
       }
     </style>
     <script>
       // The landing page is white from the first paint (not the studio's dark canvas until the
       // app script runs), and its hero's TV and table are fetched with the page.
+      if (location.pathname === '/download')
+        document.documentElement.classList.add('download-mode');
       if (
         !['/overlay', '/studio', '/judge', '/avatar-lab', '/dock', '/rig-lab'].includes(
           location.pathname,
         )
       ) {
         document.documentElement.classList.add('landing-mode');
-        for (const name of ['table', 'tv']) {
+        for (const name of location.pathname === '/download' ? [] : ['table', 'tv']) {
           const link = document.createElement('link');
           link.rel = 'preload';
           link.as = 'image';

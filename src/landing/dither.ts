@@ -80,7 +80,8 @@ export function ditherField(
       pixels[i] = r;
       pixels[i + 1] = g;
       pixels[i + 2] = b;
-      pixels[i + 3] = a;
+      // Logo dots need distinct ink; the surrounding atmospheric glow stays translucent.
+      pixels[i + 3] = covered === 1 ? Math.max(a, 184) : a;
     }
   }
   return pixels;

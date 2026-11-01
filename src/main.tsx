@@ -6,6 +6,7 @@ import '@fontsource/manrope/800.css';
 import React from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
 import { LandingPage } from './LandingPage';
+import { DownloadPage } from './DownloadPage';
 import { Avatar } from './renderer/Avatar';
 import { useConnection } from './useConnection';
 import { motionRigs } from './renderer/characters/motionRigs';
@@ -19,6 +20,7 @@ import { isJudgingSession } from './judging/transport';
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
 const studio = location.pathname === '/studio';
+const download = location.pathname === '/download';
 const judge = location.pathname === '/judge';
 const rigLab = location.pathname === '/rig-lab';
 const RigLab = React.lazy(() => import('./RigLab').then((module) => ({ default: module.RigLab })));
@@ -52,6 +54,7 @@ if (landing) {
   void import('./renderer/rive/riveRenderer');
 }
 function App() {
+  if (download) return <DownloadPage />;
   if (judge || (studio && import.meta.env['VITE_TAVI_JUDGING'] === 'true' && !isJudgingSession()))
     return <JudgeStart />;
   if (rigLab)

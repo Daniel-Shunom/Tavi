@@ -1059,7 +1059,8 @@ html.landing-mode body #root {
   left: 50%;
   bottom: 150px;
   width: min(1400px, 100vw);
-  height: 560px;
+  top: 0;
+  height: calc(100% - 150px);
   image-rendering: pixelated;
   transform: translateX(-50%);
   pointer-events: none;
@@ -2506,7 +2507,7 @@ html.landing-mode body #root {
     padding: 120px 22px 200px;
   }
   .closing-dither {
-    height: 480px;
+    height: calc(100% - 150px);
   }
   .footer-signoff {
     bottom: 22px;
