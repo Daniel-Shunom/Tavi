@@ -6,6 +6,8 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Avatar } from '../../../src/renderer/Avatar';
 import { catalog } from '../../../src/renderer/characters/registry';
+import { motionRigs } from '../../../src/renderer/characters/motionRigs';
+import { installMotionLayer } from '../../../src/renderer/motion/hook';
 import { resolveBeats } from '../../../shared/capabilities';
 import { beat, expandSequence, priorities, type ExpressionScript } from '../../../shared/cue';
 import { isExpressionId, isSequenceId } from '../../../shared/expressions';
@@ -22,6 +24,10 @@ import { defaults, initialState, type Config, type State } from '../../../shared
 import { resolveSpot, type BodyCue, type BodyStateId, type Scene } from '../../../shared/states';
 import '../../../src/style.css';
 
+// The motion layer (face, mouth, body acting, gaits) is a plug-in each app registers at startup,
+// as src/main.tsx does. Without it the Avatar falls back to the bare clip renderer: no mouth.
+installMotionLayer(motionRigs);
+
 const params = new URLSearchParams(location.search);
 const presentation = params.get('presentation') === 'portrait' ? 'portrait' : 'overlay';
 const decidedBy = { kind: 'manual' as const, label: 'Trailer' };
@@ -31,7 +37,7 @@ const id = (prefix: string) => `${prefix}-${String(++sequence)}`;
 type Listener = (state: State) => void;
 let current: State = initialState({
   ...defaults,
-  character: params.get('character') ?? 'tavi-refined',
+  character: params.get('character') ?? 'tavi-foundation',
   name: 'Tavi',
   captions: { studio: false, overlay: false },
   // Autonomy lives in the service; the stage only plays what the shot list asks for.

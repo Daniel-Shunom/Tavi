@@ -3,21 +3,27 @@
 import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { TaviShot } from './config';
 import { footage, pad } from './footage';
+import { followBox } from './track';
 
 export function TaviClip({
   shot,
   from = 0,
+  at,
   zoom = 1,
   focus = [0.5, 0.5],
   anchor = [0.5, 0.5],
   speed = 1,
   hold = true,
   box,
+  follow,
+  mirror = false,
   style,
 }: {
   shot: TaviShot;
   /** Seconds into the capture to start from. */
   from?: number;
+  /** Exact seconds into the capture for this frame (for cuts); overrides from and speed. */
+  at?: number;
   /** 1 fits the capture's height to the frame; larger values push in. */
   zoom?: number;
   /** Point of the capture (0..1) placed at `anchor`. */
@@ -29,6 +35,13 @@ export function TaviClip({
   hold?: boolean;
   /** Fit inside this box instead of the whole frame (a cameo bubble, a card). */
   box?: { width: number; height: number };
+  /**
+   * Track her like a camera operator: `focus` becomes a point on her body (from
+   * capture/analyze.mjs), smoothed over a few frames.
+   */
+  follow?: { part?: 'body' | 'head' | 'feet'; smooth?: number };
+  /** Flip horizontally (a reverse angle). */
+  mirror?: boolean;
   style?: React.CSSProperties;
 }) {
   const frame = useCurrentFrame();
@@ -37,11 +50,25 @@ export function TaviClip({
   const width = box?.width ?? config.width;
   const height = box?.height ?? config.height;
   const clip = footage(shot);
-  const elapsed = (frame / fps) * speed + from;
+  const elapsed = at ?? (frame / fps) * speed + from;
   let index = Math.floor(elapsed * clip.fps);
   index = hold ? Math.min(index, clip.frames - 1) : index % clip.frames;
   index = Math.max(0, index);
   // Fit the capture's height to the frame, then zoom about the focus point.
+  if (follow) {
+    const tracked = followBox(shot, index, follow.smooth ?? 8);
+    if (tracked) {
+      const [x0, y0, x1, y1] = tracked;
+      const tall = y1 - y0;
+      const y =
+        follow.part === 'head'
+          ? y0 + 0.24 * tall
+          : follow.part === 'feet'
+            ? y1 - 0.06 * tall
+            : (y0 + y1) / 2;
+      focus = [(x0 + x1) / 2, y];
+    }
+  }
   const base = height / clip.height;
   const scale = base * zoom;
   const drawW = clip.width * scale;
@@ -52,7 +79,15 @@ export function TaviClip({
     <AbsoluteFill style={style}>
       <Img
         src={staticFile(`footage/tavi/${shot}/${pad(index)}.png`)}
-        style={{ position: 'absolute', left, top, width: drawW, height: drawH }}
+        style={{
+          position: 'absolute',
+          left,
+          top,
+          width: drawW,
+          height: drawH,
+          transform: mirror ? 'scaleX(-1)' : undefined,
+          transformOrigin: `${(focus[0] * 100).toFixed(2)}% 50%`,
+        }}
       />
     </AbsoluteFill>
   );

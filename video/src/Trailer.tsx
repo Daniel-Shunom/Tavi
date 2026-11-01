@@ -6,31 +6,48 @@ import { useExists, useGridPulse, useLivePulse, type Pulse } from './audio';
 import { files, musicStart, timeline, totalSeconds } from './config';
 import { ChatBeat } from './ChatBeat';
 import { Montage } from './Montage';
-import { Feature, Outro, PulseContext, Reveal, Tease } from './scenes';
+import { Feature, Outro, PulseContext, Reveal, Slot } from './scenes';
+import { Tease } from './Tease';
 import { colors } from './theme';
 
-export function Trailer() {
+/** `audio: false` keeps the music-driven cuts but leaves the soundtrack out (for editing in Resolve). */
+export function Trailer({ audio = true }: { audio?: boolean }) {
   const music = useExists(files.music);
   const voice = useExists(files.voiceover);
   if (music === null || voice === null) return <AbsoluteFill style={{ background: colors.ink }} />;
   return (
-    <Scored music={music ? files.music : null} voice={voice ? files.voiceover : null}>
+    <Scored music={music ? files.music : null} voice={voice ? files.voiceover : null} audio={audio}>
       <Scenes />
     </Scored>
   );
 }
 
-function Scored(props: { music: string | null; voice: string | null; children: ReactNode }) {
+function Scored(props: {
+  music: string | null;
+  voice: string | null;
+  audio: boolean;
+  children: ReactNode;
+}) {
   return props.music ? <LiveScore {...props} music={props.music} /> : <GridScore {...props} />;
 }
 
-function LiveScore(props: { music: string; voice: string | null; children: ReactNode }) {
+function LiveScore(props: {
+  music: string;
+  voice: string | null;
+  audio: boolean;
+  children: ReactNode;
+}) {
   const pulse = useLivePulse(props.music);
   if (!pulse) return null;
   return <Score {...props} pulse={pulse} />;
 }
 
-function GridScore(props: { music: string | null; voice: string | null; children: ReactNode }) {
+function GridScore(props: {
+  music: string | null;
+  voice: string | null;
+  audio: boolean;
+  children: ReactNode;
+}) {
   const pulse = useGridPulse();
   return <Score {...props} pulse={pulse} />;
 }
@@ -39,10 +56,12 @@ function Score({
   music,
   voice,
   pulse,
+  audio,
   children,
 }: {
   music: string | null;
   voice: string | null;
+  audio: boolean;
   pulse: Pulse;
   children: ReactNode;
 }) {
@@ -51,7 +70,7 @@ function Score({
   const outro = timeline.find((beat) => beat.kind === 'outro')?.at ?? totalSeconds;
   return (
     <PulseContext.Provider value={pulse}>
-      {music ? (
+      {music && audio ? (
         <Audio
           src={staticFile(music)}
           startFrom={Math.round(musicStart * fps)}
@@ -78,7 +97,7 @@ function Score({
           }}
         />
       ) : null}
-      {voice ? <Audio src={staticFile(voice)} startFrom={0} /> : null}
+      {voice && audio ? <Audio src={staticFile(voice)} startFrom={0} /> : null}
       {children}
     </PulseContext.Provider>
   );
@@ -103,6 +122,8 @@ function Scenes() {
             <ChatBeat beat={beat} offset={from} />
           ) : beat.kind === 'montage' ? (
             <Montage beat={beat} offset={from} />
+          ) : beat.kind === 'slot' ? (
+            <Slot beat={beat} />
           ) : (
             <Outro offset={from} />
           );

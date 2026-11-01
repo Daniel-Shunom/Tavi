@@ -1,10 +1,11 @@
 // The mood montage: one expression per cut, named, with a colour field that changes each cut.
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
-import { moodGap, moodPeak } from '../capture/shots.mjs';
+import { liveGap } from '../capture/shots.mjs';
 import type { Beat } from './config';
 import { Aberration, Backdrop, Flash, Grain, shake, Vignette } from './fx';
 import { usePulseAt } from './scenes';
 import { TaviClip } from './TaviClip';
+import { liveliest } from './track';
 import { colors } from './theme';
 import { Label, Slam, sans } from './type';
 
@@ -26,8 +27,9 @@ export function Montage({
   const age = local - index * cutFrames;
   const snap = interpolate(age, [0, cutFrames], [1.1, 1.02], { extrapolateRight: 'clamp' });
   const tint = tints[index % tints.length];
-  // Each reel plays its expressions `moodGap` apart; land on the peak of the chosen one.
-  const peak = 0.4 + cut.index * moodGap + moodPeak;
+  // Each reel plays its expressions `liveGap` apart; show the liveliest half-second of this one.
+  const cue = 0.3 + cut.index * liveGap;
+  const peak = liveliest(cut.shot, cue, cue + liveGap, beat.cutSeconds);
   const side = index % 2 ? 0.6 : 0.4;
   return (
     <Backdrop glow={0.4}>
@@ -43,7 +45,7 @@ export function Montage({
           >
             <TaviClip
               shot={cut.shot}
-              from={peak - age / fps}
+              at={peak + age / fps}
               zoom={1.75}
               focus={[0.5, 0.6]}
               anchor={[side, 0.52]}

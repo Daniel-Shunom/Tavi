@@ -38,6 +38,7 @@ async function capture(name) {
   await page.clock.install({ time: START });
   await page.goto(
     `${base}/video/capture/stage/?presentation=${shot.presentation}${process.env.STAGE_CHARACTER ? '&character=' + process.env.STAGE_CHARACTER : ''}`,
+    { timeout: 180000 },
   );
   await page.waitForFunction(
     () => document.body.dataset.ready || document.body.dataset.error,
@@ -47,10 +48,33 @@ async function capture(name) {
   const failure = await page.evaluate(() => document.body.dataset.error);
   if (failure) throw new Error(`${name}: ${failure}`);
   if (shot.config) await page.evaluate((patch) => window.stage.config(patch), shot.config);
-  // Let the renderer settle on the real clock, then freeze time and step it ourselves.
+  // Let the renderer load on the real clock (the rig can take many seconds on a busy machine;
+  // freezing time before it is live leaves the canvas empty), then freeze time and step it.
+  await page.waitForFunction(
+    () => [...document.querySelectorAll('canvas')].some((c) => c.dataset.characterId),
+    null,
+    { timeout: 180000 },
+  );
   await page.waitForTimeout(600);
-  await page.clock.pauseAt(START + 5000);
+  // Pause just ahead of the page's own clock: a slow load can run past any fixed instant.
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 250);
   await page.clock.runFor(1200);
+  // What the stage looks like with no character drawn (canvases hidden), so frames where the
+  // graphics context dropped are caught instead of saved.
+  await page.evaluate(() =>
+    document.querySelectorAll('canvas').forEach((c) => (c.style.visibility = 'hidden')),
+  );
+  const empty = await page.screenshot({ omitBackground: true, animations: 'disabled' });
+  await page.evaluate(() =>
+    document.querySelectorAll('canvas').forEach((c) => (c.style.visibility = '')),
+  );
+  // Wait (on the fake clock) until she is actually on the canvas before frame 0.
+  const blankShot = async () =>
+    (await page.screenshot({ omitBackground: true, animations: 'disabled' })).equals(empty);
+  for (let tries = 0; await blankShot(); tries++) {
+    if (tries > 90) throw new Error(`${name}: the character never drew`);
+    await page.clock.runFor(1000 / fps);
+  }
   const total = Math.round(shot.seconds * fps);
   const pending = [...shot.actions].sort((a, b) => a[0] - b[0]);
   const started = Date.now();
@@ -61,11 +85,11 @@ async function capture(name) {
       await page.evaluate(`(() => { const stage = window.stage; return ${code}; })()`);
     }
     await page.clock.runFor(1000 / fps);
-    await page.screenshot({
-      path: join(folder, `${String(frame).padStart(5, '0')}.png`),
-      omitBackground: true,
-      animations: 'disabled',
-    });
+    const image = await page.screenshot({ omitBackground: true, animations: 'disabled' });
+    // A blank frame means the graphics context dropped (usually memory pressure): fail the shot
+    // so it is retried rather than saving empty frames.
+    if (image.equals(empty)) throw new Error(`${name}: blank frame ${String(frame)}`);
+    await writeFile(join(folder, `${String(frame).padStart(5, '0')}.png`), image);
     if (frame % 60 === 0)
       console.log(
         `${name}: ${String(frame)}/${String(total)} (${String(Math.round((Date.now() - started) / 1000))}s)`,
@@ -97,7 +121,20 @@ async function capture(name) {
 const queue = [...names];
 await Promise.all(
   Array.from({ length: Math.min(parallel, queue.length) }, async () => {
-    while (queue.length) await capture(queue.shift());
+    while (queue.length) {
+      const name = queue.shift();
+      for (let attempt = 1; ; attempt++) {
+        try {
+          await capture(name);
+          break;
+        } catch (error) {
+          console.log(
+            `${name}: attempt ${String(attempt)} failed: ${String(error.message).split('\n')[0]}`,
+          );
+          if (attempt >= 3) throw error;
+        }
+      }
+    }
   }),
 );
 await browser.close();

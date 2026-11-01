@@ -11,6 +11,7 @@ export function Root() {
       fps={FPS}
       width={WIDTH}
       height={HEIGHT}
+      defaultProps={{ audio: true }}
     />
   );
 }

@@ -17,6 +17,8 @@ export const files = {
     chat: 'clips/chat.mp4',
     studio: 'clips/studio.mp4',
     desk: 'clips/desk.mp4',
+    /** Your walkthrough of setting Tavi up on stream (full frame, any length up to the slot). */
+    setup: 'clips/setup.mp4',
   },
 };
 
@@ -84,6 +86,13 @@ export type Beat =
       cutSeconds: number;
       cuts: { shot: TaviShot; index: number; label: string }[];
     }
+  | {
+      /** A full-frame slot for your own footage, with a small label; a placeholder until it exists. */
+      kind: 'slot';
+      at: number;
+      eyebrow: string;
+      src: string;
+    }
   | { kind: 'outro'; at: number };
 
 export type TaviShot =
@@ -97,7 +106,15 @@ export type TaviShot =
   | 'chat'
   | 'moods-a'
   | 'moods-b'
-  | 'moods-c';
+  | 'moods-c'
+  | 'alive-a'
+  | 'alive-b'
+  | 'reveal'
+  | 'chatread'
+  | 'romp'
+  | 'chatwalk'
+  | 'quiet'
+  | 'outro';
 
 /**
  * A captured Tavi shot: `from` seconds into it, `zoom` (1 fits the capture's height to the frame),
@@ -111,6 +128,9 @@ export interface TaviMedia {
   zoom?: number;
   focus?: [number, number];
   anchor?: [number, number];
+  /** Camera follows her (see TaviClip). */
+  follow?: { part?: 'body' | 'head' | 'feet'; smooth?: number };
+  mirror?: boolean;
 }
 
 export const copy = {
@@ -124,7 +144,6 @@ export const copy = {
   },
 };
 
-/** Portrait face framing shared by the chat beat and the montage (face centre ≈ 0.5, 0.58). */
 /** Face-only framing for a cameo bubble: the capture's face (0.5, 0.58) fills the box. */
 const cameoFrame = {
   zoom: 2.6,
@@ -132,7 +151,15 @@ const cameoFrame = {
   anchor: [0.5, 0.5] as [number, number],
 };
 
+/** Head and shoulders, for the portrait captures shown full frame. */
 const faceFrame = { zoom: 1.5, focus: [0.5, 0.63] as [number, number] };
+
+/** Overlay captures (she is small in them): a camera that follows her, right of the headline. */
+const followFrame = {
+  zoom: 2.4,
+  follow: { part: 'body' as const, smooth: 10 },
+  anchor: [0.68, 0.56] as [number, number],
+};
 
 export const timeline: Beat[] = [
   { kind: 'tease', at: 0 },
@@ -140,17 +167,20 @@ export const timeline: Beat[] = [
   {
     kind: 'chat',
     at: 16,
-    eyebrow: 'She hears your chat',
+    eyebrow: 'She reads your chat',
     headline: 'Reacts to every message.',
     sub: 'Bounded rules, zero AI roulette.',
-    // The capture: listening at 0.4 s, startled 2.8, laugh 4.6, thank-you 7.2, blush 9.8.
-    media: { type: 'tavi', shot: 'chat', from: 0.6, ...faceFrame, anchor: [0.58, 0.56] },
+    // The chatread capture: impressed 0.3 s, laugh 1.7, startled 3.4, shocked then laughing 4.4,
+    // nodding 7.2, excited 8.6, grin 10.0. Each line lands just before her reaction.
+    media: { type: 'tavi', shot: 'chatread', from: 0, ...faceFrame, anchor: [0.58, 0.56] },
     messages: [
-      { at: 0.3, user: 'pogchamp_dan', text: 'wait is she actually watching chat', tone: 'teal' },
-      { at: 1.9, user: 'mira', text: 'BOO', tone: 'pink' },
-      { at: 3.7, user: 'k3v', text: 'LMAOOO she jumped', tone: 'lavender' },
-      { at: 6.3, user: 'lux_tv', text: 'gifted 5 subs to the community!', tone: 'mint' },
-      { at: 8.9, user: 'noodle', text: 'tavi is so cute omg', tone: 'pink' },
+      { at: 0.1, user: 'pogchamp_dan', text: 'wait is she reading chat??', tone: 'teal' },
+      { at: 1.4, user: 'k3v', text: 'LMAOOO', tone: 'lavender' },
+      { at: 3.1, user: 'mira', text: 'BOO', tone: 'pink' },
+      { at: 4.1, user: 'lux_tv', text: 'gifted 5 subs to the community!', tone: 'mint' },
+      { at: 6.9, user: 'noodle', text: 'she agrees with me btw', tone: 'pink' },
+      { at: 8.3, user: 'raidbot', text: 'big_tim is raiding with 240 viewers', tone: 'teal' },
+      { at: 9.7, user: 'pogchamp_dan', text: 'tavi is so cute omg', tone: 'lavender' },
     ],
   },
   {
@@ -159,18 +189,18 @@ export const timeline: Beat[] = [
     eyebrow: 'A face for everything',
     cutSeconds: 0.5,
     cuts: [
-      { shot: 'moods-a', index: 0, label: 'excited' },
-      { shot: 'moods-a', index: 1, label: 'smug' },
-      { shot: 'moods-a', index: 2, label: 'shocked' },
-      { shot: 'moods-a', index: 3, label: 'eye roll' },
-      { shot: 'moods-a', index: 4, label: 'sassy' },
-      { shot: 'moods-b', index: 0, label: 'confused' },
-      { shot: 'moods-b', index: 1, label: 'determined' },
-      { shot: 'moods-b', index: 2, label: 'wince' },
-      { shot: 'moods-b', index: 3, label: 'grin' },
-      { shot: 'moods-c', index: 5, label: 'suspicious' },
-      { shot: 'moods-c', index: 0, label: 'sleepy' },
-      { shot: 'moods-c', index: 3, label: 'celebrate' },
+      { shot: 'alive-a', index: 0, label: 'excited' },
+      { shot: 'alive-b', index: 0, label: 'hi!' },
+      { shot: 'alive-a', index: 1, label: 'laugh' },
+      { shot: 'alive-a', index: 2, label: 'shocked' },
+      { shot: 'alive-b', index: 2, label: 'celebrate' },
+      { shot: 'alive-a', index: 3, label: 'agree' },
+      { shot: 'alive-b', index: 1, label: 'confused' },
+      { shot: 'alive-a', index: 4, label: 'wince' },
+      { shot: 'alive-b', index: 3, label: 'nope' },
+      { shot: 'alive-a', index: 5, label: 'grin' },
+      { shot: 'alive-b', index: 5, label: 'eye roll' },
+      { shot: 'alive-a', index: 6, label: 'startled' },
     ],
   },
   {
@@ -182,14 +212,7 @@ export const timeline: Beat[] = [
     media: {
       type: 'clip',
       src: files.clips.stream,
-      fallback: {
-        type: 'tavi',
-        shot: 'run',
-        from: 4.6,
-        zoom: 1.15,
-        focus: [0.55, 0.62],
-        anchor: [0.62, 0.55],
-      },
+      fallback: { type: 'tavi', shot: 'romp', from: 4.4, ...followFrame },
     },
   },
   {
@@ -198,15 +221,8 @@ export const timeline: Beat[] = [
     eyebrow: 'Knows the room',
     headline: 'Walks over to chat.',
     sub: 'She knows where your panels are.',
-    // The peek capture: she crosses the overlay to the chat panel and leans in.
-    media: {
-      type: 'tavi',
-      shot: 'peek',
-      from: 1.2,
-      zoom: 1.6,
-      focus: [0.66, 0.76],
-      anchor: [0.66, 0.55],
-    },
+    // The chatwalk capture: crosses to the chat side, then keeps reacting to it.
+    media: { type: 'tavi', shot: 'chatwalk', from: 0.1, ...followFrame },
   },
   {
     kind: 'feature',
@@ -214,7 +230,7 @@ export const timeline: Beat[] = [
     eyebrow: 'Tune her in Studio',
     headline: 'Your rules. Her moves.',
     sub: 'Look, personality, hotkeys, scene.',
-    cameo: { type: 'tavi', shot: 'moods-a', from: 0.4 + 2.3 * 1 + 0.2, ...cameoFrame },
+    cameo: { type: 'tavi', shot: 'alive-a', from: 0.2, ...cameoFrame },
     media: {
       type: 'screen',
       src: 'footage/screens/studio',
@@ -229,7 +245,7 @@ export const timeline: Beat[] = [
     at: 56,
     eyebrow: 'Meet her on the site',
     headline: 'Scroll. She follows.',
-    cameo: { type: 'tavi', shot: 'moods-c', from: 0.4 + 2.3 * 2 + 0.2, ...cameoFrame },
+    cameo: { type: 'tavi', shot: 'alive-b', from: 0.2, ...cameoFrame },
     media: {
       type: 'screen',
       src: 'footage/screens/landing',
@@ -243,12 +259,15 @@ export const timeline: Beat[] = [
     kind: 'feature',
     at: 62.5,
     eyebrow: 'Even when it is quiet',
-    headline: 'She is still there.',
-    sub: 'Yawns, fidgets, waits for the next message.',
-    // Sleepy, then bored, from the third mood reel.
-    media: { type: 'tavi', shot: 'moods-c', from: 0.4 + 0.6, ...faceFrame, anchor: [0.68, 0.56] },
+    headline: 'She keeps busy.',
+    sub: 'Thinks, fidgets, glances around, and perks up the second chat moves.',
+    // The quiet capture: thinking, glancing, fidgeting, then startled by chat, laughing, waving.
+    media: { type: 'tavi', shot: 'quiet', from: 1.4, ...followFrame },
   },
-  { kind: 'outro', at: 68.5 },
+  // Your stream-setup walkthrough: drop it at video/public/clips/setup.mp4. Change the outro's
+  // `at` (and totalSeconds) to fit its length.
+  { kind: 'slot', at: 68.5, eyebrow: 'Set her up on stream', src: files.clips.setup },
+  { kind: 'outro', at: 83.5 },
 ];
 
-export const totalSeconds = 78;
+export const totalSeconds = 93;

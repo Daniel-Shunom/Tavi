@@ -3,7 +3,7 @@ import { createContext, useContext } from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { hitIndex, punch, type Pulse } from './audio';
 import { copy, type Beat, type TaviMedia } from './config';
-import { Aberration, Backdrop, Flash, Glitch, Grain, Scanlines, shake, Vignette } from './fx';
+import { Aberration, Backdrop, Flash, Glitch, Grain, shake, Vignette } from './fx';
 import { Letterbox, LightLeak } from './cinema';
 import { Screen } from './Screen';
 import { TaviClip } from './TaviClip';
@@ -18,135 +18,6 @@ export function usePulseAt(offset: number) {
   const hit = hitIndex(pulse, frame);
   const lastHit = hit >= 0 ? pulse.hits[hit] : -999;
   return { pulse, frame, hit, lastHit, age: frame - lastHit, punch: punch(pulse, frame) };
-}
-
-// Tease -----------------------------------------------------------------------------------------
-
-/** Extreme close-ups of the hero capture; focus is a point of the capture (0..1). */
-const closeups: { zoom: number; focus: [number, number]; from: number }[] = [
-  { zoom: 6.5, focus: [0.46, 0.585], from: 0.6 }, // left eye through the glasses
-  { zoom: 4.2, focus: [0.5, 0.52], from: 3.0 }, // hair and brow, mid wave
-  { zoom: 7, focus: [0.56, 0.585], from: 1.2 }, // right eye
-  { zoom: 5, focus: [0.5, 0.65], from: 5.4 }, // the grin
-  { zoom: 3.6, focus: [0.62, 0.74], from: 2.9 }, // the waving hand
-  { zoom: 4.6, focus: [0.42, 0.5], from: 7.2 }, // hair swing, excited
-  { zoom: 2.6, focus: [0.5, 0.6], from: 9.3 }, // shocked, nearly the whole face
-  { zoom: 5.5, focus: [0.5, 0.6], from: 11.0 }, // laugh
-];
-
-/**
- * Cut points for the tease. The track's own hits when its intro has them; otherwise (a quiet,
- * building intro like the one this trailer is scored to) an accelerating grid: cuts start slow
- * and tighten toward the reveal, which is the oldest trick in the trailer book for a reason.
- */
-function teaseCuts(pulse: Pulse, offset: number, duration: number, fps: number): number[] {
-  const own = pulse.hits.filter((h) => h >= offset && h < offset + duration).map((h) => h - offset);
-  if (own.length >= 8) return own;
-  const cuts: number[] = [];
-  let t = fps * 1.6;
-  let gap = fps * 1.1;
-  while (t < duration - fps * 0.25) {
-    cuts.push(Math.round(t));
-    t += gap;
-    gap = Math.max(fps * 0.22, gap * 0.86);
-  }
-  return cuts;
-}
-
-export function Tease({ offset }: { offset: number }) {
-  const { frame, pulse } = usePulseAt(offset);
-  const { fps, durationInFrames } = useVideoConfig();
-  const local = useCurrentFrame();
-  const cuts = teaseCuts(pulse, offset, durationInFrames, fps);
-  const hit = cuts.filter((c) => c <= local).length - 1;
-  const age = hit >= 0 ? local - cuts[hit] : 999;
-  const hitPunch = hit >= 0 ? Math.exp(-age / 6) : 0;
-  // Early hits are pure silhouette; light creeps in as the tease goes on.
-  const progress = local / durationInFrames;
-  const brightness = interpolate(progress, [0, 0.35, 0.8, 1], [0, 0.08, 0.45, 0.62]);
-  const breathing = 0.5 + 0.5 * Math.sin(local / 11);
-  const cue = hit < 0 ? -1 : hit % 6; // 0..5 pattern: clip, clip, text, clip, text, clip
-  const textAt = cue === 2 || cue === 4;
-  const lineIndex = Math.floor(Math.max(0, hit) / 3) % copy.teaseLines.length;
-  const shot = closeups[Math.max(0, hit) % closeups.length];
-  const scale = 1 + 0.12 * hitPunch + 0.015 * breathing;
-  const dark = hit < 0;
-  return (
-    <Backdrop glow={0.15 + 0.35 * hitPunch}>
-      <AbsoluteFill style={shake(frame, 14 * hitPunch)}>
-        <Glitch amount={age <= 1 ? 1 : 0}>
-          <Aberration amount={16 * hitPunch}>
-            {textAt && !dark ? (
-              <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <Slam at={0} size={196} italic color={colors.white}>
-                  {copy.teaseLines[lineIndex]}
-                </Slam>
-              </AbsoluteFill>
-            ) : (
-              <AbsoluteFill
-                style={{
-                  transform: `scale(${scale.toFixed(4)})`,
-                  filter: `brightness(${(dark ? 0.03 + 0.03 * breathing : brightness).toFixed(3)}) contrast(1.25) saturate(1.15)`,
-                }}
-              >
-                <TaviClip
-                  shot="hero"
-                  zoom={dark ? 1.3 : shot.zoom}
-                  focus={dark ? [0.5, 0.6] : shot.focus}
-                  from={dark ? 0.2 : shot.from}
-                />
-              </AbsoluteFill>
-            )}
-          </Aberration>
-        </Glitch>
-        {/* A rim of lavender light sweeping over the silhouette so the shape reads in the dark. */}
-        <AbsoluteFill
-          style={{
-            mixBlendMode: 'screen',
-            opacity: dark ? 0.35 : 0.22,
-            background: `linear-gradient(${(100 + local * 2).toFixed(0)}deg, transparent 40%, ${colors.lavender}55 50%, transparent 60%)`,
-          }}
-        />
-      </AbsoluteFill>
-      {cuts.map((c) => (
-        <Flash key={c} at={c} color={colors.lavender} peak={0.35} decay={3} />
-      ))}
-      <Scanlines opacity={0.22} />
-      <Grain amount={0.18} />
-      <Vignette strength={0.85} />
-      <Letterbox amount={1} />
-      {/* Count-in strip: a thin lavender bar that fills to the reveal. */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          bottom: 138,
-          height: 5,
-          width: `${(progress * 100).toFixed(2)}%`,
-          background: colors.lavender,
-          opacity: 0.8,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          left: 64,
-          bottom: 168,
-          fontFamily: sans,
-          fontSize: 22,
-          letterSpacing: '0.24em',
-          textTransform: 'uppercase',
-          color: colors.faint,
-          opacity: interpolate(local, [fps, fps * 2], [0, 1], {
-            extrapolateLeft: 'clamp',
-            extrapolateRight: 'clamp',
-          }),
-        }}
-      >
-        A companion for your stream
-      </div>
-    </Backdrop>
-  );
 }
 
 // Reveal ----------------------------------------------------------------------------------------
@@ -193,7 +64,7 @@ export function Reveal({ offset }: { offset: number }) {
           <AbsoluteFill
             style={{ transform: `scale(${scale.toFixed(4)})`, transformOrigin: '50% 86%' }}
           >
-            <TaviClip shot="hero" zoom={1.06} focus={[0.5, 0.63]} from={2.55} />
+            <TaviClip shot="reveal" zoom={1.06} focus={[0.5, 0.63]} from={0.1} />
           </AbsoluteFill>
         </Aberration>
         <AbsoluteFill
@@ -398,6 +269,23 @@ function ClipOrFallback({
   );
 }
 
+// Slot ------------------------------------------------------------------------------------------
+
+/** Your own footage full frame (the stream-setup walkthrough), labelled top left. */
+export function Slot({ beat }: { beat: Extract<Beat, { kind: 'slot' }> }) {
+  const local = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return (
+    <AbsoluteFill style={{ background: colors.ink }}>
+      <Screen src={beat.src} zoom={[1, 1]} label={beat.eyebrow} />
+      <div style={{ position: 'absolute', left: 64, top: 52, ...rise(local, 4, fps) }}>
+        <Label>{beat.eyebrow}</Label>
+      </div>
+      <Flash at={0} color={colors.lavender} peak={0.45} decay={4} />
+    </AbsoluteFill>
+  );
+}
+
 // Outro -----------------------------------------------------------------------------------------
 
 export function Outro({ offset }: { offset: number }) {
@@ -412,7 +300,7 @@ export function Outro({ offset }: { offset: number }) {
     <Backdrop glow={1}>
       <AbsoluteFill style={shake(frame, 5 * hitPunch)}>
         <AbsoluteFill style={{ left: '22%' }}>
-          <TaviClip shot="hero" zoom={1.0} focus={[0.5, 0.6]} from={14.7} />
+          <TaviClip shot="outro" zoom={1.0} focus={[0.5, 0.6]} from={0.1} />
         </AbsoluteFill>
         <div
           style={{
