@@ -11,7 +11,10 @@
     "prepare:service": "node scripts/prepare-service.mjs",
     "service:dev": "node --import ../node_modules/tsx/dist/loader.mjs service.ts",
     "verify": "node scripts/verify-running.mjs",
-    "icon": "node scripts/render-icon.mjs"
+    "icon": "node scripts/render-icon.mjs",
+    "prepare:icons": "node scripts/prepare-icons.mjs",
+    "test:packaging": "node --test scripts/platform.test.mjs scripts/notices.test.mjs",
+    "verify:service": "node scripts/verify-service.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",

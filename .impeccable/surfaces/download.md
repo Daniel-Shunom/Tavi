@@ -13,3 +13,5 @@ The Twitch × Codex lockup is painted into the same ordered dither as the scene 
 ## Verification
 
 `node tools/download-page-check.mjs` checks the built app on the local judging runner. It covers a drawn character, greeting, Windows release lookup states, preview navigation, responsive layout, and the original landing copy. Screenshots are written to ignored `test-results/download-page/`.
+
+Native platform choices show Windows, macOS, and Linux marks with keyboard-accessible tabs. The device selects the initial tab, while visitors can choose another OS. Links come from published stable release assets: Apple Silicon/Intel DMGs and Linux deb/AppImage formats remain explicit. Missing assets and lookup failures keep a usable browser-preview or releases link.

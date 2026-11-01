@@ -1,19 +1,23 @@
 // Generates desktop/resources/ (gitignored): the built studio/overlay, the bundled service,
 // its production dependencies, a Node runtime, and third-party notices.
 import { build } from 'esbuild';
-import { mkdir, readFile, writeFile, copyFile, cp, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, copyFile, cp, rm, chmod, access } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { collectNotices } from './notices.mjs';
+import { desktopPlatform } from './platform.mjs';
 
 const desktop = fileURLToPath(new URL('../', import.meta.url));
 const root = fileURLToPath(new URL('../../', import.meta.url));
-if (process.platform !== 'win32' || process.arch !== 'x64')
-  throw new Error('The desktop package supports Windows x64 only.');
+const platform = desktopPlatform();
 
 function runNode(args, cwd) {
-  const result = spawnSync(process.execPath, args, { cwd, stdio: 'inherit' });
+  const result = spawnSync(process.execPath, args, {
+    cwd,
+    stdio: 'inherit',
+    env: { ...process.env, VITE_TAVI_JUDGING: 'false' },
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`Build step failed (${result.status}): ${args[0]}`);
 }
@@ -71,21 +75,30 @@ await copyFile(join(root, 'package-lock.json'), join(service, 'package-lock.json
 // Invoke npm's JS CLI directly so Windows shell quoting does not affect installation.
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error('Run packaging through npm (npm run build / npm run release).');
-runNode(
-  [npmCli, 'install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
-  service,
-);
+runNode([npmCli, 'install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], service);
 await cp(join(root, 'dist'), join(service, 'dist'), { recursive: true });
 
-await copyFile(process.execPath, join(runtime, 'node.exe'));
-const nodeLicense = join(dirname(process.execPath), 'LICENSE');
-try {
-  await copyFile(nodeLicense, join(runtime, 'NODE-LICENSE.txt'));
-} catch {
-  throw new Error(
-    'Node LICENSE was not found next to node.exe. Add the official runtime LICENSE before distributing.',
-  );
+const bundledNode = join(runtime, platform.node);
+await copyFile(process.execPath, bundledNode);
+if (process.platform !== 'win32') await chmod(bundledNode, 0o755);
+// Node distributions put LICENSE beside node.exe on Windows and above bin/node on Unix.
+const candidates = [
+  join(dirname(process.execPath), 'LICENSE'),
+  join(dirname(process.execPath), '..', 'LICENSE'),
+];
+let nodeLicense;
+for (const candidate of candidates) {
+  try {
+    await access(candidate);
+    nodeLicense = candidate;
+    break;
+  } catch {
+    /* Try the next official distribution location. */
+  }
 }
+if (!nodeLicense)
+  throw new Error('The official Node runtime LICENSE was not found; packaging stopped.');
+await copyFile(nodeLicense, join(runtime, 'NODE-LICENSE.txt'));
 
 await writeFile(
   join(resources, 'THIRD-PARTY-NOTICES.txt'),

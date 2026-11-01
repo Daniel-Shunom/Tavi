@@ -8,7 +8,8 @@
 .session_id
 .sessions
 art
-desktop
+desktop/*
+!desktop/listen.ts
 docs
 experiments
 playwright-report

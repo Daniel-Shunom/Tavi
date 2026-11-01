@@ -5,9 +5,11 @@ import { fileURLToPath } from 'node:url';
 import staticFiles from '@fastify/static';
 import { createApp } from '../server/app.js';
 import { configSchema, defaults } from '../shared/protocol.js';
+import { listenDesktop } from './listen.js';
 const directory = resolve(process.env['TAVI_DATA_DIR'] ?? '.data');
 // 4318 is the documented OBS overlay port. TAVI_PORT exists for testing and port conflicts.
-const port = Number(process.env['TAVI_PORT'] ?? 4318);
+const preferredPort = Number(process.env['TAVI_PORT'] ?? 4318);
+let port = 0;
 const version = process.env['TAVI_VERSION'] ?? 'development';
 let config = defaults;
 try {
@@ -26,7 +28,7 @@ const app = await createApp(
     await rename(resolve(directory, 'character.tmp'), resolve(directory, 'character.json'));
   },
   {},
-  [`http://127.0.0.1:${String(port)}`, `http://localhost:${String(port)}`],
+  () => (port ? [`http://127.0.0.1:${String(port)}`, `http://localhost:${String(port)}`] : []),
 );
 await app.register(staticFiles, {
   root: resolve(dirname(fileURLToPath(import.meta.url)), 'dist'),
@@ -34,7 +36,28 @@ await app.register(staticFiles, {
 for (const route of ['/studio', '/rig-lab', '/download', '/overlay', '/dock']) {
   app.get(route, async (_, reply) => reply.sendFile('index.html'));
 }
-await app.listen({ host: '127.0.0.1', port });
+// Unix has no Windows job object. Stop the service if its shell parent disappears,
+// including a force-quit/crash, so a stale service cannot keep the OBS port occupied.
+const parentPid = Number(process.env['TAVI_PARENT_PID']);
+if (process.platform !== 'win32' && Number.isSafeInteger(parentPid) && parentPid > 0) {
+  const parentWatch = setInterval(() => {
+    if (process.ppid === parentPid) return;
+    clearInterval(parentWatch);
+    void app.close().then(
+      () => process.exit(0),
+      () => process.exit(1),
+    );
+  }, 1000);
+  parentWatch.unref();
+  app.addHook('onClose', () => {
+    clearInterval(parentWatch);
+    return Promise.resolve();
+  });
+}
+
+port = await listenDesktop(app, preferredPort);
+// The native shell reads this line from its own child's stdout before opening Studio.
+console.log(`TAVI_READY ${JSON.stringify({ port })}`);
 console.log(
   `${new Date().toISOString()} Tavi Studio ${version} service (Node ${process.version}): http://127.0.0.1:${String(port)} data=${directory}`,
 );

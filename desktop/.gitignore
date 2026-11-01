@@ -2,3 +2,5 @@ node_modules/
 resources/
 src-tauri/target/
 src-tauri/gen/
+
+release-assets/
