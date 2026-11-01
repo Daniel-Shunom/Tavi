@@ -41,6 +41,6 @@ python capture/emote-sizes.py               # from the repo root: 112/56/28 emot
 
 ## Credits and rules of use
 
-- **Character art:** "Mascot / Avatar Customization" by alisketch, CC BY 4.0 (https://rive.app/marketplace/27479-51911-mascot-avatar-customization/). Every image of Tavi here is an adaptation of it. Credit alisketch wherever these assets are published (Devpost description, Store listing, video description). See `public/credits/rive-avatar.md`.
+- **Character art** (see `CREDITS.md` for paste-ready credits and what the licence asks): "Mascot / Avatar Customization" by alisketch, CC BY 4.0 (https://rive.app/marketplace/27479-51911-mascot-avatar-customization/). Every image of Tavi here is an adaptation of it. Credit alisketch wherever these assets are published (Devpost description, Store listing, video description). See `public/credits/rive-avatar.md`.
 - **Twitch and OpenAI marks** (simple-icons glyphs) appear only to name the hackathon. They belong to their owners; check the event's brand guidelines before publishing.
 - **Chat in the images** is illustrative; real reactions follow rules and cooldowns. The images make no AI claims.

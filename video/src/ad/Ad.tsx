@@ -69,6 +69,21 @@ function EndCard() {
           </span>
         </div>
       </div>
+      {/* CC BY 4.0 requires attribution wherever the character art is shown. */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 230,
+          bottom: 44,
+          fontFamily: sans,
+          fontSize: 17,
+          color: ink.faint,
+          letterSpacing: '0.01em',
+          opacity: credit,
+        }}
+      >
+        Character adapted from “Mascot / Avatar Customization” by alisketch, CC BY 4.0
+      </div>
     </Fade>
   );
 }
