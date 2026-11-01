@@ -79,6 +79,32 @@ describe('configuration migration', () => {
     const unknown = reduce(state, { type: 'configure', patch: { character: 'nobody' } }, catalog);
     expect(unknown.config.character).toBe('mascot-v2');
   });
+  it('swaps refined and foundation without losing saved appearance or stream settings', () => {
+    const original = normalizeConfig(
+      {
+        ...defaults,
+        character: 'tavi-refined',
+        name: 'Nova',
+        personality: 'shy',
+        energy: 42,
+        x: 0.72,
+        appearance: { hair: 'orange', outfit: 'light-green', glasses: 'grey' },
+      },
+      catalog,
+    );
+    const switched = reduce(
+      initialState(original),
+      { type: 'configure', patch: { character: 'tavi-foundation' } },
+      catalog,
+    );
+    expect(switched.config).toEqual({ ...original, character: 'tavi-foundation' });
+    const restored = reduce(
+      switched,
+      { type: 'configure', patch: { character: 'tavi-refined' } },
+      catalog,
+    );
+    expect(restored.config).toEqual(original);
+  });
   it('keeps the WebSocket protocol strict', () => {
     for (const input of [
       { type: 'configure', patch: { x: 4 } },

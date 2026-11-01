@@ -18,7 +18,9 @@
     <script>
       // The landing page is white from the first paint (not the studio's dark canvas until the
       // app script runs), and its hero's TV and table are fetched with the page.
-      if (!['/overlay', '/studio', '/avatar-lab', '/dock'].includes(location.pathname)) {
+      if (
+        !['/overlay', '/studio', '/avatar-lab', '/dock', '/rig-lab'].includes(location.pathname)
+      ) {
         document.documentElement.classList.add('landing-mode');
         for (const name of ['table', 'tv']) {
           const link = document.createElement('link');

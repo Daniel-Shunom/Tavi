@@ -133,12 +133,24 @@ async function crateSections(manifestDir) {
   return sections.sort();
 }
 
+/** Include nested asset credits in deterministic path order. */
+export async function artworkCredits(directory) {
+  const entries = (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  const texts = [];
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) texts.push(...(await artworkCredits(path)));
+    else if (entry.isFile()) texts.push((await readFile(path, 'utf8')).trim());
+  }
+  return texts;
+}
+
 export async function collectNotices({ root, service, nodeLicense, nodeVersion, version }) {
   const desktop = fileURLToPath(new URL('../', import.meta.url));
   const credits = join(root, 'public', 'credits');
-  const artwork = [];
-  for (const name of (await readdir(credits)).sort())
-    artwork.push((await readFile(join(credits, name), 'utf8')).trim());
+  const artwork = await artworkCredits(credits);
   const npm = await npmSections([...npmPackageDirs(root), ...npmPackageDirs(service)]);
   const crates = await crateSections(join(desktop, 'src-tauri'));
   return [

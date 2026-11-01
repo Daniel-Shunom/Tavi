@@ -53,6 +53,9 @@ export function lerpKey(a: KeyPose, b: KeyPose, k: number): KeyPose {
     dy: a.dy + (b.dy - a.dy) * k,
     rot: a.rot + (b.rot - a.rot) * k,
     sleep: a.sleep + (b.sleep - a.sleep) * k,
+    ...(a.handSupport !== undefined || b.handSupport !== undefined
+      ? { handSupport: (a.handSupport ?? 0) + ((b.handSupport ?? 0) - (a.handSupport ?? 0)) * k }
+      : {}),
   };
 }
 export function addPose(a: Partial<Pose>, b: Partial<Pose>, gain = 1): Partial<Pose> {
@@ -275,7 +278,12 @@ export function enterPlan(state: BodyStateId, spot: Spot | null, context: PlanCo
     case 'nap':
       if (spot?.rect === 'webcam' && (spot.surface === 'ledge' || spot.surface === 'top'))
         return lieDownOnLedge(b, held);
-      sitDownFloor(b, rig);
+      if (rig.napStyle === 'supported') {
+        b.to(key(rig, null, { pose: { gazeY: 0.4, headTilt: 0.05, shift: -0.012 } }), 0.35);
+        b.to(key(rig, 'crouch'), 0.6);
+        b.to(key(rig, 'sitFloor'), 0.85);
+        b.to(key(rig, 'sitFloor'), 0.2);
+      } else sitDownFloor(b, rig);
       lieDown(b, rig, held);
       return b.build();
     case 'peek':
@@ -299,6 +307,20 @@ function sitDownFloor(b: Builder, rig: StateRig, sit = key(rig, 'sitFloor')) {
   b.to(sit, 0.49, 'out');
 }
 function lieDown(b: Builder, rig: StateRig, lie: KeyPose) {
+  if (rig.napStyle === 'supported') {
+    const prop = key(rig, 'kneelProp', { rot: -18, handSupport: 1 });
+    b.to(
+      { ...key(rig, 'sitFloor'), pose: addPose(rig.keys.sitFloor, { shift: -0.018, lean: 0.08 }) },
+      0.45,
+    );
+    b.to({ ...prop, handSupport: 0 }, 0.55);
+    b.to(prop, 0.35); // establish the hand before transferring weight
+    b.to(prop, 0.18);
+    b.to({ ...lie, sleep: 0.2, handSupport: 0.35 }, 0.95);
+    b.to({ ...lie, sleep: 0.75, handSupport: 0 }, 0.65);
+    b.to({ ...lie, handSupport: 0 }, 0.75);
+    return;
+  }
   b.to(key(rig, 'kneelProp', { rot: -18 }), 0.6);
   b.to({ ...lie, sleep: 0.6 }, 1.2, 'inOut');
   b.to({ ...lie, pose: addPose(lie.pose, { squash: 0.3, hairSquash: 0.05 }), sleep: 0.8 }, 0.1);
@@ -316,9 +338,10 @@ export function exitPlan(
   spot: Spot | null,
   context: PlanContext,
   wake: 'urgent' | 'normal' | undefined,
+  fromPose?: KeyPose,
 ): Timeline {
   const { rig, gap } = context;
-  const held = heldKey(state, spot, context);
+  const held = fromPose ?? heldKey(state, spot, context);
   const b = new Builder(held);
   if (context.reducedMotion) return b.to(restKey, 0.5).build();
   const ledge = spot?.surface === 'ledge';
@@ -402,6 +425,31 @@ function dropFromLedge(
 }
 function wakeFromLie(b: Builder, rig: StateRig, wake: 'urgent' | 'normal', stand: boolean) {
   const lie = b.current;
+  if (rig.napStyle === 'supported') {
+    const quick = wake === 'urgent',
+      k = quick ? 0.55 : 1;
+    const prop = key(rig, 'kneelProp', { rot: -18, handSupport: 1 });
+    b.to(
+      { ...lie, sleep: Math.min(lie.sleep, quick ? 0 : 0.65), handSupport: lie.handSupport ?? 0 },
+      quick ? 0.18 : 0.45,
+    );
+    b.to({ ...prop, sleep: 0.1, handSupport: 0.35 }, 0.85 * k);
+    b.to({ ...prop, sleep: 0 }, 0.35 * k);
+    b.to({ ...prop, sleep: 0 }, 0.25 * k); // a readable supported pause
+    b.to({ ...key(rig, 'sitFloor'), handSupport: 0 }, 0.7 * k);
+    if (!quick) {
+      const sit = key(rig, 'sitFloor');
+      b.to({ ...sit, pose: { ...sit.pose, ...rig.keys.stretch, bob: sit.pose.bob ?? 0 } }, 0.75);
+      b.to(sit, 0.8);
+    }
+    if (stand) {
+      const sit = key(rig, 'sitFloor');
+      b.to({ ...sit, pose: addPose(sit.pose, { lean: 0.16, shift: -0.012 }) }, 0.4 * k);
+      b.to(key(rig, null, { pose: { lean: 0.04 } }), 0.9 * k);
+      b.to(restKey, 0.45 * k);
+    }
+    return;
+  }
   if (wake === 'urgent') {
     b.to({ ...lie, sleep: 0, pose: addPose(lie.pose, { browL: -0.8, browR: -0.8 }) }, 0.12, 'out');
     b.to({ ...key(rig, 'kneelProp', { rot: -18 }) }, 0.45);
@@ -430,9 +478,10 @@ export function shortcutPlan(
   spot: Spot | null,
   context: PlanContext,
   wake: 'urgent' | 'normal' | undefined,
+  fromPose?: KeyPose,
 ): Timeline | null {
   const { rig } = context;
-  const start = heldKey(from, spot, context);
+  const start = fromPose ?? heldKey(from, spot, context);
   const end = heldKey(to, spot, context);
   const b = new Builder(start);
   const floor = spot?.surface !== 'ledge';

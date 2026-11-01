@@ -3,6 +3,7 @@
 import type { CharacterManifest } from './characters/manifest';
 import type { Affine, TransformSource } from './attachments/layer';
 import type { CharacterAttachments } from './characters/attachmentRigs';
+import type { BodyControls } from './rig/body';
 import type { Variant } from '../../shared/variants';
 
 /** Colour changes baked into the character file at load (recolour on commit). */
@@ -31,6 +32,8 @@ export interface NodeTransform {
   scaleY?: number;
 }
 export interface RenderFrame {
+  /** Optional additive articulation, evaluated after clips and before contacts. */
+  bodyControls?: BodyControls;
   tracks: TrackApplication[];
   /** State machine input handle -> value. */
   inputs: Record<string, number | boolean>;

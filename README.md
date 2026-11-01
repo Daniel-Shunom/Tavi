@@ -108,6 +108,8 @@ Twitch UI smoke check: with the dev server running, execute `node tools/twitch-b
 
 ## Documentation
 
+For character development, use the [permanent motion lab](docs/motion/RIG-LAB.md) and [rig foundation plan](docs/motion/RIG-FOUNDATION.md).
+
 |                                                |                                                                                              |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | [Run the proof of concept](docs/RUNNING.md)    | Install, run the landing page and studio, add the OBS overlay, and run the production build. |

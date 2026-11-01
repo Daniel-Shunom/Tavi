@@ -7,7 +7,9 @@ const files = import.meta.glob<string>('./*/*.riv', {
   eager: true,
 });
 export function assetUrl(manifest: CharacterManifest) {
-  const url = files[`./${manifest.id}/${manifest.asset}`];
+  // Foundation is a motion policy over the exact same licensed art, not a copied binary.
+  const source = manifest.assetSource ?? manifest.id;
+  const url = files[`./${source}/${manifest.asset}`];
   if (!url) throw new Error(`Missing artwork for character ${manifest.id}.`);
   return url;
 }

@@ -82,7 +82,12 @@ export const manifestSchema = z
     creditUrl: z.string(),
     license: z.string(),
     renderer: z.literal('rive'),
-    /** File name next to the manifest. */
+    /** Optional character folder sharing this artwork with a different motion policy. */
+    assetSource: z
+      .string()
+      .regex(/^[a-z0-9-]{1,32}$/)
+      .optional(),
+    /** File name next to the manifest (or assetSource). */
     asset: z.string().regex(/^[\w.-]+\.riv$/),
     artboard: z.string(),
     stateMachine: z.string().nullable().default(null),
