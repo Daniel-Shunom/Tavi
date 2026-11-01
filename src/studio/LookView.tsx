@@ -102,6 +102,14 @@ export function LookView({ state, connected, send, serverNow }: StudioProps) {
                 className="st-button"
                 disabled={!connected}
                 onClick={() => {
+                  if (
+                    c.character === 'mascot-v2' &&
+                    !isOriginal(c.variant) &&
+                    !window.confirm(
+                      'Switch to Tavi? Your custom look will no longer appear. You cannot switch back to this model in Studio.',
+                    )
+                  )
+                    return;
                   patch({ character: defaultCharacterId });
                 }}
               >

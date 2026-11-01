@@ -47,6 +47,7 @@ export function Welcome({
   const [status, setStatus] = useState<TwitchStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [pollError, setPollError] = useState('');
 
   const read = useCallback(async () => {
     const response = await fetchService('/api/twitch', { cache: 'no-store' });
@@ -62,10 +63,11 @@ export function Welcome({
         const next = await read();
         if (!disposed) {
           setStatus(next);
-          setError('');
+          setPollError('');
         }
       } catch {
-        if (!disposed) setError('Twitch is unavailable right now. You can skip and connect later.');
+        if (!disposed)
+          setPollError('Twitch is unavailable right now. You can skip and connect later.');
       } finally {
         if (!disposed)
           timer = setTimeout(() => {
@@ -109,7 +111,7 @@ export function Welcome({
   }
 
   const authorization = status?.authorization;
-  const problem = error || status?.error;
+  const problem = error || pollError || status?.error;
 
   return (
     <div className="studio st-welcome" data-theme={theme}>

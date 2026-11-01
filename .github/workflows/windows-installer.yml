@@ -80,7 +80,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           flags=()
-          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+          version="${GITHUB_REF_NAME%%+*}"
+          if [[ "${version}" == *-* ]]; then
             flags+=(--prerelease)
           fi
           gh release create "${GITHUB_REF_NAME}" release-assets/* --verify-tag --generate-notes --title "Tavi Studio ${GITHUB_REF_NAME}" "${flags[@]}"
