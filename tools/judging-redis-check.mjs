@@ -6,6 +6,7 @@ import { RedisSessionStore, redisConnectionUrl } from '../server/judging/redis-s
 import { JudgingWorker } from '../server/judging/worker.ts';
 import { JudgingSessions } from '../server/judging/sessions.ts';
 import { stateSchema } from '../shared/protocol.ts';
+import { judgingSessionSchema } from '../shared/judging.ts';
 
 // This uses a disposable namespace only. It never reads or changes real visitor sessions.
 process.loadEnvFile(process.argv[2] ?? '.env.judging.local');
@@ -52,6 +53,7 @@ try {
   ids.push(second.session.id);
   const owner = await access(first.studioUrl);
   const other = await access(second.studioUrl);
+  judgingSessionSchema.parse(await sessions.status(owner));
   const viewer = await access(first.session.overlayUrl);
   stateSchema.parse((await sessions.snapshot(owner)).packet.state);
   await sessions.command(owner, { type: 'configure', patch: { name: 'Redis verification one' } });
@@ -72,6 +74,8 @@ try {
   assert.equal(extended.expiresAt - extended.createdAt, 2700000);
   const snapshot = await sessions.snapshot(owner);
   const reset = await sessions.reset(owner);
+  judgingSessionSchema.parse(reset);
+  judgingSessionSchema.parse(await sessions.status(owner));
   assert.equal(reset.epoch, 1);
   assert.equal(reset.expiresAt, extended.expiresAt);
   assert.equal(await apiStore.save(first.session.id, 0, snapshot.packet), null);

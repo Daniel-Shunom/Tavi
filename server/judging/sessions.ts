@@ -42,7 +42,7 @@ export class JudgingSessions {
       epoch: record.epoch,
       role,
       overlayUrl: this.url('/overlay', record.id, this.viewerKey(record.id)),
-      lastTestEvent: record.lastTestEvent,
+      lastTestEvent: record.lastTestEvent ?? null,
     };
   }
   async create() {

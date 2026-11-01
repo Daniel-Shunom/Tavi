@@ -1,3 +1,4 @@
+import { hostedPreview, studioEntryHref } from './links';
 import { useEffect, useState, type Ref } from 'react';
 import { ArrowDown, ArrowUpRight } from 'lucide-react';
 
@@ -47,8 +48,9 @@ export function DownloadOptions({ buttonRef }: { buttonRef: Ref<HTMLAnchorElemen
         <a className="button-primary closing-button" href={installer} ref={buttonRef}>
           Download for Windows <ArrowDown size={16} />
         </a>
-        <a className="download-web-link" href="/studio">
-          Or open Studio in your browser <ArrowUpRight size={14} />
+        <a className="download-web-link" href={studioEntryHref}>
+          {hostedPreview ? 'Or try the browser preview' : 'Or open Studio in your browser'}{' '}
+          <ArrowUpRight size={14} />
         </a>
       </>
     ) : (
@@ -60,8 +62,9 @@ export function DownloadOptions({ buttonRef }: { buttonRef: Ref<HTMLAnchorElemen
               ? 'The Windows installer is coming soon.'
               : 'Checking for the latest installer…'}
         </p>
-        <a className="button-primary closing-button" href="/studio" ref={buttonRef}>
-          Use Tavi in your browser <ArrowUpRight size={16} />
+        <a className="button-primary closing-button" href={studioEntryHref} ref={buttonRef}>
+          {hostedPreview ? 'Try the browser preview' : 'Use Tavi in your browser'}{' '}
+          <ArrowUpRight size={16} />
         </a>
         <a className="download-web-link" href={RELEASES_PAGE}>
           Check Windows releases <ArrowUpRight size={14} />
@@ -77,8 +80,9 @@ export function DownloadOptions({ buttonRef }: { buttonRef: Ref<HTMLAnchorElemen
           ? 'Windows and browser options.'
           : 'The macOS app is coming soon. Tavi works in your browser today.'}
       </p>
-      <a className="button-primary closing-button" href="/studio" ref={buttonRef}>
-        Open Studio in your browser <ArrowUpRight size={16} />
+      <a className="button-primary closing-button" href={studioEntryHref} ref={buttonRef}>
+        {hostedPreview ? 'Try the browser preview' : 'Open Studio in your browser'}{' '}
+        <ArrowUpRight size={16} />
       </a>
       <a className="download-web-link" href={RELEASES_PAGE}>
         All releases <ArrowUpRight size={14} />

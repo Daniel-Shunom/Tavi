@@ -17,11 +17,11 @@
   "rewrites": [
     { "source": "/ws", "destination": "/api/server?path=ws" },
     { "source": "/api/:path*", "destination": "/api/server?path=:path*" },
-    { "source": "/judge", "destination": "/index.html" },
-    { "source": "/studio", "destination": "/index.html" },
-    { "source": "/overlay", "destination": "/index.html" },
-    { "source": "/dock", "destination": "/index.html" },
-    { "source": "/download", "destination": "/index.html" }
+    { "source": "/judge", "destination": "/" },
+    { "source": "/studio", "destination": "/" },
+    { "source": "/overlay", "destination": "/" },
+    { "source": "/dock", "destination": "/" },
+    { "source": "/download", "destination": "/" }
   ],
   "headers": [
     {

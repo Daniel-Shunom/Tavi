@@ -1,125 +1,93 @@
-<div align="center">
+﻿<div align="center">
 
-<img src="docs/assets/readme/landing-hero.jpg" alt="The Tavi landing page: Tavi stands on a wooden table beside a vintage TV, above the headline “Your stream, with a little more life.”" width="100%" />
+<img src="brand/hackathon/app-headshot-1920x1080.png" alt="Tavi waves beside her wordmark on a pale lavender background." width="100%" />
 
-<br />
+# Your stream, with a little more life.
 
-# Tavi
+An expressive companion for Twitch streamers. Give Tavi a place in OBS, a personality, and a room full of chat.
 
-<p><sub>STREAM COMPANION&nbsp;&nbsp;·&nbsp;&nbsp;TWITCH × CODEX HACKATHON</sub></p>
+**[Meet Tavi](https://tavi-pi.vercel.app)** ? **[Try the preview](https://tavi-pi.vercel.app/judge)** · **[Windows downloads](https://github.com/Daniel-Shunom/Tavi/releases)** · **[Run locally](docs/RUNNING.md)** · **[For judges](#for-judges)**
 
-A customizable, expressive chibi companion that hangs out in a streamer's OBS canvas. Built for the Twitch x Codex hackathon.
-
-<p>
-  <img alt="React" src="https://img.shields.io/badge/React-1f1a2b?style=flat-square&logo=react&logoColor=c9a9dc" />
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-1f1a2b?style=flat-square&logo=typescript&logoColor=c9a9dc" />
-  <img alt="Rive" src="https://img.shields.io/badge/Rive-animated%20rig-1f1a2b?style=flat-square" />
-  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-22.12%2B-1f1a2b?style=flat-square&logo=nodedotjs&logoColor=c9a9dc" />
-  <img alt="OBS" src="https://img.shields.io/badge/OBS-Browser%20Source-1f1a2b?style=flat-square&logo=obsstudio&logoColor=c9a9dc" />
-  <img alt="Twitch" src="https://img.shields.io/badge/Twitch-EventSub%20chat-1f1a2b?style=flat-square&logo=twitch&logoColor=c9a9dc" />
-</p>
-
-<p>
-  <a href="#for-judges"><b>For judges</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="#a-look-around"><b>A look around</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="docs/RUNNING.md"><b>Run it</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="docs/STATUS.md"><b>What works</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="#connect-twitch"><b>Connect Twitch</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;
-  <a href="#documentation"><b>Docs</b></a>
-</p>
+<sub>Built for the Twitch × Codex hackathon · React · TypeScript · Rive · Tauri</sub>
 
 </div>
 
-<br />
-
 ## FOR JUDGES
 
-Tavi is an expressive companion for Twitch streamers: customize her in Studio, add the transparent overlay to OBS, and let chat become small on-screen reactions.
+| Start here                                                | What you'll find                                                                                                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Judge walkthrough](docs/JUDGING.md#try-tavi)             | Try the app, connect Twitch, and evaluate the OBS overlay.                                                                                       |
+| [Browser preview](docs/JUDGING-SESSIONS.md)               | Isolated 30-minute sessions, labeled test events, reset, and one 15-minute extension. [Open the live preview](https://tavi-pi.vercel.app/judge). |
+| [How we used Codex](docs/codex/README.md)                 | Development workflow, implementation evidence, attribution, and session IDs.                                                                     |
+| [Submission checklist](docs/JUDGING.md#before-submitting) | Public demo video and Devpost project links are **pending**.                                                                                     |
+| [Checks and architecture](docs/DEVELOPMENT.md#validate)   | Validation commands; [source map](docs/REPOSITORY-LAYOUT.md) and [asset credits](brand/CREDITS.md).                                              |
 
-| What to review                    | Where to look                                                                                                                                             |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Run and evaluate Tavi             | [Judge walkthrough and capability boundaries](docs/JUDGING.md#try-tavi) / [source setup](docs/RUNNING.md) / [Windows app instructions](desktop/README.md) |
-| How Codex was used                | [Codex development README](docs/codex/README.md), including concrete examples, source links, and attribution                                              |
-| Codex session IDs                 | [Session registry](docs/codex/README.md#session-ids) / [recorded primary ID](.session_id). Primary build thread confirmed by the creator.                 |
-| Twitch connection and interaction | [Connect Twitch](#connect-twitch) / [event reactions and cooldowns](docs/STREAM-EVENT-REACTIONS.md)                                                       |
-| Submission materials              | [Demo video, project description, and submission checklist](docs/JUDGING.md#submission-materials). Video and Devpost project URLs are pending.            |
-| Architecture, checks, and credits | [Technical review map](docs/JUDGING.md#technical-review-map) / [validation commands](docs/DEVELOPMENT.md#validate) / [asset credits](public/credits/)     |
+**Primary Codex session:** `01a17704-cc9a-7d01-822a-754a6062ab3c` · [All recorded sessions](.sessions)
 
-Primary Codex build session: `01a17704-cc9a-7d01-822a-754a6062ab3c` (confirmed by the creator).
-
-The landing page is an authored product demonstration. For live Twitch evidence, follow the judge walkthrough and show the OBS overlay responding to actual channel activity. This landing review revision uses the core rules path. ChatGPT sign-in and extended stream-event work are documented as awaiting integration; they are not included in this PR. Microphone input and spoken voice are not implemented.
-
-Requirements were checked against the [hackathon overview](https://twitchcon-codex.devpost.com/) and [official rules](https://twitchcon-codex.devpost.com/rules). See the [readiness checklist](docs/JUDGING.md#before-submitting) for outstanding submission steps.
+The landing animation and illustrated chat below are authored demonstrations. Test events are labeled; live Twitch operation requires channel authorization. Microphone input and spoken voice are not implemented.
 
 ## Project description
 
-Tavi is a customizable animated companion for livestreamers. It lives in an OBS Browser Source and can wave, emote, move between scene positions, tuck away, and react to chat with small, personality-aware gestures. Streamers can adjust Tavi's appearance, wardrobe, personality, and placement in the studio. Twitch chat reactions use bounded rules and cooldowns; the current build does not make AI-generated decisions or replies. The reaction playground is clearly labeled as a demo, so simulated events are not presented as live stream activity.
-
-## A look around
+Tavi lives in a transparent OBS Browser Source. She waves, emotes, walks, sits, naps, peeks, and tucks away while you stream. Studio controls her appearance, personality, placement, and reactions. Twitch chat uses bounded rules and cooldowns; manual controls and quiet mode keep the streamer in charge.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/landing-chat.jpg" alt="Tavi sits on top of a phone showing stream chat, beside the headline “Not another thing to manage.”" /></td>
-    <td width="50%"><img src="docs/assets/readme/landing-room.jpg" alt="Tavi sits on a small lit room diorama beside the headline “A companion who knows where to look.”" /></td>
-  </tr>
-  <tr>
-    <td><p align="center"><sub><b>Reads the room.</b> Tavi follows you down the page, perching on each section and reading the chat as it lands.</sub></p></td>
-    <td><p align="center"><sub><b>Knows where to look.</b> Every stop is a small scene: what she watches, how she feels, where she sits.</sub></p></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/assets/readme/landing-studio.jpg" alt="Tavi sits on a desktop monitor showing Tavi Studio, beside the headline “Yours in a few minutes.”" /></td>
-    <td width="50%"><img src="docs/assets/readme/landing-closing.jpg" alt="Tavi stands beside the “Make Tavi yours” button on a dithered, gridded floor under the headline “Make a little you.”" /></td>
-  </tr>
-  <tr>
-    <td><p align="center"><sub><b>Yours in a few minutes.</b> Studio, staged on its own display, with Tavi on top.</sub></p></td>
-    <td><p align="center"><sub><b>Lands with you.</b> At the bottom she drops to the floor and wanders by the call to action.</sub></p></td>
+    <td width="50%"><img src="brand/hackathon/gallery-2-reacts-to-chat.png" alt="Tavi laughs beside illustrative chat messages. Reactions follow rules and cooldowns." /></td>
+    <td width="50%"><img src="brand/hackathon/gallery-3-feels-every-moment.png" alt="A selection of Tavi's expressive reactions." /></td>
   </tr>
 </table>
 
-<p align="center">
-  <img src="docs/assets/readme/landing-phone.jpg" alt="The landing page on a phone: the hero, the chat phone and the Studio monitor, each with Tavi." width="100%" />
-  <br />
-  <sub><b>Made for small screens too.</b> The same story, laid out for a phone.</sub>
-</p>
+## Her place on your stream
 
-### Tavi Studio
+<img src="brand/hackathon/gallery-6-you-call-the-moments.png" alt="Tavi Studio's Live screen: character preview, manual reactions, quiet mode, poses, and mood controls." width="100%" />
 
-<p align="center">
-  <img src="docs/assets/readme/studio-app.jpg" alt="Tavi Studio’s Live screen: a preview of what viewers see with Tavi on a sample scene, a pad of reactions with keys 1 to 8, and quiet mode, tuck away, where she is and mood beside it. A sidebar leads to Look, Personality and Setup." width="100%" />
-  <br />
-  <sub><b>Companion studio.</b> Shape her look, try gestures and poses, set her personality, and copy the overlay URL for OBS.</sub>
-</p>
+**Live** for quick reactions. **Look** for appearance. **Personality** for her temperament. **Setup** for Twitch and OBS.
 
-## How we used Codex
+Tavi Foundation is the default model. Other models remain in beta; supported customization depends on the selected model. Existing customized legacy looks are preserved, with an explicit switch to Foundation.
 
-See the [Codex development README](docs/codex/README.md) for the confirmed build session, collaboration record, implementation evidence, and attribution. It distinguishes this revision from work awaiting integration.
+## Get started
+
+Download the Windows installer from [GitHub Releases](https://github.com/Daniel-Shunom/Tavi/releases) when a release is available. For the desktop setup and unsigned-installer notes, see [Windows app instructions](desktop/README.md). The macOS installer is coming soon.
+
+For local development, use Node.js 22.12+, npm, and Python 3.10+:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open [Studio](http://127.0.0.1:5173/studio). Add an OBS Browser Source with `http://127.0.0.1:5173/overlay`, at 1280 × 720. Keep the local service running.
+
+For the isolated browser preview, follow the [judging-session setup](docs/JUDGING-SESSIONS.md#run-the-local-judging-preview). Hosted sessions use a separate overlay URL and expire on the server.
 
 ## Connect Twitch
 
-The registered public Client ID is built into `shared/twitch.ts`; it is not a secret. Start Tavi and click **Connect Twitch**. Open the displayed Twitch authorization link in your browser and approve read-chat access. The registered Twitch app must use the **Public** client type. This device-code flow does not use a callback URL or client secret. If Tauri does not open the link yet, use **Copy authorization link** and paste it into your system browser. The desktop owner can integrate that link with Tauri's external-browser opener.
+Choose **Connect Twitch** in Studio, then approve the read-only permissions in Twitch's browser flow. Tavi listens to the authorized account's channel; she does not send chat messages. Quiet mode, retraction, and cooldowns bound automatic reactions.
 
-After approval, Tavi listens to the authorized account's own channel using Twurple EventSub WebSockets. Recent chat appears in the studio. Messages addressing the companion by name or saying `Tavi` can produce a small personality-dependent gesture, with a 30-90 second cooldown based on chat engagement. Quiet mode, retraction, and zero chat engagement suppress these reactions. These are rule-based live reactions, not AI-generated responses. No chat messages are sent by Tavi.
+Twitch tokens remain in service memory. Disconnect clears them locally and attempts revocation. Judging sessions also disconnect on reset or expiration. [Connection and reaction details →](docs/STREAM-EVENT-REACTIONS.md)
 
-Access and refresh tokens remain in Node service memory, never browser storage or overlay state. Restarting the service requires reconnecting. During a session, Tavi validates tokens, refreshes before expiry, and handles revocation. Disconnect clears local state and attempts Twitch token revocation. Chat history is bounded and held only in memory; Twitch deletion and clear events remove messages from the panel.
+## Built with Codex
 
-Live credentials are not needed for automated tests: Twitch HTTP and EventSub boundaries use controlled fixtures. Real end-to-end account authorization and chat delivery require approval in the streamer's browser.
-
-Twitch UI smoke check: with the dev server running, execute `node tools/twitch-browser-check.mjs`. It uses browser route fixtures and does not authorize an account or send chat.
+Human direction shaped the character, product, visual style, and priorities. Codex helped implement and refine Studio, motion, integration code, packaging, and verification. The [development record](docs/codex/README.md) documents concrete examples, session evidence, collaborator attribution, and feature boundaries.
 
 ## Documentation
 
-For character development, use the [permanent motion lab](docs/motion/RIG-LAB.md) and [rig foundation plan](docs/motion/RIG-FOUNDATION.md).
+| Build and run                                        | Go deeper                                       |
+| ---------------------------------------------------- | ----------------------------------------------- |
+| [Local setup and OBS](docs/RUNNING.md)               | [Expression system](docs/EXPRESSION-SYSTEM.md)  |
+| [Windows app](desktop/README.md)                     | [Permanent motion lab](docs/motion/RIG-LAB.md)  |
+| [Browser judging sessions](docs/JUDGING-SESSIONS.md) | [Rig foundation](docs/motion/RIG-FOUNDATION.md) |
+| [Development and checks](docs/DEVELOPMENT.md)        | [Repository layout](docs/REPOSITORY-LAYOUT.md)  |
+| [Agent skills and tooling](docs/TOOLING.md)          | [Brand and submission assets](brand/README.md)  |
 
-|                                                |                                                                                              |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| [Run the proof of concept](docs/RUNNING.md)    | Install, run the landing page and studio, add the OBS overlay, and run the production build. |
-| [What works now](docs/STATUS.md)               | What the current build does, and what is not connected yet.                                  |
-| [Repository layout](docs/REPOSITORY-LAYOUT.md) | Where the studio, renderer, service, tests and tooling live.                                 |
-| [Reproduce the tooling](docs/TOOLING.md)       | Vendored agent skills, the lockfile, and how to verify or restore them.                      |
-| [Landing page vision](docs/LANDING-VISION.md)  | The story the landing page tells, and how Tavi moves through it.                             |
-| [Landing page notes](docs/LANDING-NEXT.md)     | Loading, motion language, idle life and the page descent as built.                           |
-| [Development](docs/DEVELOPMENT.md)             | Validation, formatting, typing, browser smoke checks and pull request reviews.               |
-| [Tavi Studio](docs/STUDIO-STAGE.md)            | The four Studio screens, the OBS dock, and their browser checks.                             |
-| [Plan](docs/PLAN.md)                           | The four-day build and four-day refinement targets.                                          |
-| [OBS and webcam](docs/OBS-WEBCAM.md)           | Placing Tavi in OBS beside a webcam.                                                         |
-| [Desktop app](desktop/README.md)               | The Tauri shell and its packaging.                                                           |
+```sh
+npm test
+npm run build
+python tools/skills.py
+```
+
+## Credits
+
+Character adapted from **[Mascot / Avatar Customization](https://rive.app/marketplace/27479-51911-mascot-avatar-customization/)** by **alisketch**, licensed under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**. Tavi adds rigging, expressions, motion, and staged/cropped media. No endorsement is implied.
+
+Landing scenery includes Poly Haven's Television 01 by Gabriel Radić and Wooden Table 02 by Serhii Khromov (CC0), and the credited APOD/NASA Earth footage. See [all asset credits](public/credits/) and [media attribution blocks](brand/CREDITS.md).

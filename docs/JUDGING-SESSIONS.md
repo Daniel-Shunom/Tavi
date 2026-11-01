@@ -119,3 +119,11 @@ deletion using a shortened synthetic deadline. It passes against Upstash over TL
 exposed Lua cjson changing empty JSON objects into arrays; snapshot writes now preserve app JSON
 verbatim. This does not replace deployed session/OBS/Twitch verification. No public judging URL
 has been deployed yet.
+
+## Production checkpoint ? November 1, 2026
+
+[Open the browser preview](https://tavi-pi.vercel.app/judge). The landing page's hosted preview links open this entry screen; [downloads](https://tavi-pi.vercel.app/download) remain separate.
+
+A real browser check against production passed Studio entry, two isolated sessions, synchronized transparent overlay rendering, view-only overlay access, one-time extension, reset without deadline renewal, responsive layout, and no browser errors. The landing-to-preview path and download page also passed desktop/mobile checks. Redis checks passed the public session metadata schema, state isolation, creation limits across instances, and actual key expiration in a disposable namespace.
+
+Live Twitch account authorization and capture inside OBS still require manual verification. The Redis expiration check uses a shortened synthetic deadline; it is not an unattended 30-minute browser recording.
