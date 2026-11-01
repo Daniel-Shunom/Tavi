@@ -10,7 +10,12 @@ import { beat } from '../shared/cue';
 import { decisionJsonSchema, decisionSchema } from '../shared/decision';
 import { capabilitiesOf, manifestSchema } from '../src/renderer/characters/manifest';
 import { motionRigs } from '../src/renderer/characters/motionRigs';
-import { catalog, characters, getCharacter, studioCharacterIds } from '../src/renderer/characters/registry';
+import {
+  catalog,
+  characters,
+  getCharacter,
+  studioCharacterIds,
+} from '../src/renderer/characters/registry';
 import { testCharacter } from './fixtures/test-character';
 
 describe('character manifests', () => {

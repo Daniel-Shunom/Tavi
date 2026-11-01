@@ -116,7 +116,9 @@ export function LandingPage() {
     const frame = requestAnimationFrame(() => {
       document.getElementById('download')?.scrollIntoView({ block: 'start' });
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+    };
   }, [downloadPage]);
   const deskRef = useRef<HTMLDivElement>(null);
   const webcamRef = useRef<HTMLDivElement>(null);

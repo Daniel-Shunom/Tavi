@@ -28,7 +28,9 @@ export function DownloadOptions({ buttonRef }: { buttonRef: Ref<HTMLAnchorElemen
       .finally(() => {
         if (!controller.signal.aborted) setChecked(true);
       });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   if (windows) {
