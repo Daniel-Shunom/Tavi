@@ -1,14 +1,16 @@
 // Smoke-checks a running packaged Tavi service (for example the installed app) in Chromium:
 // health, studio, overlay, Rive WASM + .riv loading, CSP/page errors, and live sync.
-// Usage: node desktop/scripts/verify-running.mjs [baseUrl] [screenshotDir]
+// Usage: node desktop/scripts/verify-running.mjs [baseUrl] [screenshotDir] [expectedCharacter]
 import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const base = process.argv[2] ?? 'http://127.0.0.1:4318';
 const shots = process.argv[3];
+const expectedCharacter = process.argv[4];
 const problems = [];
 const assets = { wasm: 0, riv: 0 };
+const characterAssets = new Set();
 const check = (ok, label) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`);
   if (!ok) problems.push(label);
@@ -16,6 +18,11 @@ const check = (ok, label) => {
 
 const health = await (await fetch(`${base}/api/health`)).json();
 check(health.name === 'Tavi' && health.status === 'ok', `health ${JSON.stringify(health)}`);
+if (expectedCharacter) {
+  const state = await (await fetch(`${base}/api/state`)).json();
+  check(state.config?.character === expectedCharacter,
+    `service character ${state.config?.character} (expected ${expectedCharacter})`);
+}
 
 const browser = await chromium.launch();
 try {
@@ -37,7 +44,10 @@ try {
       const url = response.url();
       if (response.status() >= 400) problems.push(`${name} HTTP ${response.status()} ${url}`);
       else if (url.endsWith('.wasm')) assets.wasm++;
-      else if (url.endsWith('.riv')) assets.riv++;
+      else if (url.endsWith('.riv')) {
+        assets.riv++;
+        characterAssets.add(url);
+      }
     });
   };
   const studio = await context.newPage();
@@ -59,7 +69,10 @@ try {
   check(background === 'rgba(0, 0, 0, 0)', `overlay transparent background (${background})`);
   await overlay.waitForTimeout(2500);
   check(assets.wasm > 0, `Rive WASM loaded (${assets.wasm} responses)`);
-  check(assets.riv > 0, `mascot .riv loaded (${assets.riv} responses)`);
+  check(assets.riv > 0, `character .riv loaded (${assets.riv} responses)`);
+  if (expectedCharacter)
+    check([...characterAssets].some((url) => url.includes(`${expectedCharacter}-`)),
+      `rendered artwork matches ${expectedCharacter}`);
 
   if (shots) {
     await mkdir(shots, { recursive: true });
