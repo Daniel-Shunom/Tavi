@@ -46,6 +46,9 @@ import { chatGate } from './twitch/reactions.js';
 import { StateDirector, type Engagement, type StateAction } from './behavior/states.js';
 import { supportEventSchema, supportTier, type SupportEvent } from '../shared/support.js';
 import { supportBeats } from './behavior/support.js';
+import { PacingDirector, type ReactionSize } from './behavior/pacing.js';
+import { Affect, restScale, type AffectPersona, type Stimulus } from '../shared/affect.js';
+import { clampIntensity } from '../shared/expressions.js';
 import {
   atSpotApproach,
   bodyStates,
@@ -93,11 +96,17 @@ export class Companion {
   private sequence = 0;
   private readonly now: () => number;
   private readonly director: StateDirector;
+  /** Inner life: emotions, mood, fatigue, boredom (rules, never AI). */
+  private readonly affect: Affect;
+  /** Intensity budget for automatic reactions. */
+  private readonly pacing: PacingDirector;
   private lastAiState = -Infinity;
   private timer: ReturnType<typeof setInterval> | null = null;
   constructor(private readonly options: CompanionOptions) {
     this.now = options.now ?? Date.now;
     this.director = new StateDirector(this.now());
+    this.affect = new Affect(this.now(), affectPersona(options.config));
+    this.pacing = new PacingDirector(this.now());
     if (options.tickMs) {
       this.timer = setInterval(() => {
         this.tick();
@@ -116,6 +125,7 @@ export class Companion {
         movement: null,
         presence: null,
         body: null,
+        affect: this.affect.snapshot(),
         note: 'Ready to hang out.',
       },
     };
@@ -163,6 +173,32 @@ export class Companion {
     if (!this.pending) return;
     this.pending.controller.abort(new Error(reason));
     this.pending = null;
+  }
+  private asleep() {
+    const body = this.current.performance.body;
+    return !!body && sleepingStates.includes(body.state);
+  }
+  /** Feeds the affect model. Never changes what plays by itself; it shades timing and motion. */
+  private feel(stimulus: Stimulus) {
+    this.affect.feel(this.now(), stimulus, this.asleep());
+  }
+  /** Automatic reactions spend the pacing budget; while relaxing they play softer. */
+  private paced(beats: Beat[], size: ReactionSize): Beat[] {
+    const scale = this.pacing.react(this.now(), size);
+    if (scale === 1) return beats;
+    return beats.map((value) => ({
+      ...value,
+      intensity: clampIntensity(value.expression, value.intensity * scale),
+    }));
+  }
+  /** Publishes the affect snapshot when it changes (quantized, so rarely). No revision bump. */
+  private publishAffect() {
+    this.affect.setPersona(affectPersona(this.current.config));
+    this.affect.step(this.now(), this.asleep());
+    const next = this.affect.snapshot();
+    const previous = this.current.performance.affect;
+    if (previous && JSON.stringify(previous) === JSON.stringify(next)) return;
+    this.set({ ...this.current, performance: { ...this.current.performance, affect: next } });
   }
   private activeScript() {
     const script = this.current.performance.script;
@@ -511,13 +547,19 @@ export class Companion {
       sourceEventId: event.id,
       decidedBy: { kind: 'rules', label: 'Support event rules (not AI)' },
       priority: priorities.chat,
-      beats: supportBeats(tier, event.kind, this.current.performance.body === null),
+      beats: this.paced(
+        supportBeats(tier, event.kind, this.current.performance.body === null),
+        tier === 'big' ? 'large' : tier,
+      ),
       settle: true,
     });
     const accepted = this.schedule(
       script,
       'reacting',
       `${simulated ? 'Simulated' : 'Received'} ${event.kind}: ${tier} reaction, looking toward chat.`,
+    );
+    this.feel(
+      tier === 'big' ? 'support-large' : tier === 'medium' ? 'support-medium' : 'support-small',
     );
     if (accepted) {
       this.lastSupportReaction = now;
@@ -570,6 +612,7 @@ export class Companion {
     change:
       { type: 'delete'; id: string } | { type: 'clearUser'; userId: string } | { type: 'clear' },
   ) {
+    this.feel('moderation');
     const script = this.current.performance.script;
     const affected = (eventId: string | undefined) =>
       change.type === 'delete' ? eventId === change.id : eventId !== undefined;
@@ -610,9 +653,12 @@ export class Companion {
   async chat(message: ChatMessage, simulated = false) {
     // Every message feeds the chat-burst detector, addressed or not.
     this.director.chat(this.now(), message.userId + (simulated ? ':' + message.id : ''));
+    this.feel('chat');
     const gate = chatGate(this.current, message, this.now(), this.lastChatReaction);
-    if (gate.allowed) this.engage('addressed', false);
-    else if (this.director.stir(this.now(), this.current.performance.body)) {
+    if (gate.allowed) {
+      this.feel('addressed');
+      this.engage('addressed', false);
+    } else if (this.director.stir(this.now(), this.current.performance.body)) {
       const body = this.current.performance.body;
       if (body) this.perform({ body: { ...body, stirAt: this.now() } });
     }
@@ -704,6 +750,9 @@ export class Companion {
             (event.source === 'streamer' || this.current.config.initiative !== 'reserved') &&
             now - this.lastAiState > AI_STATE_COOLDOWN_MS,
           bodyState: this.current.performance.body?.state ?? 'stand',
+          ...(this.current.performance.affect
+            ? { mood: this.current.performance.affect.label }
+            : {}),
         },
         controller.signal,
       );
@@ -737,7 +786,8 @@ export class Companion {
       return;
     }
     const target = event.source === 'streamer' ? 'streamer' : 'chat';
-    const beats = this.beatsFrom(decision, target);
+    const chosen = this.beatsFrom(decision, target);
+    const beats = priority <= priorities.chat ? this.paced(chosen, 'small') : chosen;
     if (!beats.length && decision.state) {
       // A body-state request on its own ("take a nap").
       const changed = this.applyState(decision.state, event, priority, decidedBy);
@@ -802,9 +852,11 @@ export class Companion {
   /** Something worth staying awake for: resets the quiet clock and wakes a sleeping Tavi. */
   private engage(kind: Engagement, wake: boolean) {
     this.director.engage(this.now(), kind);
+    if (kind === 'studio' || kind === 'streamer') this.feel(kind);
     if (!wake || this.current.retracted) return;
     const action = this.director.wakeFor(kind, this.current.performance.body);
     if (!action) return;
+    this.feel('woken');
     this.setBody(action.state, {
       source: action.source,
       decidedBy: kind === 'addressed' ? rulesDecider : { kind: 'manual', label: 'Studio' },
@@ -819,6 +871,8 @@ export class Companion {
     const state = this.current;
     const active = this.activeScript();
     const scene = { scene: state.config.scene, home: this.home() };
+    this.publishAffect();
+    const affect = this.current.performance.affect;
     const action = this.director.tick({
       now,
       persona: {
@@ -838,10 +892,16 @@ export class Companion {
         perch: resolveSpot('perch', scene) !== null,
         lean: resolveSpot('lean', scene) !== null,
       },
+      restScale: affect ? restScale(affect) : 1,
+      initiative: this.pacing.allowsInitiative(now),
     });
     if (action) this.applyAction(action);
   }
   private applyAction(action: StateAction) {
+    if (action.state === 'peek' && action.source === 'chat') {
+      this.feel('burst');
+      this.pacing.react(this.now(), 'medium');
+    }
     this.setBody(action.state, {
       source: action.source,
       decidedBy: rulesDecider,
@@ -1035,4 +1095,8 @@ function describe(
   if (resolution.dropped.length)
     parts.push(`Skipped ${resolution.dropped.map((value) => value.expression).join(', ')}.`);
   return parts.join(' ');
+}
+
+function affectPersona(config: Config): AffectPersona {
+  return { personality: config.personality, attitude: config.attitude, energy: config.energy };
 }

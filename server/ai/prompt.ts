@@ -108,6 +108,11 @@ export function userPrompt(context: DecisionContext): string {
       );
   }
   if (context.layout) lines.push('', `Where things are on screen: ${context.layout}`);
+  if (context.mood)
+    lines.push(
+      '',
+      `${context.persona.name}'s current mood: ${context.mood}. Let it colour the reaction subtly.`,
+    );
   lines.push(
     '',
     context.canMove

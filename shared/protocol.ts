@@ -20,6 +20,7 @@ import {
   withChanges,
 } from './variants.js';
 import { bodyCueSchema, defaultScene, requestableStates, sceneSchema } from './states.js';
+import { affectSnapshotSchema } from './affect.js';
 import { defaultSupportSettings, supportPreviewSchema, supportSettingsSchema } from './support.js';
 
 export const CONFIG_VERSION = 3;
@@ -168,6 +169,8 @@ export const performanceSchema = z
     presence: presenceTransitionSchema.nullable(),
     /** Current body state (sit, nap, peek...); null = standing at home. */
     body: bodyCueSchema.nullable().default(null),
+    /** Tavi's current mood and drives (rules, never AI); null until the service reports one. */
+    affect: affectSnapshotSchema.nullable().default(null),
     note: z.string().max(400),
   })
   .strict();
@@ -250,6 +253,7 @@ export function initialState(config: Config = defaults): State {
       movement: null,
       presence: null,
       body: null,
+      affect: null,
       note: 'Ready to hang out.',
     },
   };

@@ -302,6 +302,39 @@ export function LiveView({
             {state.performance.note || 'Nothing yet. Try a reaction, or say hi in Personality.'}
           </p>
         </Card>
+
+        {state.performance.affect && (
+          <Card title="How she feels">
+            <p className="st-last" role="status">
+              {state.performance.affect.label}
+            </p>
+            <dl className="st-mood">
+              {(
+                [
+                  ['Joy', state.performance.affect.pleasure, true],
+                  ['Energy', state.performance.affect.arousal, true],
+                  ['Boldness', state.performance.affect.dominance, true],
+                  ['Tired', state.performance.affect.fatigue, false],
+                  ['Bored', state.performance.affect.boredom, false],
+                  ['Overwhelmed', state.performance.affect.overload, false],
+                ] as const
+              ).map(([label, value, signed]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>
+                    <meter
+                      min={signed ? -1 : 0}
+                      max={1}
+                      value={value}
+                      aria-label={`${label} ${value.toFixed(2)}`}
+                    />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="st-note">Rules, not AI. Mood only shades timing and motion.</p>
+          </Card>
+        )}
       </aside>
     </div>
   );
