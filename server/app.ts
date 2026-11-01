@@ -127,10 +127,6 @@ export async function createApp(
       void companion.chat(chat);
       twitchOptions.onMessage?.(chat);
     },
-    onEvent: (event) => {
-      companion.streamEvent(event);
-      twitchOptions.onEvent?.(event);
-    },
   });
   function isTrusted(origin: string | undefined) {
     return (

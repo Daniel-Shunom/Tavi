@@ -52,7 +52,7 @@ export function settingsFromEnv(env: NodeJS.ProcessEnv = process.env): AiSetting
     },
     active:
       active === 'openai' || active === 'anthropic' || active === 'chatgpt' ? active : 'rules',
-    timeoutMs: number(env['TAVI_AI_TIMEOUT_MS'], 8000),
+    timeoutMs: number(env['TAVI_AI_TIMEOUT_MS'], 15000),
     maxPerMinute: number(env['TAVI_AI_MAX_PER_MINUTE'], 8),
     maxPerSession: number(env['TAVI_AI_MAX_PER_SESSION'], 400),
   };

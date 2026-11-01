@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { chatGate } from '../server/twitch/reactions';
+import { chatCooldown, chatGate } from '../server/twitch/reactions';
 import { initialState } from '../shared/protocol';
 const message = { text: 'Hey Tavi!' };
 it('reacts only to invitations, respects cooldowns, initiative and streamer controls', () => {
@@ -16,6 +16,15 @@ it('reacts only to invitations, respects cooldowns, initiative and streamer cont
   expect(chatGate(state, message, 100000, -Infinity).allowed).toBe(true);
   const outgoing = initialState();
   outgoing.config.initiative = 'outgoing';
-  expect(chatGate(state, message, 100000, 100000 - 60000).allowed).toBe(false);
+  expect(chatGate(state, message, 100000, 100000 - 10000).allowed).toBe(false);
+  expect(chatGate(state, message, 100000, 100000 - 60000).allowed).toBe(true);
   expect(chatGate(outgoing, message, 100000, 100000 - 60000).allowed).toBe(true);
+});
+
+it('stretches repeated name-call cooldowns with a hard 30 second cap', () => {
+  const state = initialState();
+  state.config.chatEngagement = 100;
+  state.config.initiative = 'outgoing';
+  expect(chatCooldown(state, 4)).toBeGreaterThan(chatCooldown(state, 1));
+  expect(chatCooldown(state, 20)).toBe(30_000);
 });

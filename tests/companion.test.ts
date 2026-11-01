@@ -90,7 +90,7 @@ describe('conversation-synchronised performance', () => {
     const second = companion.handle({ type: 'say', text: 'two' });
     await flush();
     await first;
-    clock.now += 20_000;
+    clock.now += 21_000;
     provider.resolvers[1]?.(react());
     await second;
     expect(companion.state.performance.script?.decidedBy.kind).not.toBe('ai');
@@ -199,6 +199,34 @@ describe('chat and streamer priority', () => {
 });
 
 describe('presence and locomotion cues', () => {
+  it('takes a playful high-interactivity Tavi to chat with a wave', () => {
+    const { companion, clock } = setup({
+      config: {
+        personality: 'playful',
+        initiative: 'outgoing',
+        energy: 100,
+        chatEngagement: 100,
+      },
+    });
+    clock.now += 12_000;
+    companion.tick();
+    expect(companion.state.performance.movement).toMatchObject({
+      kind: 'move-to',
+      anchor: 'chat',
+      source: 'idle',
+      gait: 'skip',
+      mood: 'grin',
+      to: { x: 0.87, y: 0.63 },
+    });
+    expect(
+      Math.abs((companion.state.performance.movement?.to.x ?? 0) - defaults.x),
+    ).toBeGreaterThan(0.6);
+    expect(companion.state.performance.script?.beats[0]).toMatchObject({
+      expression: 'wave',
+      target: 'chat',
+    });
+  });
+
   it('emits seeded exit/entrance choreographies; retract interrupts an entrance', async () => {
     const { companion, clock } = setup({ config: { presenceStyle: 'walk' } });
     await companion.handle({ type: 'retract', value: true });

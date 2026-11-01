@@ -284,6 +284,9 @@ describe('companion body states', () => {
     expect(body?.state).toBe('peek');
     expect(body?.decidedBy.kind).toBe('rules');
     expect(c.instance.state.performance.movement?.to.x).toBeCloseTo(body?.spot?.approach.x ?? 0);
+    expect(
+      c.instance.state.performance.script?.beats.some((beat) => beat.expression === 'wave'),
+    ).toBe(true);
     c.clock.now += 60_000;
     c.instance.tick();
     expect(c.instance.state.performance.body?.state).toBe('stand');

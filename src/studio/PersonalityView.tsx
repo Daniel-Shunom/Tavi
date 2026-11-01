@@ -223,8 +223,8 @@ export function PersonalityView({ state, connected, send }: StudioProps) {
               }}
             />
             <p className="st-note">
-              At zero she never reacts to chat. Higher means shorter waits between reactions. You
-              always come first.
+              At zero she ignores chat. Higher means more chat visits and screen strolls. She
+              replies to named messages; you always come first.
             </p>
           </Card>
 

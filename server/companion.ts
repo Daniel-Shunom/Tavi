@@ -42,8 +42,9 @@ import type { ItemCatalog } from '../shared/wardrobe.js';
 import { ConversationContext } from './ai/context.js';
 import type { AiManager, DecisionResult } from './ai/manager.js';
 import type { ContextEvent, ProviderInfo, StreamerUtterance } from './ai/types.js';
-import { chatGate } from './twitch/reactions.js';
+import { addressesTavi, chatGate } from './twitch/reactions.js';
 import { StateDirector, type Engagement, type StateAction } from './behavior/states.js';
+import { RoamDirector } from './behavior/roam.js';
 import { supportEventSchema, supportTier, type SupportEvent } from '../shared/support.js';
 import { supportBeats } from './behavior/support.js';
 import {
@@ -79,12 +80,13 @@ const MOVE_COOLDOWN_MS = 45_000;
 /** A provider may change the body state at most this often. */
 const AI_STATE_COOLDOWN_MS = 90_000;
 /** Decisions arriving later than this after their input are stale and dropped. */
-const MAX_DECISION_AGE_MS = 12_000;
+const MAX_DECISION_AGE_MS = 20_000;
 
 export class Companion {
   private current: State;
   private readonly listeners = new Set<(state: State) => void>();
   private readonly context = new ConversationContext();
+  private nameCallTimes: number[] = [];
   private pending: Pending | null = null;
   private lastChatReaction = -Infinity;
   private lastSupportReaction = -Infinity;
@@ -93,11 +95,13 @@ export class Companion {
   private sequence = 0;
   private readonly now: () => number;
   private readonly director: StateDirector;
+  private readonly roamer: RoamDirector;
   private lastAiState = -Infinity;
   private timer: ReturnType<typeof setInterval> | null = null;
   constructor(private readonly options: CompanionOptions) {
     this.now = options.now ?? Date.now;
     this.director = new StateDirector(this.now());
+    this.roamer = new RoamDirector(this.now());
     if (options.tickMs) {
       this.timer = setInterval(() => {
         this.tick();
@@ -221,6 +225,7 @@ export class Companion {
     priority: number;
     sourceEventId: string;
     gait?: Movement['gait'];
+    mood?: Movement['mood'];
     stay?: number;
   }): boolean {
     const active = this.current.performance.movement;
@@ -243,6 +248,7 @@ export class Companion {
       expiresAt: now + 3000,
       ...(input.anchor ? { anchor: input.anchor } : {}),
       ...(input.gait ? { gait: input.gait } : {}),
+      ...(input.mood ? { mood: input.mood } : {}),
       ...(input.stay !== undefined ? { stay: input.stay } : {}),
     };
     this.perform({ movement });
@@ -609,8 +615,17 @@ export class Companion {
   }
   async chat(message: ChatMessage, simulated = false) {
     // Every message feeds the chat-burst detector, addressed or not.
-    this.director.chat(this.now(), message.userId + (simulated ? ':' + message.id : ''));
-    const gate = chatGate(this.current, message, this.now(), this.lastChatReaction);
+    const receivedAt = this.now();
+    this.director.chat(receivedAt, message.userId + (simulated ? ':' + message.id : ''));
+    this.nameCallTimes = this.nameCallTimes.filter((at) => receivedAt - at < 60_000);
+    if (addressesTavi(this.current, message)) this.nameCallTimes.push(receivedAt);
+    const gate = chatGate(
+      this.current,
+      message,
+      receivedAt,
+      this.lastChatReaction,
+      this.nameCallTimes.length,
+    );
     if (gate.allowed) this.engage('addressed', false);
     else if (this.director.stir(this.now(), this.current.performance.body)) {
       const body = this.current.performance.body;
@@ -840,6 +855,58 @@ export class Companion {
       },
     });
     if (action) this.applyAction(action);
+    const nowBusy =
+      (this.pending !== null && this.pending.priority >= priorities.streamer) ||
+      (active !== null && active.priority >= priorities.streamer);
+    const movement = this.current.performance.movement;
+    const destination = this.roamer.tick({
+      now,
+      persona: {
+        personality: this.current.config.personality,
+        initiative: this.current.config.initiative,
+        energy: this.current.config.energy,
+        chatEngagement: this.current.config.chatEngagement,
+      },
+      home: this.home(),
+      scene: this.current.config.scene,
+      quiet: this.current.quiet,
+      retracted: this.current.retracted,
+      busy: nowBusy || active !== null || this.pending !== null,
+      asleep:
+        !!this.current.performance.body &&
+        sleepingStates.includes(this.current.performance.body.state),
+      manualHold:
+        this.current.performance.body?.source === 'manual' &&
+        now - this.current.performance.body.startAt < 120_000,
+      movementActive: !!movement && now < movement.startAt + ((movement.stay ?? 0) + 10) * 1000,
+    });
+    if (destination) {
+      const playful = this.current.config.personality === 'playful';
+      const sourceEventId = this.id('roam');
+      this.movement({
+        kind: 'move-to',
+        to: destination.to,
+        ...(destination.anchor ? { anchor: destination.anchor } : {}),
+        source: 'idle',
+        decidedBy: rulesDecider,
+        priority: priorities.idle,
+        sourceEventId,
+        gait: playful ? 'skip' : 'amble',
+        mood: playful ? 'grin' : 'content',
+        stay: 7,
+      });
+      const { script } = this.script({
+        source: 'idle',
+        sourceEventId: this.id('roam-act'),
+        decidedBy: rulesDecider,
+        priority: priorities.idle,
+        beats: [
+          beat(destination.expression, { target: destination.target, intensity: 0.8, hold: 1.8 }),
+        ],
+        settle: true,
+      });
+      this.schedule(script, 'reacting', `Rules: taking a playful visit to ${destination.target}.`);
+    }
   }
   private applyAction(action: StateAction) {
     this.setBody(action.state, {
@@ -852,6 +919,27 @@ export class Companion {
       ...(action.wake ? { wake: action.wake } : {}),
       ...(action.until !== undefined ? { until: action.until } : {}),
     });
+    if (action.source === 'chat' && action.state === 'peek') {
+      const { script } = this.script({
+        source: 'event',
+        sourceEventId: this.id('chat-burst'),
+        decidedBy: { kind: 'rules', label: 'Busy chat rules (not AI)' },
+        priority: priorities.chat,
+        beats: [
+          beat('glance', { target: 'chat', intensity: 0.7, hold: 0.6 }),
+          beat('wave', {
+            target: 'chat',
+            offset: 0.35,
+            intensity: 0.9,
+            hold: 2,
+            caption: 'Hi chat!',
+          }),
+          beat('happy-dance', { target: 'chat', offset: 2.7, intensity: 0.8, hold: 2.2 }),
+        ],
+        settle: true,
+      });
+      this.schedule(script, 'reacting', 'Rules: busy chat, going over to wave.');
+    }
   }
   /**
    * Installs a body-state cue (and the walk to its spot). Returns whether it changed anything.

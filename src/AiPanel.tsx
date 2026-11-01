@@ -120,55 +120,57 @@ export function AiPanel({ serviceConnected }: { serviceConnected: boolean }) {
   const isAi = status?.active.kind === 'ai';
   return (
     <div className="ai-panel">
-      {!isJudgingSession() ? <div className="chatgpt-account">
-        <p className="helper-note" role="status">
-          {account?.phase === 'connected'
-            ? account.email
-            : account?.phase === 'authorizing'
-              ? 'Finish sign-in in your browser.'
-              : 'Power Tavi with your ChatGPT plan.'}
-        </p>
-        {account?.phase !== 'connected' && account?.phase !== 'authorizing' ? (
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!serviceConnected || busy}
-            onClick={() => void accountAction('connect')}
-          >
-            Continue with ChatGPT
-          </button>
-        ) : null}
-        {account?.phase === 'authorizing' && authorizationUrl ? (
-          <a
-            className="primary-button"
-            href={authorizationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Open sign-in
-          </a>
-        ) : null}
-        {account?.phase === 'connected' ||
-        account?.phase === 'authorizing' ||
-        account?.phase === 'error' ? (
-          <button
-            type="button"
-            className="small-button"
-            disabled={!serviceConnected || busy}
-            onClick={() => void accountAction('disconnect')}
-          >
-            {account.phase === 'authorizing' ? 'Cancel sign-in' : 'Disconnect ChatGPT'}
-          </button>
-        ) : null}
-        <p className="helper-note">
-          Uses your plan allowance. Selected chat context goes to OpenAI.
-        </p>
-        {account?.error ? (
-          <p className="error-banner" role="alert">
-            {account.error}
+      {!isJudgingSession() ? (
+        <div className="chatgpt-account">
+          <p className="helper-note" role="status">
+            {account?.phase === 'connected'
+              ? account.email
+              : account?.phase === 'authorizing'
+                ? 'Finish sign-in in your browser.'
+                : 'Power Tavi with your ChatGPT plan.'}
           </p>
-        ) : null}
-      </div> : null}
+          {account?.phase !== 'connected' && account?.phase !== 'authorizing' ? (
+            <button
+              type="button"
+              className="primary-button"
+              disabled={!serviceConnected || busy}
+              onClick={() => void accountAction('connect')}
+            >
+              Continue with ChatGPT
+            </button>
+          ) : null}
+          {account?.phase === 'authorizing' && authorizationUrl ? (
+            <a
+              className="primary-button"
+              href={authorizationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open sign-in
+            </a>
+          ) : null}
+          {account?.phase === 'connected' ||
+          account?.phase === 'authorizing' ||
+          account?.phase === 'error' ? (
+            <button
+              type="button"
+              className="small-button"
+              disabled={!serviceConnected || busy}
+              onClick={() => void accountAction('disconnect')}
+            >
+              {account.phase === 'authorizing' ? 'Cancel sign-in' : 'Disconnect ChatGPT'}
+            </button>
+          ) : null}
+          <p className="helper-note">
+            Uses your plan allowance. Selected chat context goes to OpenAI.
+          </p>
+          {account?.error ? (
+            <p className="error-banner" role="alert">
+              {account.error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <p className="ai-active" role="status">
         <Brain size={15} />
         <span>

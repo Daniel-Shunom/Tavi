@@ -12,6 +12,7 @@ import {
   type Initiative,
   type Personality,
 } from '../../shared/states.js';
+import { ChatBurstFatigue } from './chatFatigue.js';
 
 export interface Persona {
   personality: Personality;
@@ -95,6 +96,7 @@ export interface StateAction {
 
 export class StateDirector {
   readonly burst = new ChatBurst();
+  private readonly chatFatigue = new ChatBurstFatigue();
   private lastEngagement: number;
   private lastStreamer = -Infinity;
   private lastPeek = -Infinity;
@@ -152,6 +154,8 @@ export class StateDirector {
     if (context.retracted) return null;
     const state = body?.state ?? 'stand';
     const seed = String(Math.floor(now / 1000));
+    const burstActive = this.burst.isBurst(now, persona);
+    this.chatFatigue.update(burstActive);
 
     // An ongoing peek: end it when planned, or once chat calms down after the minimum.
     if (state === 'peek') {
@@ -179,14 +183,18 @@ export class StateDirector {
     }
 
     // Chat burst: walk over and peek (initiative-driven, never in quiet mode or streamer focus).
-    if (
+    const mayPeek =
       !context.quiet &&
       !context.streamerBusy &&
       now - this.lastStreamer >= quietRules.streamerGraceMs &&
-      this.burst.isBurst(now, persona) &&
+      burstActive &&
       this.canPeek(now, persona) &&
-      !(body?.source === 'manual' && now - body.startAt < 120_000)
-    ) {
+      !(body?.source === 'manual' && now - body.startAt < 120_000);
+    if (mayPeek && this.chatFatigue.ignoreThisBurst(seed)) {
+      this.lastPeek = now;
+      return null;
+    }
+    if (mayPeek) {
       this.lastPeek = now;
       this.peeks.push(now);
       this.lastEngagement = now;
