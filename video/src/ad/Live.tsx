@@ -3,7 +3,7 @@
 import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import measured from './shots.json';
 import { Bubble } from './Bubble';
-import { ease, easeInOut, ink, sans, Stage } from './look';
+import { ease, easeInOut, ink, Line, sans, Stage } from './look';
 import { Tavi } from './Tavi';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
@@ -131,6 +131,11 @@ export function Lives() {
           ))}
         </div>
       </AbsoluteFill>
+      <div style={{ position: 'absolute', left: 140, bottom: 120, width: 1000 }}>
+        <Line size={84} align="left" color="#ffffff" at={2.4 * fps} style={{ textShadow: '0 6px 40px rgba(20,12,30,0.55)' }}>
+          Lives on your stream.
+        </Line>
+      </div>
     </AbsoluteFill>
   );
 }

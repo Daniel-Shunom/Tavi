@@ -50,6 +50,7 @@ export function Tavi({
   focus = 'body',
   follow = 0,
   window = 2,
+  frameOn,
   mirror = false,
   area,
   style,
@@ -68,6 +69,8 @@ export function Tavi({
   follow?: number;
   /** Seconds of capture the steady framing is measured over. */
   window?: number;
+  /** Pin the framing to this capture range (seconds), so two shots of one take frame identically. */
+  frameOn?: [number, number];
   mirror?: boolean;
   /** Draw into a box instead of the whole frame. */
   area?: { width: number; height: number };
@@ -80,7 +83,9 @@ export function Tavi({
   const shotData = shots[shot];
   const start = Math.round(from * 30);
   const index = Math.max(0, Math.min(shotData.frames - 1, start + Math.floor((frame / config.fps) * 30 * rate)));
-  const ref = referenceBox(shotData, start, start + Math.round(window * 30));
+  const ref = frameOn
+    ? referenceBox(shotData, Math.round(frameOn[0] * 30), Math.round(frameOn[1] * 30))
+    : referenceBox(shotData, start, start + Math.round(window * 30));
   const live = follow ? smoothBox(shotData, index, follow) : null;
   const box = live ?? ref;
   const refH = (ref[3] - ref[1]) * shotData.height;

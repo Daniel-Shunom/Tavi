@@ -38,11 +38,11 @@ function EndCard() {
           style={{ opacity: mark, transform: `translateY(${((1 - mark) * 24).toFixed(2)}px)`, filter: mark < 1 ? `blur(${((1 - mark) * 10).toFixed(2)}px)` : undefined }}
         />
         <div style={{ height: 30 }} />
-        <Line size={60} align="left" at={0.7 * fps}>
-          Your stream,
+        <Line size={64} align="left" at={0.7 * fps}>
+          Make your stream
         </Line>
-        <Line size={60} align="left" italic color={ink.plum} at={0.95 * fps}>
-          with a little more life.
+        <Line size={64} align="left" italic color={ink.plum} at={0.95 * fps}>
+          feel more alive.
         </Line>
         <div
           style={{

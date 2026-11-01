@@ -1,24 +1,38 @@
-// Act two: no captions. She greets the viewer, answers chat with her face and body, then runs
+// Act two, with as few words as possible. She greets the viewer, answers chat with her face and body, then runs
 // through her range on the beat. Every reaction follows the message that motivates it.
 import { AbsoluteFill, interpolate, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Bubble, type Message } from './Bubble';
-import { Dissolve, ease, ink, sans, Stage } from './look';
-import { SPOT } from './Tease';
+import { Dissolve, ease, easeInOut, ink, Line, sans, Stage } from './look';
+import { REVEAL_FRAMING, REVEAL_FROM, SPOT } from './Tease';
 import { Tavi, type Shot } from './Tavi';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 
-/** 11.4–15.0 s: match cut from her landing to the greeting, same spot, then a slow push. */
+/**
+ * 11.4–15.0 s: match cut from her landing to the greeting on the same spot; then the camera
+ * pans so she settles into the right third and her name arrives beside her.
+ */
 export function Reveal() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const push = interpolate(frame, [0, 3.6 * fps], [1, 1.12], { ...clamp, easing: ease });
+  const pan = interpolate(frame, [0.5 * fps, 1.7 * fps], [0, 1], { ...clamp, easing: easeInOut });
+  const x = SPOT.x + 330 * pan;
+  const push = interpolate(frame, [0, 3.6 * fps], [1, 1.08], { ...clamp, easing: ease });
   return (
     <AbsoluteFill>
-      <Stage tint={ink.lavender} strength={0.35} glow={[50, 50]} />
-      <AbsoluteFill style={{ transform: `scale(${push.toFixed(4)})`, transformOrigin: `${SPOT.x}px 560px` }}>
-        <Tavi shot="reveal" from={0.85} height={0.6} at={[SPOT.x / 1920, (SPOT.y + 4) / 1080]} focus="feet" window={4} />
+      <Stage tint={ink.lavender} strength={0.35} glow={[(x / 1920) * 100, 50]} />
+      <AbsoluteFill style={{ transform: `scale(${push.toFixed(4)})`, transformOrigin: `${x}px 560px` }}>
+        <Tavi shot="reveal" from={REVEAL_FROM} height={0.6} at={[x / 1920, (SPOT.y + 4) / 1080]} focus="feet" frameOn={REVEAL_FRAMING} />
       </AbsoluteFill>
+      <div style={{ position: 'absolute', left: 200, top: 400, width: 820 }}>
+        <Line size={112} align="left" at={1.2 * fps} stagger={4}>
+          Introducing Tavi
+        </Line>
+        <div style={{ height: 22 }} />
+        <Line size={44} align="left" italic color={ink.plum} at={1.75 * fps} stagger={1.6}>
+          your Twitch streaming companion.
+        </Line>
+      </div>
     </AbsoluteFill>
   );
 }
@@ -44,6 +58,11 @@ export function Reads() {
       {chat.map((m, i) => (
         <Bubble key={i} {...m} size={34} />
       ))}
+      <div style={{ position: 'absolute', left: 1000, top: 120, width: 800 }}>
+        <Line size={72} align="left" at={0.5 * fps}>
+          Reacts to chat.
+        </Line>
+      </div>
       <div style={{ position: 'absolute', right: 56, bottom: 44, fontFamily: sans, fontSize: 16, color: ink.faint, letterSpacing: '0.04em' }}>
         Scripted demo
       </div>
@@ -52,10 +71,10 @@ export function Reads() {
 }
 
 const moods: { shot: Shot; from: number; tint: string; x: number }[] = [
-  { shot: 'alive-a', from: 0.75, tint: ink.pink, x: 0.5 },
-  { shot: 'alive-b', from: 6.3, tint: ink.amber, x: 0.44 },
-  { shot: 'alive-a', from: 3.75, tint: ink.lavender, x: 0.56 },
-  { shot: 'alive-b', from: 2.1, tint: ink.teal, x: 0.5 },
+  { shot: 'alive-a', from: 0.75, tint: ink.pink, x: 0.66 },
+  { shot: 'alive-b', from: 6.3, tint: ink.amber, x: 0.64 },
+  { shot: 'alive-a', from: 3.75, tint: ink.lavender, x: 0.67 },
+  { shot: 'alive-b', from: 2.1, tint: ink.teal, x: 0.65 },
 ];
 export const MOOD_SECONDS = 1.2;
 
@@ -72,6 +91,14 @@ export function Feels() {
           </Dissolve>
         </Sequence>
       ))}
+      <div style={{ position: 'absolute', left: 170, top: 400, width: 700 }}>
+        <Line size={96} align="left" at={0.3 * fps}>
+          Feels every
+        </Line>
+        <Line size={96} align="left" italic color={ink.plum} at={0.55 * fps}>
+          moment.
+        </Line>
+      </div>
     </AbsoluteFill>
   );
 }

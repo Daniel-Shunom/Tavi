@@ -1,15 +1,23 @@
 // Act one, before the drop. Reaction before reveal: chat is loud, the space where someone
 // should be is empty (just a shadow on the floor), we catch glimpses of her, chat asks for her,
 // and on the drop she pops up out of her own shadow.
-import { AbsoluteFill, Easing, interpolate, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Easing, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Bubble, type Message } from './Bubble';
-import { Dissolve, Stage } from './look';
+import { Dissolve, ink, Stage } from './look';
 import { Tavi, type Shot } from './Tavi';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 
 /** Where she will stand: shared by the empty shot and the pop-up, so the shadow is the same spot. */
 export const SPOT = { x: 960, y: 900 };
+
+/**
+ * One continuous take of her (the reveal capture) runs from the rise into the greeting. In ad
+ * time the take starts 2.35 s into the arrival scene, so it reaches REVEAL_FROM at the cut.
+ */
+export const RISE_OFFSET = 2.35;
+export const REVEAL_FROM = 3.6 - RISE_OFFSET;
+export const REVEAL_FRAMING: [number, number] = [0.85, 4.85];
 
 function FloorShadow({ opacity = 1 }: { opacity?: number }) {
   return (
@@ -94,24 +102,29 @@ function GlimpseShot({ shot, from, height, at, focus, index }: (typeof glimpses)
 }
 
 /**
- * 7.8–11.4 s: the room empties, chat asks for her, and on the drop (local 2.4 s) she rises
- * out of the floor where her shadow has been waiting.
+ * 7.8–11.4 s: the room empties, chat asks for her, and on the drop (local 2.4 s) she floats
+ * up out of the floor where her shadow has been waiting, already alive and moving.
  */
 export function Arrival() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const drop = 2.4 * fps;
   const fadeIn = interpolate(frame, [0, 10], [0, 1], clamp);
-  const shadow = interpolate(frame, [drop - 6, drop + 6], [1, 0], clamp);
-  // Everything below the floor line is hidden, so she comes up through it.
-  const floorClip = SPOT.y + 6;
+  const rise = spring({ frame: frame - drop, fps, config: { damping: 19, stiffness: 70, mass: 1 } });
+  const lift = (1 - rise) * 720;
+  const shadow = interpolate(frame, [drop + 12, drop + 26], [1, 0], clamp);
+  const glow = interpolate(frame, [drop + 6, 3.6 * fps], [0, 1], { ...clamp, easing: Easing.bezier(0.33, 0, 0.3, 1) });
+  // Everything below the floor line (plus room for her own shadow) is hidden, so she comes up through it.
+  const floorClip = SPOT.y + 60;
   return (
     <AbsoluteFill style={{ opacity: fadeIn }}>
-      <Stage />
+      <Stage tint={ink.lavender} strength={0.35 * glow} glow={[50, 50]} />
       <FloorShadow opacity={shadow} />
       <Bubble at={0.6} out={2.25} name="saltyfern" color="#e0567f" text="wait… where's tavi? 👀" x={SPOT.x} y={380} size={34} />
       <AbsoluteFill style={{ clipPath: `inset(0 0 ${1080 - floorClip}px 0)` }}>
-        <Tavi shot="drop" from={-0.95} height={0.6} at={[SPOT.x / 1920, (SPOT.y + 4) / 1080]} focus="feet" window={5} />
+        <AbsoluteFill style={{ transform: `translateY(${lift.toFixed(2)}px)` }}>
+          <Tavi shot="reveal" from={-RISE_OFFSET} height={0.6} at={[SPOT.x / 1920, (SPOT.y + 4) / 1080]} focus="feet" frameOn={REVEAL_FRAMING} />
+        </AbsoluteFill>
       </AbsoluteFill>
     </AbsoluteFill>
   );
