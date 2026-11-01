@@ -1,0 +1,30 @@
+# NOTICE
+
+This repository **vendors** (copies, does not fork) third-party Claude Code skills authored by the
+community. Each skill is included to aggregate AI-filmmaking capabilities into a single Claude Code
+plugin marketplace. We do not modify upstream behavior beyond packaging it as a plugin.
+
+Each plugin's `skills/<name>/` directory retains the upstream `LICENSE` file where one exists.
+
+## Attribution
+
+| Skill / Plugin | Upstream Source | License |
+| --- | --- | --- |
+| prompt-master | nidhinjs/prompt-master | MIT |
+| director | wuwangzhang1216/DirectorSKILL | MIT (per its `SKILL.md`) |
+| ai-video-storyboard | aicontentskills/ai-video-storyboard-skill | No upstream license — included as-is, see upstream |
+| better-writing | forjd/better-writing | MIT |
+
+## Notes
+
+- **prompt-master** — vendored from `nidhinjs/prompt-master`, distributed under the MIT License. The
+  upstream `LICENSE` is retained in the plugin's `skills/` directory.
+- **director** — vendored from `wuwangzhang1216/DirectorSKILL`. The upstream declares MIT licensing
+  in its `SKILL.md`. The retained license/declaration travels with the plugin's `skills/` directory.
+- **ai-video-storyboard** — vendored from `aicontentskills/ai-video-storyboard-skill`. The upstream
+  ships **no** license file. It is included **as-is**; refer to the upstream repository for any terms
+  before reuse or redistribution.
+- **better-writing** — vendored from `forjd/better-writing`, distributed under the MIT License. The
+  upstream `LICENSE` is retained in the plugin's `skills/` directory.
+
+Maintained-by: cajias

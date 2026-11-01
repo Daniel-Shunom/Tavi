@@ -8,7 +8,9 @@
     "render": "remotion render Trailer out/tavi-trailer.mp4",
     "still": "remotion still Trailer",
     "capture": "node capture/tavi.mjs && node capture/screens.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "render:ad": "remotion render Ad45 out/tavi-ad-45.mp4",
+    "measure:ad": "python capture/measure-ad.py public/footage/tavi src/ad/shots.json reveal hero chatread alive-a alive-b romp drop outro"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.539",

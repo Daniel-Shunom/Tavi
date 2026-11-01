@@ -1,9 +1,20 @@
 import { Composition } from 'remotion';
 import { FPS, HEIGHT, totalSeconds, WIDTH } from './config';
 import { Trailer } from './Trailer';
+import { Ad, AD_FRAMES } from './ad/Ad';
 
 export function Root() {
   return (
+    <>
+    <Composition
+      id="Ad45"
+      component={Ad}
+      durationInFrames={AD_FRAMES}
+      fps={FPS}
+      width={WIDTH}
+      height={HEIGHT}
+      defaultProps={{ audio: true }}
+    />
     <Composition
       id="Trailer"
       component={Trailer}
@@ -13,5 +24,6 @@ export function Root() {
       height={HEIGHT}
       defaultProps={{ audio: true }}
     />
+    </>
   );
 }
