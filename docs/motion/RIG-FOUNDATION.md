@@ -302,3 +302,28 @@ a user-added Video Capture Device: preserve it. Colored-background alpha and sou
 checks remain unfinished. Do not claim OBS completion or promote the default until those
 and the real Tauri runtime check pass. The default remains mascot-v2; saved interaction state
 and explicit character selection remain intact. The permanent lab remains `/rig-lab`.
+
+## Foundation release integration — November 1, 2026
+
+This checkpoint supersedes the source-default status above. The user's requested promotion
+is integrated on `release/foundation-studio`, together with the Windows startup fixes and
+Twitch welcome screen from `studio/signin-installer`.
+
+- Fresh configurations and unknown-model fallbacks now select `tavi-foundation`.
+- Config version 3 migrates the old `mascot-v2` default while preserving the other saved
+  settings. The full suite covers migration, expression compatibility and model swapping.
+- Normal Studio offers Foundation; other model selections and unsupported advanced
+  customization are gated as beta. Developer assets and `/rig-lab` remain available.
+- The desktop shell opens `/studio`; its service also serves `/overlay`, `/dock`, `/download`
+  and `/rig-lab`. Recursive artwork credits are retained in the installer notices.
+- Combined validation: 600 tests across 67 files passed with four workers; production build,
+  diff checks and all 17 pinned skills passed. The isolated browser check migrated a v2 save,
+  connected Studio, verified transparent overlay output and confirmed both pages loaded
+  Foundation artwork, with no page/CSP/HTTP errors.
+- `npm run release` completed on combined source `db0d75e`. Installer:
+  `Tavi Studio_0.1.0_x64-setup.exe`, 127,393,319 bytes (121.5 MiB), unsigned.
+  SHA-256: `49369836b454e1acb9127e2f50423c97e9f6eefa0827c382c0bd7512f1f45a86`.
+
+These checks establish the combined source, rendered browser output and installer build.
+The final installed WebView and actual OBS alpha/source-refresh checks are not claimed by
+this checkpoint. Existing desktop saved data was not used by the isolated browser check.
