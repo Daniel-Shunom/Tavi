@@ -1,3 +1,4 @@
+import { hostedPreview, studioEntryHref } from './landing/links';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
@@ -831,8 +832,8 @@ export function LandingPage() {
           <a href="#the-scene">Meet Tavi</a>
           <a href="#personality">How it feels</a>
           <a href="/download">Download</a>
-          <a className="nav-cta" href="/studio">
-            Open Studio <ArrowUpRight size={15} />
+          <a className="nav-cta" href={studioEntryHref}>
+            {hostedPreview ? 'Try preview' : 'Open Studio'} <ArrowUpRight size={15} />
           </a>
         </nav>
       </header>
@@ -1108,8 +1109,13 @@ export function LandingPage() {
           {downloadPage ? (
             <DownloadOptions buttonRef={closingButtonRef} />
           ) : (
-            <a className="button-primary closing-button" href="/studio" ref={closingButtonRef}>
-              Make Tavi yours <ArrowUpRight size={16} />
+            <a
+              className="button-primary closing-button"
+              href={studioEntryHref}
+              ref={closingButtonRef}
+            >
+              {hostedPreview ? 'Try Tavi in your browser' : 'Make Tavi yours'}{' '}
+              <ArrowUpRight size={16} />
             </a>
           )}
           <span className="closing-footnote">
