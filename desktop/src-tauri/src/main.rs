@@ -1,20 +1,21 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod links;
+mod ready;
 #[cfg(windows)]
 mod win;
 
 use std::{
-    io::{Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     net::{SocketAddr, TcpStream},
     process::{Child, Command, Stdio},
-    sync::Mutex,
+    sync::{mpsc, Mutex},
     time::{Duration, Instant},
 };
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_opener::OpenerExt;
 
-/// The OBS overlay URL streamers paste into OBS depends on this port, so it is fixed by
-/// default. `TAVI_PORT` overrides it for testing next to a running development server.
+/// Prefer a stable OBS URL; the service chooses a free session port on a collision.
+/// TAVI_PORT overrides the preferred port, not the actual bound port announcement.
 const DEFAULT_PORT: u16 = 4318;
 const STUDIO_LABEL: &str = "studio";
 
@@ -43,16 +44,13 @@ impl Drop for Service {
     }
 }
 
-fn address() -> SocketAddr {
-    SocketAddr::from(([127, 0, 0, 1], port()))
+fn address(port: u16) -> SocketAddr {
+    SocketAddr::from(([127, 0, 0, 1], port))
 }
 
-fn port_in_use() -> bool {
-    TcpStream::connect_timeout(&address(), Duration::from_millis(200)).is_ok()
-}
-
-fn healthy() -> bool {
-    let Ok(mut stream) = TcpStream::connect_timeout(&address(), Duration::from_millis(200)) else {
+fn healthy(port: u16) -> bool {
+    let Ok(mut stream) = TcpStream::connect_timeout(&address(port), Duration::from_millis(200))
+    else {
         return false;
     };
     let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
@@ -77,16 +75,7 @@ fn report(message: &str) {
     eprintln!("Tavi Studio: {message}");
 }
 
-fn start_service(app: &tauri::App) -> Result<(), String> {
-    if port_in_use() {
-        let address = address();
-        return Err(format!(
-            "Tavi Studio could not start because port {} is already in use.\n\n\
-             Another program (for example a Tavi development server started with \
-             `npm run dev`) is using {address}. Close it and open Tavi Studio again.",
-            address.port()
-        ));
-    }
+fn start_service(app: &tauri::App) -> Result<u16, String> {
     // Tauri returns verbatim `\\?\C:\...` paths on Windows. Node cannot resolve its entry
     // script from such a path (EISDIR on `C:`), so pass ordinary paths to the service.
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
@@ -96,13 +85,15 @@ fn start_service(app: &tauri::App) -> Result<(), String> {
     std::fs::create_dir_all(&data)
         .map_err(|e| format!("Could not create the data folder {}: {e}", data.display()))?;
     let log_path = data.join("service.log");
-    let log = std::fs::OpenOptions::new()
+    let mut log = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&log_path)
         .map_err(|e| format!("Could not open {}: {e}", log_path.display()))?;
     let stderr = log.try_clone().map_err(|e| e.to_string())?;
-    let node = resources.join("runtime").join(format!("node{}", std::env::consts::EXE_SUFFIX));
+    let node = resources
+        .join("runtime")
+        .join(format!("node{}", std::env::consts::EXE_SUFFIX));
     let mut command = Command::new(&node);
     command
         .arg(resources.join("service").join("server.mjs"))
@@ -112,7 +103,7 @@ fn start_service(app: &tauri::App) -> Result<(), String> {
         .env("TAVI_VERSION", app.package_info().version.to_string())
         .current_dir(resources.join("service"))
         .stdin(Stdio::null())
-        .stdout(Stdio::from(log))
+        .stdout(Stdio::piped())
         .stderr(Stdio::from(stderr));
     #[cfg(windows)]
     {
@@ -120,14 +111,27 @@ fn start_service(app: &tauri::App) -> Result<(), String> {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
-    let child = command
-        .spawn()
-        .map_err(|e| format!("Could not start the bundled service ({}): {e}", node.display()))?;
+    let child = command.spawn().map_err(|e| {
+        format!(
+            "Could not start the bundled service ({}): {e}",
+            node.display()
+        )
+    })?;
     // Bind the service's lifetime to ours so it also stops if Tavi crashes or is killed.
     #[cfg(windows)]
     if let Err(error) = win::kill_with_parent(&child) {
         eprintln!("Could not attach service to a job object: {error}");
     }
+    let stdout = child.stdout.take().expect("service stdout is piped");
+    let (ready_tx, ready_rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            let _ = writeln!(log, "{line}");
+            if let Some(port) = ready::port_from_line(&line) {
+                let _ = ready_tx.send(port);
+            }
+        }
+    });
     let state = app.state::<Service>();
     *state.0.lock().unwrap() = Some(child);
     let start = Instant::now();
@@ -137,19 +141,29 @@ fn start_service(app: &tauri::App) -> Result<(), String> {
             log_path.display()
         )
     };
-    while !healthy() {
-        if let Some(child) = state.0.lock().unwrap().as_mut() {
-            if let Ok(Some(status)) = child.try_wait() {
-                return Err(failure(&format!("The Tavi service stopped unexpectedly ({status}).")));
+    let mut actual_port = None;
+    loop {
+        if let Ok(port) = ready_rx.try_recv() {
+            actual_port = Some(port);
+        }
+        if let Some(port) = actual_port {
+            if healthy(port) {
+                return Ok(port);
             }
         }
-        if start.elapsed() > Duration::from_secs(20) {
+        if let Some(child) = state.0.lock().unwrap().as_mut() {
+            if let Ok(Some(status)) = child.try_wait() {
+                return Err(failure(&format!(
+                    "The Tavi service stopped unexpectedly ({status})."
+                )));
+            }
+        }
+        if start.elapsed() > Duration::from_secs(60) {
             state.stop();
-            return Err(failure("The Tavi service did not start within 20 seconds."));
+            return Err(failure("The Tavi service did not start within 60 seconds."));
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    Ok(())
 }
 
 fn main() {
@@ -167,18 +181,20 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .manage(Service(Mutex::new(None)))
         .setup(|app| {
-            if !cfg!(debug_assertions) {
-                if let Err(message) = start_service(app) {
-                    report(&message);
-                    std::process::exit(1);
-                }
-            }
-            let origin: &'static str = if cfg!(debug_assertions) {
-                "http://127.0.0.1:5173"
+            let service_port = if cfg!(debug_assertions) {
+                5173
             } else {
-                // Leaked once at startup so the navigation handlers can borrow it.
-                Box::leak(format!("http://127.0.0.1:{}", port()).into_boxed_str())
+                match start_service(app) {
+                    Ok(port) => port,
+                    Err(message) => {
+                        report(&message);
+                        std::process::exit(1);
+                    }
+                }
             };
+            // Leaked once at startup so navigation handlers borrow the session's actual origin.
+            let origin: &'static str =
+                Box::leak(format!("http://127.0.0.1:{service_port}").into_boxed_str());
             let studio_url = format!("{origin}/studio");
             let navigate_handle = app.handle().clone();
             let popup_handle = app.handle().clone();
@@ -194,7 +210,9 @@ fn main() {
             .on_navigation(move |url| match links::navigation(url, origin) {
                 links::Target::InApp => true,
                 links::Target::Browser => {
-                    let _ = navigate_handle.opener().open_url(url.as_str(), None::<&str>);
+                    let _ = navigate_handle
+                        .opener()
+                        .open_url(url.as_str(), None::<&str>);
                     false
                 }
                 links::Target::Blocked => false,

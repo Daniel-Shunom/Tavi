@@ -1,6 +1,6 @@
 # Tavi Studio desktop
 
-Tavi Studio is the desktop app for the Tavi streamer companion. It contains everything it needs: you do not need Node.js, Rust, or a terminal to use it. The app runs a small local service on your PC, opens the studio window, and serves the OBS overlay at `http://127.0.0.1:4318/overlay`.
+Tavi Studio is the desktop app for the Tavi streamer companion. It contains everything it needs: you do not need Node.js, Rust, or a terminal to use it. The app runs a small local service on your PC, opens the studio window, and serves the OBS overlay at `http://127.0.0.1:4318/overlay` when that port is free. If it is occupied, Tavi chooses a free loopback port for the session; copy the actual overlay URL from Studio Setup.
 
 Requirements: Windows 10 or 11 (x64). Microsoft Edge WebView2 is used to draw the window. It ships with Windows 11 and current Windows 10; if it is missing, the installer downloads it.
 
@@ -43,6 +43,8 @@ To uninstall, use **Settings > Apps > Installed apps > Tavi Studio > Uninstall**
 
 Keep Tavi Studio open while you stream. Closing it stops the overlay.
 
+If Tavi selected a fallback port, use the overlay URL shown in **Setup** in place of the default below. That port stays fixed until Tavi closes; a later fallback session may use another port.
+
 1. In OBS, open the scene you want, and under **Sources** click **+**, then **Browser**.
 2. Set **URL** to `http://127.0.0.1:4318/overlay`.
 3. Set **Width** and **Height** to your canvas size (for example 1920 x 1080).
@@ -71,8 +73,8 @@ Paste a path into the File Explorer address bar to open it. Twitch sign-in is ke
 
 ## Troubleshooting
 
-- **"Port 4318 is already in use."** Another program is using the overlay port. Usually this is a second Tavi service, such as a development server started with `npm run dev`. Close it (or restart your PC) and open Tavi Studio again. Tavi never stops other programs for you.
-- **"The Tavi service stopped unexpectedly" or "did not start within 20 seconds."** Open `service.log` (path above) and look at the last lines. Antivirus software quarantining `resources\runtime\node.exe` can cause this; restore it or reinstall.
+- **OBS still shows the old session.** Tavi prefers port 4318 and automatically selects a free session port when it is occupied. Copy the current overlay URL from Setup into the OBS Browser Source. Tavi never stops the program occupying another port.
+- **"The Tavi service stopped unexpectedly" or "did not start within 60 seconds."** Open `service.log` (path above) and look at the last lines. Antivirus software quarantining `resources\runtime\node.exe` can cause this; restore it or reinstall.
 - **OBS shows nothing.** Check that Tavi Studio is open, that the URL is exactly `http://127.0.0.1:4318/overlay`, and that the character is not tucked away or in quiet mode. Then refresh the browser source.
 - **Settings did not save.** Check that `%APPDATA%\app.tavi.studio\` is writable, and look in `service.log`.
 - **Reset Tavi.** Close the app and delete `%APPDATA%\app.tavi.studio\character.json`.
@@ -82,11 +84,11 @@ Paste a path into the File Explorer address bar to open it. Twitch sign-in is ke
 
 - The Tauri 2 shell (`src-tauri/`) starts the bundled `resources/runtime/node.exe resources/service/server.mjs` with `TAVI_DATA_DIR` set to the per-user app data folder, writes its output to `service.log`, waits for `/api/health`, and then opens the studio at `http://127.0.0.1:4318/studio` (the site root is the public landing page).
 - The service runs inside a Windows job object with "kill on close", so it stops when Tavi exits, crashes, or is ended from Task Manager. A normal exit also stops it directly.
-- If port 4318 is taken, or the service fails to start, the app shows an error dialog and exits. It never stops or reuses another process.
+- The service first binds the preferred port (4318 by default), then falls back to an OS-assigned loopback port on `EADDRINUSE`. It announces the bound port over its own stdout pipe; the shell health-checks that port and opens Studio on its actual origin. Other startup errors still stop the app with a log message. No probe-and-release port race or connection to someone else's service is used.
 - The studio is an ordinary loopback web page, so the relative `/ws` and `/api` URLs and the service's origin checks work unchanged, and the renderer does not depend on Tauri.
 - Page JavaScript gets no Tauri commands. No capabilities are granted. The opener plugin is called only from Rust. Links that open a new window or leave the app go through `src/links.rs`: `https://www.twitch.tv/activate` and the studio's `/overlay` and `/credits/` pages open in the default browser, and everything else is blocked.
 - Only one copy runs at a time (single-instance plugin).
-- `TAVI_PORT` (environment variable, default 4318) moves the app and its service to another port. It is meant for testing next to a development server. OBS instructions assume 4318.
+- `TAVI_PORT` chooses a preferred port (default 4318). A collision falls back automatically. All Studio, dock, and overlay links use the bound session origin; saved OBS Browser Sources need updating if a fallback session uses a different port.
 
 ## Build from source
 
@@ -136,7 +138,7 @@ Last checked on Windows 11 (26200), WebView2 155, Node 26.3.1 bundled, with the 
 Verified on the installed app:
 
 - Silent install (`/S`) for the current user: files in `%LOCALAPPDATA%\Tavi Studio`, Start menu shortcut, an entry in Installed apps (publisher and version), exe version 0.1.0. Installing over an existing install also worked.
-- With 4318 taken, the app shows the "port 4318 is already in use" dialog, starts no service, and exits with code 1.
+- Historical Windows checkpoint: the older installer refused to start when 4318 was occupied. The new pipeline checks automatic fallback and actual-port readiness instead.
 - A service that fails to start shows the "service stopped unexpectedly" dialog with the log path. This was hit by a real bug that is now fixed.
 - The service started within about 1 s, `/api/health` returned ok, and `service.log` was written to `%APPDATA%pp.tavi.studio`.
 - The native window shows the studio with the Rive mascot, "Local service connected", and the app icon in the title bar.

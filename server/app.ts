@@ -47,16 +47,17 @@ const localOrigins = [
 ];
 /**
  * `extraOrigins` lets a service listening on a non-default port (TAVI_PORT) trust its own
- * studio origin; the default 4318/5173 origins are always trusted.
+ * studio origin; a getter supports a port assigned at bind time. Default 4318/5173 origins
+ * are always trusted.
  */
 export async function createApp(
   config?: Config,
   save?: (config: Config) => Promise<void>,
   twitchOptions: TwitchOptions = {},
-  extraOrigins: readonly string[] = [],
+  extraOrigins: readonly string[] | (() => readonly string[]) = [],
   options: AppOptions = {},
 ) {
-  const trustedOrigins = new Set([...localOrigins, ...extraOrigins]);
+  const trustedOrigins = new Set(localOrigins);
   const app = Fastify({ logger: false, bodyLimit: 16384 });
   await app.register(websocket, { options: { maxPayload: 16384 } });
   const ai = options.ai ?? new AiManager();
@@ -115,7 +116,11 @@ export async function createApp(
     },
   });
   function isTrusted(origin: string | undefined) {
-    return !!origin && trustedOrigins.has(origin);
+    return (
+      !!origin &&
+      (trustedOrigins.has(origin) ||
+        (typeof extraOrigins === 'function' ? extraOrigins() : extraOrigins).includes(origin))
+    );
   }
   function studioOnly(request: { headers: Record<string, string | string[] | undefined> }) {
     const origin = request.headers['origin'];

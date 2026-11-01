@@ -23,12 +23,11 @@ await new Promise((resolve, reject) => {
   reservation.listen(0, '127.0.0.1', resolve);
 });
 const port = reservation.address().port;
-await new Promise((resolve, reject) =>
-  reservation.close((error) => (error ? reject(error) : resolve())),
-);
+
 const data = await mkdtemp(join(tmpdir(), 'tavi-package-check-'));
 let output = '';
 let spawnError;
+const startedAt = Date.now();
 const child = spawn(runtime, [service], {
   cwd: join(resources, 'service'),
   env: {
@@ -47,12 +46,25 @@ for (const stream of [child.stdout, child.stderr])
   stream.on('data', (chunk) => {
     output = (output + String(chunk)).slice(-8000);
   });
-const base = `http://127.0.0.1:${port}`;
+let base;
+let boundPort;
 try {
   let healthy = false;
-  for (let attempt = 0; attempt < 100; attempt++) {
+  for (let attempt = 0; attempt < 300; attempt++) {
     if (spawnError) throw spawnError;
     if (child.exitCode !== null) throw new Error(`Bundled service exited: ${output}`);
+    const ready = /^TAVI_READY (.+)$/m.exec(output);
+    if (ready) {
+      const payload = JSON.parse(ready[1]);
+      if (Number.isInteger(payload.port) && payload.port > 0 && payload.port <= 65535) {
+        boundPort = payload.port;
+        base = `http://127.0.0.1:${boundPort}`;
+      }
+    }
+    if (!base) {
+      await delay(200);
+      continue;
+    }
     try {
       healthy = (await fetch(base + '/api/health', { signal: AbortSignal.timeout(1000) })).ok;
     } catch {
@@ -62,6 +74,9 @@ try {
     await delay(200);
   }
   assert(healthy, `Bundled service did not become healthy: ${output}`);
+  console.log(`Service startup: ${Date.now() - startedAt} ms`);
+  assert.notEqual(boundPort, port, 'The occupied preferred port must trigger fallback');
+  assert(reservation.listening, 'The existing listener must remain untouched');
   for (const path of ['/studio', '/overlay', '/dock', '/download']) {
     const response = await fetch(base + path);
     assert.equal(response.status, 200, path);
@@ -70,7 +85,7 @@ try {
   const state = await (await fetch(base + '/api/state')).json();
   assert.equal(state.config.character, 'tavi-foundation');
   console.log(
-    `PASS native ${process.platform}-${process.arch} bundled runtime, service, Studio/overlay routes, Foundation default, and notices`,
+    `PASS native ${process.platform}-${process.arch} bundled runtime, occupied-port fallback, session readiness, Studio/overlay routes, Foundation default, and notices`,
   );
 } finally {
   if (child.pid && child.exitCode === null) {
@@ -81,5 +96,8 @@ try {
       await exited;
     }
   }
+  await new Promise((resolve, reject) =>
+    reservation.close((error) => (error ? reject(error) : resolve())),
+  );
   await rm(data, { recursive: true, force: true });
 }
