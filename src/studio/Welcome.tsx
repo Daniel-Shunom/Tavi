@@ -60,7 +60,10 @@ export function Welcome({
     async function poll() {
       try {
         const next = await read();
-        if (!disposed) setStatus(next);
+        if (!disposed) {
+          setStatus(next);
+          setError('');
+        }
       } catch {
         if (!disposed) setError('Twitch is unavailable right now. You can skip and connect later.');
       } finally {
@@ -81,7 +84,7 @@ export function Welcome({
   // Already connected (another Studio tab, or the service kept going): straight in.
   useEffect(() => {
     if (!status || !live(status.phase)) return;
-    rememberChoice('connected');
+    if (status.phase === 'connected') rememberChoice('connected');
     const timer = setTimeout(onDone, status.phase === 'connected' ? 900 : 1800);
     return () => {
       clearTimeout(timer);

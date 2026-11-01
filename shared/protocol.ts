@@ -13,6 +13,7 @@ import {
 // Body states (sit, nap, peek...) and scene geometry: shared/states.ts.
 import {
   defaultVariant,
+  isOriginal,
   hairStyles,
   nearestSkinTone,
   variantSchema,
@@ -95,7 +96,9 @@ export function migrateConfig(raw: unknown): unknown {
   if (input['version'] === CONFIG_VERSION) return { ...defaults, ...input };
   if (input['version'] === 2) {
     const next = { ...defaults, ...input, version: CONFIG_VERSION };
-    if (next['character'] === 'mascot-v2') next['character'] = fallbackCharacterId;
+    const variant = variantSchema.safeParse(next['variant']);
+    if (next['character'] === 'mascot-v2' && variant.success && isOriginal(variant.data))
+      next['character'] = fallbackCharacterId;
     return next;
   }
   if (input['version'] !== undefined && input['version'] !== 1) return raw;
@@ -111,9 +114,11 @@ export function migrateConfig(raw: unknown): unknown {
     } else if (!(legacyRemoved as readonly string[]).includes(key) && key !== 'version')
       next[key] = value;
   }
-  if (next['character'] === 'mascot-v2') next['character'] = fallbackCharacterId;
   next['appearance'] = appearance;
   next['variant'] = legacyVariant(input);
+  // Keep customized legacy looks on their supported rig; Studio offers an explicit switch.
+  if (input['character'] === 'mascot-v2' || input['character'] === undefined)
+    next['character'] = isOriginal(legacyVariant(input)) ? fallbackCharacterId : 'mascot-v2';
   next['version'] = CONFIG_VERSION;
   return next;
 }

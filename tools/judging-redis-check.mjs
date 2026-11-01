@@ -36,6 +36,15 @@ try {
   await Promise.all([apiStore.connect(), workerStore.connect(), inspect.connect()]);
   assert.equal(await inspect.ping(), 'PONG');
   console.info('PASS encrypted Redis connection');
+  const attempts = await Promise.all(
+    Array.from({ length: 8 }, (_, i) =>
+      (i % 2 ? workerStore : apiStore).allowCreation('synthetic-client'),
+    ),
+  );
+  assert.equal(attempts.filter(Boolean).length, 5);
+  assert((await inspect.pTTL(`${namespace}:creation:synthetic-client`)) > 1790000);
+  assert.equal(await apiStore.allowCreation('another-client'), true);
+  console.info('PASS atomic per-client creation limits across store instances');
   await worker.start();
   const first = await sessions.create();
   ids.push(first.session.id);
@@ -95,6 +104,9 @@ try {
   await worker.close();
   await Promise.allSettled(ids.map((id) => apiStore.end(id)));
   await inspect.del(`${namespace}:active`).catch(() => undefined);
+  await inspect
+    .del([`${namespace}:creation:synthetic-client`, `${namespace}:creation:another-client`])
+    .catch(() => undefined);
   await Promise.allSettled([apiStore.close(), workerStore.close(), inspect.close()]);
   clearTimeout(timeout);
 }

@@ -222,7 +222,7 @@ export function SetupView({
             >
               <Check size={16} /> {progress.dock ? 'Added' : 'I’ve added it'}
             </button>
-            <a className="st-link" href="/dock" target="_blank" rel="noreferrer">
+            <a className="st-link" href={judgingDockUrl()} target="_blank" rel="noreferrer">
               Open the dock <ArrowUpRight size={14} />
             </a>
           </div>

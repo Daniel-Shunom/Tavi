@@ -11,6 +11,7 @@ export function DownloadOptions({ buttonRef }: { buttonRef: Ref<HTMLAnchorElemen
   const [windows, setWindows] = useState<boolean | null>(null);
   const [installer, setInstaller] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
+  const [lookupError, setLookupError] = useState(false);
 
   useEffect(() => {
     setWindows(/windows/i.test(navigator.userAgent));
@@ -19,12 +20,18 @@ export function DownloadOptions({ buttonRef }: { buttonRef: Ref<HTMLAnchorElemen
       headers: { Accept: 'application/vnd.github+json' },
       signal: controller.signal,
     })
-      .then(async (response) => (response.ok ? (response.json() as Promise<Release>) : null))
+      .then(async (response) => {
+        if (response.status === 404) return null;
+        if (!response.ok) throw new Error('Release lookup failed');
+        return response.json() as Promise<Release>;
+      })
       .then((release) => {
         const asset = release?.assets?.find((entry) => /x64-setup\.exe$/i.test(entry.name));
         if (asset) setInstaller(asset.browser_download_url);
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!controller.signal.aborted) setLookupError(true);
+      })
       .finally(() => {
         if (!controller.signal.aborted) setChecked(true);
       });
@@ -47,7 +54,11 @@ export function DownloadOptions({ buttonRef }: { buttonRef: Ref<HTMLAnchorElemen
     ) : (
       <>
         <p className="download-status">
-          {checked ? 'The Windows installer is coming soon.' : 'Checking for the latest installer…'}
+          {lookupError
+            ? 'Could not check the installer. See Windows releases below.'
+            : checked
+              ? 'The Windows installer is coming soon.'
+              : 'Checking for the latest installer…'}
         </p>
         <a className="button-primary closing-button" href="/studio" ref={buttonRef}>
           Use Tavi in your browser <ArrowUpRight size={16} />

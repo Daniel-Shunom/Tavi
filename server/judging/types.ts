@@ -36,6 +36,7 @@ export class JudgingError extends Error {
 /** Session storage has an authoritative deadline; writes never extend it implicitly. */
 export interface SessionStore {
   readonly now: () => number;
+  allowCreation(client: string): Promise<boolean>;
   create(session: SessionRecord): Promise<void>;
   get(id: string): Promise<SessionRecord | null>;
   extend(id: string): Promise<SessionRecord>;

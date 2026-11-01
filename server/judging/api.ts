@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { createHash } from 'node:crypto';
 import websocket from '@fastify/websocket';
 import type { WebSocket } from 'ws';
 import { ZodError } from 'zod';
@@ -35,6 +36,7 @@ export async function createJudgingApi(sessions: JudgingSessions) {
   async function http(request: {
     url: string;
     method: string;
+    ip: string;
     body?: unknown;
     headers: Record<string, string | string[] | undefined>;
   }) {
@@ -46,7 +48,16 @@ export async function createJudgingApi(sessions: JudgingSessions) {
     )
       throw new JudgingError(403, 'Open this action from Tavi Studio.');
     if (path === '/api/health') return { status: 'ok', mode: 'judging' };
-    if (path === '/api/judging/sessions' && request.method === 'POST') return sessions.create();
+    if (path === '/api/judging/sessions' && request.method === 'POST') {
+      // Vercel overwrites this header at its edge. Direct local servers trust only the socket IP.
+      const forwarded = process.env['VERCEL'] ? request.headers['x-forwarded-for'] : undefined;
+      const ip =
+        typeof forwarded === 'string' ? forwarded.split(',')[0]?.trim() || request.ip : request.ip;
+      const client = createHash('sha256').update(ip).digest('hex');
+      if (!(await sessions.store.allowCreation(client)))
+        throw new JudgingError(429, 'Too many previews. Try again in 30 minutes.');
+      return sessions.create();
+    }
     const access = await sessions.authenticate(
       url.searchParams.get('judge'),
       url.searchParams.get('key'),

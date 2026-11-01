@@ -120,6 +120,17 @@ export class RedisSessionStore implements SessionStore {
   async connect() {
     await Promise.all([this.client.connect(), this.subscriber.connect()]);
   }
+  async allowCreation(client: string) {
+    const count = await this.client.eval(
+      `
+      local count=redis.call('INCR',KEYS[1])
+      if count==1 then redis.call('PEXPIRE',KEYS[1],1800000) end
+      return count
+    `,
+      { keys: [`${this.prefix}:creation:${client}`], arguments: [] },
+    );
+    return typeof count === 'number' && count <= 5;
+  }
   private key(id: string, suffix: string) {
     return `${this.prefix}:${id}:${suffix}`;
   }

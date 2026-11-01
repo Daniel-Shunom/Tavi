@@ -14,6 +14,16 @@ import {
 /** Local development/test adapter. Production uses Redis so function reconnects share state. */
 export class MemorySessionStore implements SessionStore {
   private sessions = new Map<string, SessionRecord>();
+  private creationWindows = new Map<string, { count: number; until: number }>();
+  async allowCreation(client: string) {
+    const now = this.now();
+    for (const [key, value] of this.creationWindows) {
+      if (value.until <= now) this.creationWindows.delete(key);
+    }
+    const window = this.creationWindows.get(client) ?? { count: 0, until: now + 1800000 };
+    this.creationWindows.set(client, window);
+    return ++window.count <= 5;
+  }
   private snapshots = new Map<string, Snapshot>();
   private listeners = new Map<string, Set<(event: SessionEvent) => void>>();
   private handler: ((request: WorkerRequest) => Promise<WorkerReply>) | undefined;
@@ -114,6 +124,7 @@ export class MemorySessionStore implements SessionStore {
   close() {
     this.handler = undefined;
     this.sessions.clear();
+    this.creationWindows.clear();
     this.snapshots.clear();
     this.listeners.clear();
     return Promise.resolve();

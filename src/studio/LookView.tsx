@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Shuffle, Undo2, RotateCcw } from 'lucide-react';
 import { Avatar } from '../renderer/Avatar';
-import { catalog, studioCharacterIds } from '../renderer/characters/registry';
+import { catalog, defaultCharacterId, studioCharacterIds } from '../renderer/characters/registry';
 import { variantRigs } from '../renderer/characters/variantRigs';
 import {
   CharacterCreator,
@@ -96,6 +96,18 @@ export function LookView({ state, connected, send, serverNow }: StudioProps) {
             <span className="st-model-beta">
               {isCoreModel ? 'More models in beta' : 'This model is in beta'}
             </span>
+            {!isCoreModel && (
+              <button
+                type="button"
+                className="st-button"
+                disabled={!connected}
+                onClick={() => {
+                  patch({ character: defaultCharacterId });
+                }}
+              >
+                Switch to Tavi
+              </button>
+            )}
           </div>
         </div>
       </section>

@@ -40,7 +40,7 @@ describe('configuration migration', () => {
       anchor: 'chat',
       x: 0.82,
       y: 0.63,
-      character: 'tavi-foundation',
+      character: 'mascot-v2',
       appearance: { hair: 'orange', outfit: 'light-green', glasses: 'grey' },
       initiative: 'occasional',
     });
@@ -100,6 +100,17 @@ describe('configuration migration', () => {
     expect(invalid.config.appearance).toEqual({ hair: 'pink', outfit: 'green', glasses: 'blue' });
     const unknown = reduce(state, { type: 'configure', patch: { character: 'nobody' } }, catalog);
     expect(unknown.config.character).toBe('tavi-foundation');
+  });
+  it('keeps customized version-2 looks on the rig that supports them', () => {
+    const variant = { ...defaults.variant, hair: { ...defaults.variant.hair, style: 'bob' } };
+    const upgraded = configSchema.parse({
+      ...defaults,
+      version: 2,
+      character: 'mascot-v2',
+      variant,
+    });
+    expect(upgraded.character).toBe('mascot-v2');
+    expect(upgraded.variant).toEqual(variant);
   });
   it('swaps refined and foundation without losing saved appearance or stream settings', () => {
     const original = normalizeConfig(

@@ -45,6 +45,23 @@ it('requires same-origin mutations and confines controller APIs to their own ses
   // Exercise the same rewritten request shape used by the Vercel function.
   expect((await app.inject(`/api/server${control}&path=judging/session`)).statusCode).toBe(200);
 });
+it('limits creation by socket IP despite forged forwarding headers and shares the store budget', async () => {
+  const { app, sessions } = await fixture();
+  const create = { method: 'POST' as const, url: '/api/judging/sessions', headers };
+  for (let i = 0; i < 4; i++) expect((await app.inject(create)).statusCode).toBe(200);
+  const blocked = await app.inject({
+    ...create,
+    headers: { ...headers, 'x-forwarded-for': '203.0.113.2' },
+  });
+  expect(blocked.statusCode).toBe(429);
+  const other = await createJudgingApi(sessions);
+  try {
+    expect((await other.inject(create)).statusCode).toBe(429);
+    expect((await other.inject({ ...create, remoteAddress: '203.0.113.3' })).statusCode).toBe(200);
+  } finally {
+    await other.close();
+  }
+});
 it('synchronizes the overlay over WebSocket while rejecting overlay commands', async () => {
   const { app, sessions, control, view } = await fixture();
   const socket = await app.injectWS(`/ws${view}`);
