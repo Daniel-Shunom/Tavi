@@ -33,12 +33,11 @@ import { TWITCH_GLITCH, lockup, paintDither } from './landing/dither';
  * The large Twitch x Codex lockup set into the closing light: centred, high in the light's box
  * above the headline, at the same mild dot density as everything else in the dither.
  */
-const CLOSING_LOCKUP = { x: 0.5, y: 0.12, height: 120, level: 0.34 };
+const CLOSING_LOCKUP = { x: 0.5, height: 120, level: 0.54 };
 import { TaviLife, type LifeCue, type Posture } from './landing/life';
 import { AWAY, VisitorReactions } from './landing/reactions';
 import { HeroGaze, type GazeFrame } from './landing/heroGaze';
 import { sceneLayoutRect } from './landing/sceneLayout';
-import { DownloadOptions } from './landing/DownloadOptions';
 import './landing.css';
 
 /**
@@ -111,16 +110,6 @@ function demoState(
 }
 
 export function LandingPage() {
-  const downloadPage = typeof window !== 'undefined' && window.location.pathname === '/download';
-  useEffect(() => {
-    if (!downloadPage) return;
-    const frame = requestAnimationFrame(() => {
-      document.getElementById('download')?.scrollIntoView({ block: 'start' });
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-    };
-  }, [downloadPage]);
   const deskRef = useRef<HTMLDivElement>(null);
   const webcamRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<HTMLDivElement>(null);
@@ -219,13 +208,18 @@ export function LandingPage() {
       painted = key;
       // Smaller on narrow screens, so the lockup always fits across the light.
       const height = Math.min(CLOSING_LOCKUP.height, canvas.clientWidth * 0.11);
+      const copyTop = closingCopyRef.current?.offsetTop ?? canvas.clientHeight * 0.3;
+      const lockupY = Math.max(
+        0.05,
+        (copyTop - canvas.offsetTop - height * 0.75) / canvas.clientHeight,
+      );
       paintDither(
         canvas,
         'on',
         { center: { x: 0.5, y: 1 }, radius: { x: 0.46, y: 0.95 }, seam: 1 },
         2,
-        lockup(glitch, CLOSING_LOCKUP.x, CLOSING_LOCKUP.y, height, canvas.clientWidth),
-        // Large, so sparser dots: it stays a mild watermark in the light.
+        lockup(glitch, CLOSING_LOCKUP.x, lockupY, height, canvas.clientWidth),
+        // Keep the mark legible while retaining the same ordered dots as the light.
         CLOSING_LOCKUP.level,
       );
     };
@@ -1087,17 +1081,8 @@ export function LandingPage() {
         <canvas className="closing-dither" ref={closingDitherRef} aria-hidden="true" />
         <div className="closing-copy" ref={closingCopyRef}>
           <h2>
-            {downloadPage ? (
-              <>
-                <span className="reveal-line">Take Tavi</span>
-                <span className="reveal-line">with you.</span>
-              </>
-            ) : (
-              <>
-                <span className="reveal-line">Make a little</span>
-                <span className="reveal-line">you.</span>
-              </>
-            )}
+            <span className="reveal-line">Make a little</span>
+            <span className="reveal-line">you.</span>
           </h2>
           <p className="section-knot">
             <Sparkles size={14} /> There’s room for one more
@@ -1106,18 +1091,14 @@ export function LandingPage() {
             Shape a familiar face, choose a favorite perch, and let Tavi find its place in your
             stream.
           </p>
-          {downloadPage ? (
-            <DownloadOptions buttonRef={closingButtonRef} />
-          ) : (
-            <a
-              className="button-primary closing-button"
-              href={studioEntryHref}
-              ref={closingButtonRef}
-            >
-              {hostedPreview ? 'Try Tavi in your browser' : 'Make Tavi yours'}{' '}
-              <ArrowUpRight size={16} />
-            </a>
-          )}
+          <a
+            className="button-primary closing-button"
+            href={studioEntryHref}
+            ref={closingButtonRef}
+          >
+            Make Tavi yours
+            <ArrowUpRight size={16} />
+          </a>
           <span className="closing-footnote">
             Start in Studio. Bring Tavi to your stream when you’re ready.
           </span>
