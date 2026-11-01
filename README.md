@@ -6,7 +6,7 @@
 
 An expressive companion for Twitch streamers. Give Tavi a place in OBS, a personality, and a room full of chat.
 
-**[Meet Tavi](https://tavi-pi.vercel.app)** · **[Windows downloads](https://github.com/Daniel-Shunom/Tavi/releases)** · **[Run locally](docs/RUNNING.md)** · **[For judges](#for-judges)**
+**[Meet Tavi](https://tavi-pi.vercel.app)** ? **[Try the preview](https://tavi-pi.vercel.app/judge)** · **[Windows downloads](https://github.com/Daniel-Shunom/Tavi/releases)** · **[Run locally](docs/RUNNING.md)** · **[For judges](#for-judges)**
 
 <sub>Built for the Twitch × Codex hackathon · React · TypeScript · Rive · Tauri</sub>
 
@@ -14,13 +14,13 @@ An expressive companion for Twitch streamers. Give Tavi a place in OBS, a person
 
 ## FOR JUDGES
 
-| Start here                                                | What you'll find                                                                                                              |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [Judge walkthrough](docs/JUDGING.md#try-tavi)             | Try the app, connect Twitch, and evaluate the OBS overlay.                                                                    |
-| [Browser preview](docs/JUDGING-SESSIONS.md)               | Isolated 30-minute sessions, labeled test events, reset, and one 15-minute extension. **Production verification is pending.** |
-| [How we used Codex](docs/codex/README.md)                 | Development workflow, implementation evidence, attribution, and session IDs.                                                  |
-| [Submission checklist](docs/JUDGING.md#before-submitting) | Public demo video and Devpost project links are **pending**.                                                                  |
-| [Checks and architecture](docs/DEVELOPMENT.md#validate)   | Validation commands; [source map](docs/REPOSITORY-LAYOUT.md) and [asset credits](brand/CREDITS.md).                           |
+| Start here                                                | What you'll find                                                                                                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Judge walkthrough](docs/JUDGING.md#try-tavi)             | Try the app, connect Twitch, and evaluate the OBS overlay.                                                                                       |
+| [Browser preview](docs/JUDGING-SESSIONS.md)               | Isolated 30-minute sessions, labeled test events, reset, and one 15-minute extension. [Open the live preview](https://tavi-pi.vercel.app/judge). |
+| [How we used Codex](docs/codex/README.md)                 | Development workflow, implementation evidence, attribution, and session IDs.                                                                     |
+| [Submission checklist](docs/JUDGING.md#before-submitting) | Public demo video and Devpost project links are **pending**.                                                                                     |
+| [Checks and architecture](docs/DEVELOPMENT.md#validate)   | Validation commands; [source map](docs/REPOSITORY-LAYOUT.md) and [asset credits](brand/CREDITS.md).                                              |
 
 **Primary Codex session:** `01a17704-cc9a-7d01-822a-754a6062ab3c` · [All recorded sessions](.sessions)
 
