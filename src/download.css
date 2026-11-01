@@ -205,3 +205,55 @@
     padding: 22px 0;
   }
 }
+
+/* Native platform choices stay in one quiet row; release assets determine which links exist. */
+.download-platforms {
+  display: flex;
+  gap: 18px;
+  margin: 0 0 24px;
+  border-bottom: 1px solid #e6deeb;
+}
+.download-platforms button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: #62576c;
+  font:
+    500 13px 'DM Sans',
+    sans-serif;
+  cursor: pointer;
+}
+.download-platforms button[aria-selected='true'] {
+  border-bottom-color: #705384;
+  color: #292330;
+}
+.download-platforms button:hover {
+  color: #292330;
+}
+.download-platforms img {
+  object-fit: contain;
+}
+.download-native-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 18px;
+  color: #4f385c;
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .download-platforms {
+    justify-content: center;
+    gap: 24px;
+  }
+  .download-native-link {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
