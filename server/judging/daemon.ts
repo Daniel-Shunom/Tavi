@@ -1,11 +1,8 @@
 import { RedisSessionStore } from './redis-store.js';
 import { JudgingWorker } from './worker.js';
-import { requiredEnvironment } from './environment.js';
+import { requiredEnvironment, requiredRedisEnvironment } from './environment.js';
 
-const store = new RedisSessionStore(
-  requiredEnvironment('REDIS_URL'),
-  process.env['JUDGING_NAMESPACE'],
-);
+const store = new RedisSessionStore(requiredRedisEnvironment(), process.env['JUDGING_NAMESPACE']);
 await store.connect();
 const worker = new JudgingWorker(store, requiredEnvironment('JUDGING_PUBLIC_ORIGIN'));
 let closing = false;

@@ -59,12 +59,13 @@ preview deployments. Functions fail closed on preview deployments instead of sha
 
 Set these production environment variables for both the Function and Daemon:
 
-| Variable                | Value                                                                                               |
-| ----------------------- | --------------------------------------------------------------------------------------------------- |
-| `REDIS_URL`             | Private Redis TCP/TLS connection URL, supporting Lua and Pub/Sub. An HTTP REST URL is insufficient. |
-| `JUDGING_PUBLIC_ORIGIN` | Fixed public HTTPS origin of the judging site.                                                      |
-| `JUDGING_SECRET`        | At least 32 random characters. Keep stable across deployments.                                      |
-| `JUDGING_NAMESPACE`     | Optional separate Redis prefix for this project, e.g. `tavi:judging`.                               |
+| Variable                | Value                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `UPSTASH_REDIS_URL`     | Hosted TLS Redis TCP URL, supporting Lua and Pub/Sub. Preferred when present.  |
+| `REDIS_URL`             | Fallback Redis TCP/TLS URL for direct Redis deployments and local development. |
+| `JUDGING_PUBLIC_ORIGIN` | Fixed public HTTPS origin of the judging site.                                 |
+| `JUDGING_SECRET`        | At least 32 random characters. Keep stable across deployments.                 |
+| `JUDGING_NAMESPACE`     | Optional separate Redis prefix for this project, e.g. `tavi:judging`.          |
 
 The worker uses a renewable singleton lease, waits during rolling deployments, and shuts down
 if it cannot renew ownership. A Redis outage does not extend any known session deadline.
@@ -87,5 +88,34 @@ Local memory tests alone do not verify those cloud behaviors.
   including unattended removal of local session state as well as credential cleanup.
 - Real Chromium check passed for independent sessions, synchronized transparent overlay,
   controller/viewer permissions, extension, reset and responsive layout, without browser errors.
-- Docker engine access was denied locally, including after escalation. Real Redis, container
-  startup and Vercel deployment are not verified yet. No public judging URL has been deployed.
+- Real Upstash TLS connection and the complete Redis adapter check passed. Docker engine access
+  was denied locally, so remote Vercel Daemon image startup and deployment remain unverified.
+- No public judging URL has been deployed yet.
+
+## Cloud setup in progress
+
+Vercel CLI is linked to the existing `tavi` project. The paid Redis Cloud resource remains
+connected and unchanged; its Vercel-managed configuration exposes no TLS control, and its current
+endpoint fails the TLS handshake. A separate **free** Upstash resource is connected only to
+Tavi Production under the `UPSTASH_` prefix, preserving the existing `REDIS_URL`. The free plan
+allows 256 MB and 500,000 commands/month; this is suitable for short judging/demo use, not an
+unlimited always-on production allowance.
+
+Hosted API and Daemon now prefer `UPSTASH_REDIS_URL`, falling back to `REDIS_URL`; desktop and
+local service behavior remains unchanged. The client upgrades non-loopback Redis URLs to TLS.
+
+Downloaded environment files are ignored; credentials must stay there or in Vercel's environment
+configuration, never in source control. `JUDGING_PUBLIC_ORIGIN` and a generated sensitive
+`JUDGING_SECRET` are configured for Vercel Production. Run the adapter check in its disposable
+namespace:
+
+```sh
+node --import tsx tools/judging-redis-check.mjs .env.upstash.local
+```
+
+This checks Redis-backed worker RPC, full state-schema round trips, session isolation,
+read-only access, capacity, atomic extension, reset, stale-write rejection and actual Redis TTL
+deletion using a shortened synthetic deadline. It passes against Upstash over TLS. The first run
+exposed Lua cjson changing empty JSON objects into arrays; snapshot writes now preserve app JSON
+verbatim. This does not replace deployed session/OBS/Twitch verification. No public judging URL
+has been deployed yet.

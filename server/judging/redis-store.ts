@@ -12,6 +12,20 @@ import {
   type WorkerReply,
 } from './types.js';
 
+/** Marketplace URLs may retain redis:// after TLS is enabled. Cloud auth always uses TLS. */
+export function redisConnectionUrl(raw: string) {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error('Set a valid Redis TCP/TLS connection URL.');
+  }
+  if (!['redis:', 'rediss:'].includes(url.protocol))
+    throw new Error('Use a Redis TCP/TLS connection URL.');
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) url.protocol = 'rediss:';
+  return url.href;
+}
+
 // One atomic script owns all record transitions and absolute TTLs. Redis TIME is authoritative.
 const transition = `
 local action=ARGV[1]
@@ -61,11 +75,11 @@ elseif action=='test' then
 elseif action=='save' then
   if record.epoch~=tonumber(ARGV[3]) then return 'STALE' end
   record.revision=record.revision+1
-  local snapshot={revision=record.revision,packet=cjson.decode(ARGV[4])}
-  local encoded=cjson.encode(snapshot)
+  -- Preserve the application JSON verbatim: Lua cjson turns empty object tables into arrays.
+  local encoded='{"revision":'..cjson.encode(record.revision)..',"packet":'..ARGV[4]..'}'
   redis.call('SET',KEYS[2],encoded,'PXAT',record.expiresAt)
   redis.call('SET',KEYS[1],cjson.encode(record),'PXAT',record.expiresAt)
-  redis.call('PUBLISH',channel,cjson.encode({type='state',snapshot=snapshot}))
+  redis.call('PUBLISH',channel,'{"type":"state","snapshot":'..encoded..'}')
   return encoded
 end
 local encoded=cjson.encode(record)
@@ -94,7 +108,7 @@ export class RedisSessionStore implements SessionStore {
   ) {
     if (!/^[a-zA-Z0-9:_-]+$/.test(prefix)) throw new Error('Invalid judging namespace.');
     this.client = createClient({
-      url,
+      url: redisConnectionUrl(url),
       socket: { connectTimeout: 5000 },
       disableOfflineQueue: true,
     });

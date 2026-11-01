@@ -19,3 +19,5 @@ art/tavi-rive-lab/*/
 
 # Native Chromium diagnostics emitted by local browser checks.
 /debug.log
+
+.vercel/
