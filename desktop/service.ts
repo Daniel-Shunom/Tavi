@@ -34,6 +34,25 @@ await app.register(staticFiles, {
 for (const route of ['/studio', '/rig-lab', '/download', '/overlay', '/dock']) {
   app.get(route, async (_, reply) => reply.sendFile('index.html'));
 }
+// Unix has no Windows job object. Stop the service if its shell parent disappears,
+// including a force-quit/crash, so a stale service cannot keep the OBS port occupied.
+const parentPid = Number(process.env['TAVI_PARENT_PID']);
+if (process.platform !== 'win32' && Number.isSafeInteger(parentPid) && parentPid > 0) {
+  const parentWatch = setInterval(() => {
+    if (process.ppid === parentPid) return;
+    clearInterval(parentWatch);
+    void app.close().then(
+      () => process.exit(0),
+      () => process.exit(1),
+    );
+  }, 1000);
+  parentWatch.unref();
+  app.addHook('onClose', () => {
+    clearInterval(parentWatch);
+    return Promise.resolve();
+  });
+}
+
 await app.listen({ host: '127.0.0.1', port });
 console.log(
   `${new Date().toISOString()} Tavi Studio ${version} service (Node ${process.version}): http://127.0.0.1:${String(port)} data=${directory}`,

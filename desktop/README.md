@@ -1,8 +1,31 @@
-# Tavi Studio for Windows
+# Tavi Studio desktop
 
-Tavi Studio is the Windows app for the Tavi streamer companion. It contains everything it needs: you do not need Node.js, Rust, or a terminal to use it. The app runs a small local service on your PC, opens the studio window, and serves the OBS overlay at `http://127.0.0.1:4318/overlay`.
+Tavi Studio is the desktop app for the Tavi streamer companion. It contains everything it needs: you do not need Node.js, Rust, or a terminal to use it. The app runs a small local service on your PC, opens the studio window, and serves the OBS overlay at `http://127.0.0.1:4318/overlay`.
 
 Requirements: Windows 10 or 11 (x64). Microsoft Edge WebView2 is used to draw the window. It ships with Windows 11 and current Windows 10; if it is missing, the installer downloads it.
+
+## Cross-platform build pipeline
+
+[Desktop installers on GitHub Actions](../.github/workflows/desktop-installers.yml) uses native standard GitHub runners:
+
+| Platform            | Runner           | Installer              |
+| ------------------- | ---------------- | ---------------------- |
+| Windows x64         | `windows-latest` | NSIS `.exe`            |
+| Linux x64           | `ubuntu-22.04`   | `.deb` and `.AppImage` |
+| macOS Intel         | `macos-15-intel` | `.dmg`                 |
+| macOS Apple Silicon | `macos-15`       | `.dmg`                 |
+
+macOS builds require macOS 13.5 or newer because the bundled Node 24 runtime requires it. Linux builds target an Ubuntu 22.04/WebKitGTK 4.1 baseline. Each app contains its own matching Node runtime; users do not install Node or Rust. Linux/macOS are new build targets and still need native UI/OBS acceptance checks.
+
+Pull requests that touch the app and pushes to main build all four targets. **Actions ? Desktop installers ? Run workflow** starts a manual build after the workflow is merged. Each successful job uploads installers and SHA-256 files as `tavi-studio-<platform>` artifacts, retained for seven days. Download the artifact ZIP from its workflow run and extract it before installing.
+
+To publish a downloadable release, update `desktop/package.json` and `desktop/src-tauri/Cargo.toml` together, merge, then push the matching version tag, for example `v0.1.0`. Tag builds must match the app version exactly. Only after validation and all installer jobs pass does the pipeline create a GitHub Release with every platform's installers and checksums. Tags with a prerelease suffix become prereleases and stay out of GitHub's latest stable release endpoint.
+
+Windows is unsigned. macOS uses ad-hoc signing, not Developer ID signing or Apple notarization. Native OS security prompts can still occur; signing credentials can be added later. Public GitHub standard runners do not consume billed build minutes; artifact/cache storage remains subject to GitHub's account allowances.
+
+The pipeline runs packaging tests, Rust lint/tests, a prepared-service smoke check, and checks the Node runtime/service inside the installed Windows package, macOS app, and extracted Linux packages. These checks cover startup, health, local Studio/overlay routes, and the Foundation default; they do not substitute for opening the native window and using OBS on each OS.
+
+The Windows instructions below remain the tested installation walkthrough.
 
 ## Install
 
@@ -36,13 +59,13 @@ Tavi Studio opens on a sign-in screen: **Connect with Twitch**, or **Skip for no
 
 ## Where Tavi stores things
 
-| What                    | Where                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------- |
-| App files               | `%LOCALAPPDATA%\Tavi Studio\`                                                 |
-| Character settings      | `%APPDATA%\app.tavi.studio\character.json`                                    |
-| Service log             | `%APPDATA%\app.tavi.studio\service.log`                                       |
-| WebView data            | `%LOCALAPPDATA%\app.tavi.studio\EBWebView\`                                   |
-| Third-party licenses    | `%LOCALAPPDATA%\Tavi Studio\resources\THIRD-PARTY-NOTICES.txt`                |
+| What                 | Where                                                          |
+| -------------------- | -------------------------------------------------------------- |
+| App files            | `%LOCALAPPDATA%\Tavi Studio\`                                  |
+| Character settings   | `%APPDATA%\app.tavi.studio\character.json`                     |
+| Service log          | `%APPDATA%\app.tavi.studio\service.log`                        |
+| WebView data         | `%LOCALAPPDATA%\app.tavi.studio\EBWebView\`                    |
+| Third-party licenses | `%LOCALAPPDATA%\Tavi Studio\resources\THIRD-PARTY-NOTICES.txt` |
 
 Paste a path into the File Explorer address bar to open it. Twitch sign-in is kept in memory only and is not written to disk; connect again after restarting Tavi.
 
@@ -83,14 +106,14 @@ The installer is written to `desktop/src-tauri/target/release/bundle/nsis/Tavi S
 - type-checks and builds the studio and overlay (`dist/`);
 - bundles `service.ts` with esbuild;
 - installs exactly the npm packages the bundled service imports, at the root's versions;
-- copies the build machine's `node.exe` and its LICENSE;
+- copies the native build machine's Node runtime (`node.exe` on Windows, `node` on Unix), executable permissions, and LICENSE;
 - writes `THIRD-PARTY-NOTICES.txt`, which covers the Node runtime, every production npm package, the linked Rust crates, and the CC BY 4.0 mascot attribution from `public/credits/`.
 
 The version is set only in `desktop/package.json`. `tauri.conf.json` reads it from there, and `npm run release` fails if `src-tauri/Cargo.toml` has a different version.
 
 Development: `npm run dev` (in `desktop/`) starts the root service on 4318 and Vite on 5173, then opens the native window on Vite. Close any other dev servers first. In development OBS uses `http://127.0.0.1:5173/overlay`.
 
-Icon: `npm run icon -- http://127.0.0.1:4318 icon-source.png` renders a 1024 px icon from the running overlay's mascot. Then run `npx tauri icon icon-source.png` and delete the non-Windows outputs. The icon adapts the CC BY 4.0 mascot artwork by alisketch (see `public/credits/`).
+Icon: `npm run icon -- http://127.0.0.1:4318 icon-source.png` renders a 1024 px icon from the running overlay's mascot. Then run `npx tauri icon icon-source.png`. The macOS pipeline generates its `.icns` from the committed `icons/icon.png` with `npm run prepare:icons`. The icon adapts the CC BY 4.0 mascot artwork by alisketch (see `public/credits/`).
 
 ### Verification tools
 
@@ -100,7 +123,7 @@ Icon: `npm run icon -- http://127.0.0.1:4318 icon-source.png` renders a 1024 px 
 
 ### CI
 
-`.github/workflows/windows-installer.yml` runs on `windows-latest`. It runs clippy and the Rust tests, builds the installer with `npm run release`, and uploads the `.exe` and `.sha256` as the `tavi-studio-windows-x64-unsigned` artifact. It uses no secrets and publishes no release.
+See the cross-platform build pipeline above. Build jobs need no signing secrets; only the tag-only release job receives `contents: write` through the repository token.
 
 ### Code signing
 
@@ -132,5 +155,5 @@ Not yet verified (needs a person):
 - The full Twitch device-code sign-in in the installed app, and that the system browser tab opens visibly.
 - Running on the default port 4318 end to end. Only the occupied-port refusal was exercised on 4318.
 - High-DPI and small-screen window sizing on other monitors.
-- The CI workflow on GitHub (it has not been pushed).
+- Native UI and OBS acceptance checks for the new Linux and macOS builds.
 - Microphone permissions (no microphone feature exists yet).

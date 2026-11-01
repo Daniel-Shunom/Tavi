@@ -102,12 +102,13 @@ fn start_service(app: &tauri::App) -> Result<(), String> {
         .open(&log_path)
         .map_err(|e| format!("Could not open {}: {e}", log_path.display()))?;
     let stderr = log.try_clone().map_err(|e| e.to_string())?;
-    let node = resources.join("runtime").join("node.exe");
+    let node = resources.join("runtime").join(format!("node{}", std::env::consts::EXE_SUFFIX));
     let mut command = Command::new(&node);
     command
         .arg(resources.join("service").join("server.mjs"))
         .env("TAVI_DATA_DIR", &data)
         .env("TAVI_PORT", port().to_string())
+        .env("TAVI_PARENT_PID", std::process::id().to_string())
         .env("TAVI_VERSION", app.package_info().version.to_string())
         .current_dir(resources.join("service"))
         .stdin(Stdio::null())

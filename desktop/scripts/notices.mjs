@@ -5,6 +5,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { desktopPlatform } from './platform.mjs';
 
 const licenseFile = /^(licen[cs]e|copying|notice)([-._].*)?$/i;
 
@@ -20,7 +21,10 @@ async function licenseTexts(directory) {
     .map((entry) => entry.name)
     .sort();
   return Promise.all(
-    files.map(async (name) => ({ name, text: (await readFile(join(directory, name), 'utf8')).trim() })),
+    files.map(async (name) => ({
+      name,
+      text: (await readFile(join(directory, name), 'utf8')).trim(),
+    })),
   );
 }
 
@@ -56,11 +60,11 @@ function section(title, license, texts, fallback) {
 /** Production npm packages under `cwd` (excluding the root project itself). */
 function npmPackageDirs(cwd) {
   const npmCli = process.env.npm_execpath;
-  const result = spawnSync(
-    process.execPath,
-    [npmCli, 'ls', '--omit=dev', '--all', '--parseable'],
-    { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
-  );
+  const result = spawnSync(process.execPath, [npmCli, 'ls', '--omit=dev', '--all', '--parseable'], {
+    cwd,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
   if (result.status !== 0 && !result.stdout) throw new Error(`npm ls failed in ${cwd}`);
   return result.stdout.split(/\r?\n/).filter(Boolean).slice(1);
 }
@@ -96,7 +100,14 @@ async function npmSections(directories) {
 async function crateSections(manifestDir) {
   const result = spawnSync(
     'cargo',
-    ['metadata', '--format-version', '1', '--locked', '--filter-platform', 'x86_64-pc-windows-msvc'],
+    [
+      'metadata',
+      '--format-version',
+      '1',
+      '--locked',
+      '--filter-platform',
+      desktopPlatform().target,
+    ],
     { cwd: manifestDir, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 },
   );
   if (result.status !== 0) throw new Error(`cargo metadata failed: ${result.stderr}`);
