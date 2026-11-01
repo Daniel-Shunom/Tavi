@@ -21,9 +21,9 @@ import {
 import { bodyCueSchema, defaultScene, requestableStates, sceneSchema } from './states.js';
 import { defaultSupportSettings, supportPreviewSchema, supportSettingsSchema } from './support.js';
 
-export const CONFIG_VERSION = 2;
+export const CONFIG_VERSION = 3;
 /** Used when a saved character id is unknown. Characters themselves live in manifests. */
-export const fallbackCharacterId = 'mascot-v2';
+export const fallbackCharacterId = 'tavi-foundation';
 const slug = z.string().regex(/^[a-z0-9-]{1,24}$/);
 export const configObjectSchema = z
   .object({
@@ -93,6 +93,11 @@ export function migrateConfig(raw: unknown): unknown {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
   const input = raw as Record<string, unknown>;
   if (input['version'] === CONFIG_VERSION) return { ...defaults, ...input };
+  if (input['version'] === 2) {
+    const next = { ...defaults, ...input, version: CONFIG_VERSION };
+    if (next['character'] === 'mascot-v2') next['character'] = fallbackCharacterId;
+    return next;
+  }
   if (input['version'] !== undefined && input['version'] !== 1) return raw;
   const next: Record<string, unknown> = { ...defaults };
   const appearance: Record<string, string> = {};
@@ -106,6 +111,7 @@ export function migrateConfig(raw: unknown): unknown {
     } else if (!(legacyRemoved as readonly string[]).includes(key) && key !== 'version')
       next[key] = value;
   }
+  if (next['character'] === 'mascot-v2') next['character'] = fallbackCharacterId;
   next['appearance'] = appearance;
   next['variant'] = legacyVariant(input);
   next['version'] = CONFIG_VERSION;

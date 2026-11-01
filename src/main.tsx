@@ -12,7 +12,7 @@ import { motionRigs } from './renderer/characters/motionRigs';
 import { installMotionLayer } from './renderer/motion/hook';
 import './style.css';
 import riveWasm from '@rive-app/webgl2/rive.wasm?url';
-import taviArtwork from './renderer/characters/tavi-refined/tavi-refined.riv?url';
+import taviArtwork from './renderer/characters/tavi-foundation/tavi-foundation.riv?url';
 
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
@@ -32,6 +32,7 @@ const Dock = React.lazy(() => import('./studio/Dock').then((module) => ({ defaul
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
 if (overlay) document.documentElement.classList.add('overlay');
 const landing = !overlay && !studio && !avatarLab && !dock && !rigLab;
+const prerenderedLanding = location.pathname === '/';
 if (landing) {
   document.documentElement.classList.add('landing-mode');
   // Start Tavi's runtime, renderer and artwork now, alongside the page, not after it mounts
@@ -98,7 +99,7 @@ const app = (
 );
 // The built page carries the landing pre-rendered (tools/prerender-landing.mjs): hydrate it, or
 // clear it for the studio, overlay and avatar lab.
-if (landing && rootElement.hasChildNodes()) hydrateRoot(rootElement, app);
+if (prerenderedLanding && rootElement.hasChildNodes()) hydrateRoot(rootElement, app);
 else {
   rootElement.replaceChildren();
   createRoot(rootElement).render(app);

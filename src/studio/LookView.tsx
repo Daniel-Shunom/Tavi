@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Shuffle, Undo2, RotateCcw } from 'lucide-react';
 import { Avatar } from '../renderer/Avatar';
-import { catalog, characters } from '../renderer/characters/registry';
+import { catalog, studioCharacterIds } from '../renderer/characters/registry';
 import { variantRigs } from '../renderer/characters/variantRigs';
 import {
   CharacterCreator,
@@ -29,6 +29,7 @@ const parts: { id: Part; label: string }[] = [
 export function LookView({ state, connected, send, serverNow }: StudioProps) {
   const c = state.config;
   const character = catalog[c.character];
+  const isCoreModel = (studioCharacterIds as readonly string[]).includes(c.character);
   const [part, setPart] = useState<Part>('body');
   const history = useRef<Config['variant'][]>([]);
   const [canUndo, setCanUndo] = useState(false);
@@ -86,25 +87,16 @@ export function LookView({ state, connected, send, serverNow }: StudioProps) {
               }}
             />
           </label>
-          {characters.size > 1 ? (
-            <label className="st-name">
-              Character
-              <select
-                name="character"
-                value={c.character}
-                disabled={!connected}
-                onChange={(event) => {
-                  patch({ character: event.target.value });
-                }}
-              >
-                {[...characters.values()].map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+          <div className="st-name" aria-label="Character model">
+            <span>Character</span>
+            <div className="st-model-current">
+              <span>{isCoreModel ? 'Tavi' : 'Other model'}</span>
+              <span className="st-tag">{isCoreModel ? 'Default' : 'Beta'}</span>
+            </div>
+            <span className="st-model-beta">
+              {isCoreModel ? 'More models in beta' : 'This model is in beta'}
+            </span>
+          </div>
         </div>
       </section>
 
@@ -227,9 +219,6 @@ export function LookView({ state, connected, send, serverNow }: StudioProps) {
               disabled={!connected}
               part={part}
               onChange={changeVariant}
-              onUseCharacter={(id) => {
-                patch({ character: id });
-              }}
             />
           )}
         </div>

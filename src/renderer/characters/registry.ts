@@ -10,7 +10,9 @@ import { taviRefined } from './tavi-refined/manifest';
 const manifests: CharacterManifest[] = [mascot, mascotV2, taviRefined, taviFoundation].map(
   (input) => manifestSchema.parse(input),
 );
-export const defaultCharacterId = 'mascot-v2';
+export const defaultCharacterId = 'tavi-foundation';
+/** Character variants ready for ordinary streamers; research models stay in the rig lab. */
+export const studioCharacterIds = ['tavi-foundation'] as const;
 export const characters: ReadonlyMap<string, CharacterManifest> = new Map(
   manifests.map((manifest) => [manifest.id, manifest]),
 );

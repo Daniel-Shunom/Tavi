@@ -24,7 +24,6 @@ import {
 } from '../shared/variants';
 import { describeVariant, variantPresets } from '../shared/variantPresets';
 import { variantRigs } from './renderer/characters/variantRigs';
-import { characters } from './renderer/characters/registry';
 import { coveringLabels } from './renderer/characters/variants/overlay/features';
 import { hairStyleLabels } from './renderer/characters/variants/overlay/hairstyles';
 import {
@@ -222,36 +221,20 @@ export function CharacterCreator({
   disabled,
   part,
   onChange,
-  onUseCharacter,
 }: {
   characterId: string;
   variant: Variant;
   disabled: boolean;
   part: CreatorPart;
   onChange: (variant: Variant) => void;
-  onUseCharacter: (id: string) => void;
 }) {
-  const supported = Object.keys(variantRigs).filter((id) => characters.has(id));
   if (!variantRigs[characterId]) {
-    const target = supported[0];
     return (
       <div className="creator-notice">
         <p>
-          Skin tones, builds, faces and hairstyles work on characters with a variant rig.{' '}
-          {target ? `${characters.get(target)?.name ?? target} supports them.` : ''}
+          <span className="st-tag">Beta</span> Detailed body, hair and face controls are coming
+          soon.
         </p>
-        {target ? (
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={disabled}
-            onClick={() => {
-              onUseCharacter(target);
-            }}
-          >
-            Use {characters.get(target)?.name ?? target}
-          </button>
-        ) : null}
       </div>
     );
   }
