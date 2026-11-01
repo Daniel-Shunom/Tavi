@@ -1,7 +1,15 @@
 // Act one, before the drop. Reaction before reveal: chat is loud, the space where someone
 // should be is empty (just a shadow on the floor), we catch glimpses of her, chat asks for her,
 // and on the drop she pops up out of her own shadow.
-import { AbsoluteFill, Easing, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  Sequence,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import { Bubble, type Message } from './Bubble';
 import { Dissolve, ink, Stage } from './look';
 import { Tavi, type Shot } from './Tavi';
@@ -29,7 +37,8 @@ function FloorShadow({ opacity = 1 }: { opacity?: number }) {
         width: 380,
         height: 52,
         borderRadius: '50%',
-        background: 'radial-gradient(ellipse at center, rgba(46,36,53,0.22) 0%, rgba(46,36,53,0.08) 45%, transparent 72%)',
+        background:
+          'radial-gradient(ellipse at center, rgba(46,36,53,0.22) 0%, rgba(46,36,53,0.08) 45%, transparent 72%)',
         opacity,
       }}
     />
@@ -49,12 +58,20 @@ const chatter: Message[] = [
 export function Corner() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const push = interpolate(frame, [0, 5.4 * fps], [1, 1.07], { ...clamp, easing: Easing.bezier(0.33, 0, 0.2, 1) });
+  const push = interpolate(frame, [0, 5.4 * fps], [1, 1.07], {
+    ...clamp,
+    easing: Easing.bezier(0.33, 0, 0.2, 1),
+  });
   const fadeIn = interpolate(frame, [0, 0.4 * fps], [0, 1], clamp);
   return (
     <AbsoluteFill style={{ opacity: fadeIn }}>
       <Stage />
-      <AbsoluteFill style={{ transform: `scale(${push.toFixed(4)})`, transformOrigin: `${SPOT.x}px ${SPOT.y - 200}px` }}>
+      <AbsoluteFill
+        style={{
+          transform: `scale(${push.toFixed(4)})`,
+          transformOrigin: `${SPOT.x}px ${SPOT.y - 200}px`,
+        }}
+      >
         <FloorShadow />
         {chatter.map((m, i) => (
           <Bubble key={i} {...m} />
@@ -64,7 +81,13 @@ export function Corner() {
   );
 }
 
-const glimpses: { shot: Shot; from: number; height: number; at: [number, number]; focus: 'eyes' | 'head' | 'body' }[] = [
+const glimpses: {
+  shot: Shot;
+  from: number;
+  height: number;
+  at: [number, number];
+  focus: 'eyes' | 'head' | 'body';
+}[] = [
   { shot: 'hero', from: 0.4, height: 3.4, at: [0.5, 0.5], focus: 'eyes' },
   { shot: 'alive-b', from: 0.7, height: 1.8, at: [0.6, 0.42], focus: 'head' },
 ];
@@ -76,7 +99,11 @@ export function Glimpse() {
   return (
     <AbsoluteFill>
       {glimpses.map((g, i) => (
-        <Sequence key={i} from={i === 0 ? 0 : i * len - 8} durationInFrames={i === 0 ? len : len + 8}>
+        <Sequence
+          key={i}
+          from={i === 0 ? 0 : i * len - 8}
+          durationInFrames={i === 0 ? len : len + 8}
+        >
           <Dissolve frames={i === 0 ? 10 : 8}>
             <GlimpseShot {...g} index={i} />
           </Dissolve>
@@ -86,15 +113,27 @@ export function Glimpse() {
   );
 }
 
-function GlimpseShot({ shot, from, height, at, focus, index }: (typeof glimpses)[number] & { index: number }) {
+function GlimpseShot({
+  shot,
+  from,
+  height,
+  at,
+  focus,
+  index,
+}: (typeof glimpses)[number] & { index: number }) {
   const frame = useCurrentFrame();
-  const drift = interpolate(frame, [0, 44], [0, 1], { ...clamp, easing: Easing.bezier(0.33, 0, 0.3, 1) });
+  const drift = interpolate(frame, [0, 44], [0, 1], {
+    ...clamp,
+    easing: Easing.bezier(0.33, 0, 0.3, 1),
+  });
   const push = 1 + 0.06 * drift;
   const pan = (index % 2 ? -1 : 1) * 30 * drift;
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
       <Stage />
-      <AbsoluteFill style={{ transform: `translateX(${pan.toFixed(2)}px) scale(${push.toFixed(4)})` }}>
+      <AbsoluteFill
+        style={{ transform: `translateX(${pan.toFixed(2)}px) scale(${push.toFixed(4)})` }}
+      >
         <Tavi shot={shot} from={from} height={height} at={at} focus={focus} window={0.6} />
       </AbsoluteFill>
     </AbsoluteFill>
@@ -110,20 +149,43 @@ export function Arrival() {
   const { fps } = useVideoConfig();
   const drop = 2.4 * fps;
   const fadeIn = interpolate(frame, [0, 10], [0, 1], clamp);
-  const rise = spring({ frame: frame - drop, fps, config: { damping: 19, stiffness: 70, mass: 1 } });
+  const rise = spring({
+    frame: frame - drop,
+    fps,
+    config: { damping: 19, stiffness: 70, mass: 1 },
+  });
   const lift = (1 - rise) * 720;
   const shadow = interpolate(frame, [drop + 12, drop + 26], [1, 0], clamp);
-  const glow = interpolate(frame, [drop + 6, 3.6 * fps], [0, 1], { ...clamp, easing: Easing.bezier(0.33, 0, 0.3, 1) });
+  const glow = interpolate(frame, [drop + 6, 3.6 * fps], [0, 1], {
+    ...clamp,
+    easing: Easing.bezier(0.33, 0, 0.3, 1),
+  });
   // Everything below the floor line (plus room for her own shadow) is hidden, so she comes up through it.
   const floorClip = SPOT.y + 60;
   return (
     <AbsoluteFill style={{ opacity: fadeIn }}>
       <Stage tint={ink.lavender} strength={0.35 * glow} glow={[50, 50]} />
       <FloorShadow opacity={shadow} />
-      <Bubble at={0.6} out={2.25} name="saltyfern" color="#e0567f" text="wait… where's tavi? 👀" x={SPOT.x} y={380} size={34} />
+      <Bubble
+        at={0.6}
+        out={2.25}
+        name="saltyfern"
+        color="#e0567f"
+        text="wait… where's tavi? 👀"
+        x={SPOT.x}
+        y={380}
+        size={34}
+      />
       <AbsoluteFill style={{ clipPath: `inset(0 0 ${1080 - floorClip}px 0)` }}>
         <AbsoluteFill style={{ transform: `translateY(${lift.toFixed(2)}px)` }}>
-          <Tavi shot="reveal" from={-RISE_OFFSET} height={0.6} at={[SPOT.x / 1920, (SPOT.y + 4) / 1080]} focus="feet" frameOn={REVEAL_FRAMING} />
+          <Tavi
+            shot="reveal"
+            from={-RISE_OFFSET}
+            height={0.6}
+            at={[SPOT.x / 1920, (SPOT.y + 4) / 1080]}
+            focus="feet"
+            frameOn={REVEAL_FRAMING}
+          />
         </AbsoluteFill>
       </AbsoluteFill>
     </AbsoluteFill>

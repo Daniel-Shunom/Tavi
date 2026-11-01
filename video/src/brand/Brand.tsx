@@ -33,14 +33,48 @@ export const poses = {
 type PoseName = keyof typeof poses;
 
 /** Full body, steady framing (her standing height), so gestures can spill past it naturally. */
-function Her({ pose, height, at, focus = 'feet' }: { pose: PoseName; height: number; at: [number, number]; focus?: 'feet' | 'head' }) {
+function Her({
+  pose,
+  height,
+  at,
+  focus = 'feet',
+}: {
+  pose: PoseName;
+  height: number;
+  at: [number, number];
+  focus?: 'feet' | 'head';
+}) {
   const p = poses[pose] as Pose;
-  return <Tavi shot={p.shot} from={p.at} height={height} at={at} focus={focus} frameOn={[0.2, 0.3]} />;
+  return (
+    <Tavi shot={p.shot} from={p.at} height={height} at={at} focus={focus} frameOn={[0.2, 0.3]} />
+  );
 }
 
-function Title({ children, size, italic, color = ink.text, style }: { children: ReactNode; size: number; italic?: boolean; color?: string; style?: CSSProperties }) {
+function Title({
+  children,
+  size,
+  italic,
+  color = ink.text,
+  style,
+}: {
+  children: ReactNode;
+  size: number;
+  italic?: boolean;
+  color?: string;
+  style?: CSSProperties;
+}) {
   return (
-    <div style={{ fontFamily: serif, fontSize: size, fontStyle: italic ? 'italic' : 'normal', lineHeight: 1.06, letterSpacing: '-0.025em', color, ...style }}>
+    <div
+      style={{
+        fontFamily: serif,
+        fontSize: size,
+        fontStyle: italic ? 'italic' : 'normal',
+        lineHeight: 1.06,
+        letterSpacing: '-0.025em',
+        color,
+        ...style,
+      }}
+    >
       {children}
     </div>
   );
@@ -56,7 +90,16 @@ function Glyph({ d, color, size }: { d: string; color: string; size: number }) {
 
 function Credit({ size = 22 }: { size?: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: size * 0.8, fontFamily: sans, fontSize: size, color: ink.text }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: size * 0.8,
+        fontFamily: sans,
+        fontSize: size,
+        color: ink.text,
+      }}
+    >
       <span>Built for the Twitch × Codex hackathon</span>
       <span style={{ width: 1, height: size * 1.25, background: 'rgba(46,36,53,0.18)' }} />
       <Glyph d={twitchPath} color="#9146FF" size={size * 1.35} />
@@ -70,7 +113,21 @@ function Credit({ size = 22 }: { size?: number }) {
 }
 
 /** A chat message, settled (no pop-in) for stills. */
-function Msg({ name, color, text, x, y, size = 30 }: { name: string; color: string; text: string; x: number; y: number; size?: number }) {
+function Msg({
+  name,
+  color,
+  text,
+  x,
+  y,
+  size = 30,
+}: {
+  name: string;
+  color: string;
+  text: string;
+  x: number;
+  y: number;
+  size?: number;
+}) {
   return <Bubble at={-3} name={name} color={color} text={text} x={x} y={y + 32} size={size} />;
 }
 
@@ -106,7 +163,13 @@ function IconTile({ size }: { size: number }) {
         boxShadow: 'inset 0 0 0 1px rgba(46,36,53,0.06)',
       }}
     >
-      <Tavi {...still(poses.happy)} height={1.32} at={[0.5, 0.5]} focus="head" area={{ width: size, height: size }} />
+      <Tavi
+        {...still(poses.happy)}
+        height={1.32}
+        at={[0.5, 0.5]}
+        focus="head"
+        area={{ width: size, height: size }}
+      />
     </div>
   );
 }
@@ -121,7 +184,9 @@ function Icon() {
 
 function Lockup() {
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 70 }}>
+    <AbsoluteFill
+      style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 70 }}
+    >
       <IconTile size={560} />
       <Wordmark size={420} />
     </AbsoluteFill>
@@ -156,10 +221,18 @@ function GalleryIntro() {
   return (
     <AbsoluteFill>
       <Stage tint={ink.lavender} strength={0.38} glow={[50, 58]} />
-      <Title size={96} style={{ position: 'absolute', top: 90, width: '100%', textAlign: 'center' }}>
+      <Title
+        size={96}
+        style={{ position: 'absolute', top: 90, width: '100%', textAlign: 'center' }}
+      >
         Introducing Tavi
       </Title>
-      <Title size={44} italic color={ink.plum} style={{ position: 'absolute', top: 210, width: '100%', textAlign: 'center' }}>
+      <Title
+        size={44}
+        italic
+        color={ink.plum}
+        style={{ position: 'absolute', top: 210, width: '100%', textAlign: 'center' }}
+      >
         an expressive companion for your stream
       </Title>
       <Her pose="happy" height={0.66} at={[0.5, 0.96]} />
@@ -179,9 +252,25 @@ function GalleryReacts() {
         Reacts to chat.
       </Title>
       <Msg name="saltyfern" color="#e0567f" text="LMAO the jump scare" x={1010} y={400} size={34} />
-      <Msg name="pixelmoth" color="#3a9be0" text="we hit 100 followers!!" x={1060} y={530} size={34} />
+      <Msg
+        name="pixelmoth"
+        color="#3a9be0"
+        text="we hit 100 followers!!"
+        x={1060}
+        y={530}
+        size={34}
+      />
       <Msg name="okkoro" color="#3fa36b" text="BOO" x={890} y={660} size={34} />
-      <div style={{ position: 'absolute', right: 50, bottom: 40, fontFamily: sans, fontSize: 18, color: ink.faint }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: 50,
+          bottom: 40,
+          fontFamily: sans,
+          fontSize: 18,
+          color: ink.faint,
+        }}
+      >
         Reactions follow rules and cooldowns you set.
       </div>
     </AbsoluteFill>
@@ -210,7 +299,13 @@ function Face({ pose, tint, size }: { pose: PoseName; tint: string; size: number
         boxShadow: '0 24px 60px rgba(46,36,53,0.12)',
       }}
     >
-      <Tavi {...still(poses[pose] as Pose)} height={1.3} at={[0.5, 0.53]} focus="head" area={{ width: size, height: size }} />
+      <Tavi
+        {...still(poses[pose] as Pose)}
+        height={1.3}
+        at={[0.5, 0.53]}
+        focus="head"
+        area={{ width: size, height: size }}
+      />
     </div>
   );
 }
@@ -224,7 +319,19 @@ function GalleryFeels() {
           Feels every <i style={{ color: ink.plum }}>moment.</i>
         </Title>
       </div>
-      <div style={{ position: 'absolute', top: 290, left: 0, right: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 46, padding: '0 150px' }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 290,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 46,
+          padding: '0 150px',
+        }}
+      >
         {faceSet.map((f) => (
           <Face key={f.pose} {...f} size={300} />
         ))}
@@ -236,8 +343,21 @@ function GalleryFeels() {
 /** The stream scene from the ad, as a still: her on the overlay over a dusk game. */
 function StreamShot({ width, height }: { width: number; height: number }) {
   return (
-    <div style={{ position: 'relative', width, height, borderRadius: 22, overflow: 'hidden', boxShadow: '0 50px 110px rgba(46,36,53,0.22), 0 6px 18px rgba(46,36,53,0.10)' }}>
-      <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <div
+      style={{
+        position: 'relative',
+        width,
+        height,
+        borderRadius: 22,
+        overflow: 'hidden',
+        boxShadow: '0 50px 110px rgba(46,36,53,0.22), 0 6px 18px rgba(46,36,53,0.10)',
+      }}
+    >
+      <svg
+        viewBox="0 0 1600 900"
+        preserveAspectRatio="xMidYMid slice"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
         <defs>
           <linearGradient id="bsky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#1b1530" />
@@ -252,7 +372,14 @@ function StreamShot({ width, height }: { width: number; height: number }) {
         <rect width="1600" height="900" fill="url(#bsky)" />
         <rect width="1600" height="900" fill="url(#bsun)" />
         {Array.from({ length: 46 }, (_, i) => (
-          <circle key={i} cx={`${(i * 137.5) % 100}%`} cy={`${(i * 61.8) % 46}%`} r={i % 5 ? 1.3 : 2} fill="#fff" opacity={0.5} />
+          <circle
+            key={i}
+            cx={`${(i * 137.5) % 100}%`}
+            cy={`${(i * 61.8) % 46}%`}
+            r={i % 5 ? 1.3 : 2}
+            fill="#fff"
+            opacity={0.5}
+          />
         ))}
         {[
           [0, 600, 40, '#3a2649'],
@@ -260,15 +387,52 @@ function StreamShot({ width, height }: { width: number; height: number }) {
           [700, 760, 26, '#1b1326'],
         ].map(([o, b, a, c]) => {
           const pts: string[] = [];
-          for (let x = 0; x <= 1600; x += 40) pts.push(`${x},${(Number(b) - Number(a) * Math.sin((x + Number(o)) / 230) - Number(a) * 0.5 * Math.sin((x + Number(o)) / 97)).toFixed(1)}`);
-          return <polygon key={String(c)} points={`0,900 ${pts.join(' ')} 1600,900`} fill={String(c)} />;
+          for (let x = 0; x <= 1600; x += 40)
+            pts.push(
+              `${x},${(Number(b) - Number(a) * Math.sin((x + Number(o)) / 230) - Number(a) * 0.5 * Math.sin((x + Number(o)) / 97)).toFixed(1)}`,
+            );
+          return (
+            <polygon key={String(c)} points={`0,900 ${pts.join(' ')} 1600,900`} fill={String(c)} />
+          );
         })}
       </svg>
-      <div style={{ position: 'absolute', left: 22, top: 20, display: 'flex', gap: 10, alignItems: 'center' }}>
-        <span style={{ background: '#e5484d', color: 'white', fontFamily: sans, fontWeight: 600, fontSize: 15, padding: '4px 9px', borderRadius: 6, letterSpacing: '0.08em' }}>LIVE</span>
-        <span style={{ fontFamily: sans, color: 'rgba(255,255,255,0.75)', fontSize: 16 }}>1,284 watching</span>
+      <div
+        style={{
+          position: 'absolute',
+          left: 22,
+          top: 20,
+          display: 'flex',
+          gap: 10,
+          alignItems: 'center',
+        }}
+      >
+        <span
+          style={{
+            background: '#e5484d',
+            color: 'white',
+            fontFamily: sans,
+            fontWeight: 600,
+            fontSize: 15,
+            padding: '4px 9px',
+            borderRadius: 6,
+            letterSpacing: '0.08em',
+          }}
+        >
+          LIVE
+        </span>
+        <span style={{ fontFamily: sans, color: 'rgba(255,255,255,0.75)', fontSize: 16 }}>
+          1,284 watching
+        </span>
       </div>
-      <Tavi shot="chatread" from={9.75} height={0.42} at={[0.3, 0.86]} focus="feet" frameOn={[0.2, 0.3]} area={{ width, height }} />
+      <Tavi
+        shot="chatread"
+        from={9.75}
+        height={0.42}
+        at={[0.3, 0.86]}
+        focus="feet"
+        frameOn={[0.2, 0.3]}
+        area={{ width, height }}
+      />
     </div>
   );
 }
@@ -277,14 +441,27 @@ function GalleryLives() {
   return (
     <AbsoluteFill>
       <Stage />
-      <Title size={88} style={{ position: 'absolute', top: 70, width: '100%', textAlign: 'center' }}>
+      <Title
+        size={88}
+        style={{ position: 'absolute', top: 70, width: '100%', textAlign: 'center' }}
+      >
         Lives on your stream.
       </Title>
       <div style={{ position: 'absolute', left: 150, top: 230 }}>
         <StreamShot width={1200} height={675} />
       </div>
       <Msg name="okkoro" color="#3fa36b" text="the little hop 😭" x={1240} y={300} />
-      <div style={{ position: 'absolute', bottom: 40, width: '100%', textAlign: 'center', fontFamily: sans, fontSize: 22, color: ink.soft }}>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 40,
+          width: '100%',
+          textAlign: 'center',
+          fontFamily: sans,
+          fontSize: 22,
+          color: ink.soft,
+        }}
+      >
         A transparent OBS browser source. She moves, perches, naps and tucks away.
       </div>
     </AbsoluteFill>
@@ -294,23 +471,57 @@ function GalleryLives() {
 /** A real Studio screenshot (capture/screenshots.mjs, 3840x2160) as a floating window. */
 function StudioWindow({ screen, width }: { screen: string; width: number }) {
   return (
-    <div style={{ width, height: (width * 9) / 16, borderRadius: 20, overflow: 'hidden', boxShadow: '0 60px 140px rgba(46,36,53,0.28), 0 8px 24px rgba(46,36,53,0.12)' }}>
-      <Img src={staticFile(`screens-hq/${screen}.png`)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    <div
+      style={{
+        width,
+        height: (width * 9) / 16,
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: '0 60px 140px rgba(46,36,53,0.28), 0 8px 24px rgba(46,36,53,0.12)',
+      }}
+    >
+      <Img
+        src={staticFile(`screens-hq/${screen}.png`)}
+        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+      />
     </div>
   );
 }
 
-function GalleryStudio({ screen, title, accent, caption }: { screen: string; title: string; accent: string; caption: string }) {
+function GalleryStudio({
+  screen,
+  title,
+  accent,
+  caption,
+}: {
+  screen: string;
+  title: string;
+  accent: string;
+  caption: string;
+}) {
   return (
     <AbsoluteFill>
       <Stage />
-      <Title size={88} style={{ position: 'absolute', top: 70, width: '100%', textAlign: 'center' }}>
+      <Title
+        size={88}
+        style={{ position: 'absolute', top: 70, width: '100%', textAlign: 'center' }}
+      >
         {title} <i style={{ color: ink.plum }}>{accent}</i>
       </Title>
       <div style={{ position: 'absolute', left: 170, top: 230 }}>
         <StudioWindow screen={screen} width={1160} />
       </div>
-      <div style={{ position: 'absolute', bottom: 40, width: '100%', textAlign: 'center', fontFamily: sans, fontSize: 22, color: ink.soft }}>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 40,
+          width: '100%',
+          textAlign: 'center',
+          fontFamily: sans,
+          fontSize: 22,
+          color: ink.soft,
+        }}
+      >
         {caption}
       </div>
     </AbsoluteFill>
@@ -327,7 +538,17 @@ function YouTube() {
           Meet
         </Title>
         <Wordmark size={190} style={{ marginTop: -4 }} />
-        <div style={{ marginTop: 30, fontFamily: sans, fontWeight: 600, fontSize: 38, color: ink.plum }}>She reacts to your chat.</div>
+        <div
+          style={{
+            marginTop: 30,
+            fontFamily: sans,
+            fontWeight: 600,
+            fontSize: 38,
+            color: ink.plum,
+          }}
+        >
+          She reacts to your chat.
+        </div>
       </div>
     </AbsoluteFill>
   );
@@ -419,29 +640,198 @@ function Emote({ pose }: { pose: PoseName }) {
   return <Tavi {...still(p)} height={1.22} at={[0.5, 0.56]} focus="head" />;
 }
 
-export const brandStills: { id: string; out: string; width: number; height: number; scale?: number; transparent?: boolean; render: () => ReactNode }[] = [
-  { id: 'logo-wordmark', out: 'logo/tavi-wordmark.png', width: 2000, height: 760, transparent: true, render: () => <WordmarkDark /> },
-  { id: 'logo-wordmark-light', out: 'logo/tavi-wordmark-light.png', width: 2000, height: 760, transparent: true, render: () => <WordmarkLight /> },
-  { id: 'logo-icon', out: 'logo/tavi-icon-1024.png', width: 1024, height: 1024, transparent: true, render: () => <Icon /> },
-  { id: 'logo-lockup', out: 'logo/tavi-lockup.png', width: 2000, height: 760, transparent: true, render: () => <Lockup /> },
-  { id: 'devpost-thumbnail', out: 'hackathon/devpost-thumbnail-1500x1000.png', width: 1500, height: 1000, render: () => <DevpostThumbnail /> },
-  { id: 'gallery-1', out: 'hackathon/gallery-1-introducing-tavi.png', width: 1500, height: 1000, render: () => <GalleryIntro /> },
-  { id: 'gallery-2', out: 'hackathon/gallery-2-reacts-to-chat.png', width: 1500, height: 1000, render: () => <GalleryReacts /> },
-  { id: 'gallery-3', out: 'hackathon/gallery-3-feels-every-moment.png', width: 1500, height: 1000, render: () => <GalleryFeels /> },
-  { id: 'gallery-4', out: 'hackathon/gallery-4-lives-on-your-stream.png', width: 1500, height: 1000, render: () => <GalleryLives /> },
-  { id: 'gallery-5', out: 'hackathon/gallery-5-make-her-yours.png', width: 1500, height: 1000, scale: 2, render: () => <GalleryStudio screen="03-studio-look" title="Make her" accent="yours." caption="Tavi Studio: hair, skin, outfit and accessories, live on stream as you change them." /> },
-  { id: 'gallery-6', out: 'hackathon/gallery-6-you-call-the-moments.png', width: 1500, height: 1000, scale: 2, render: () => <GalleryStudio screen="02-studio-live" title="You call the" accent="moments." caption="Cue a wave or a celebration with one key, move her around, or tuck her away." /> },
-  { id: 'gallery-7', out: 'hackathon/gallery-7-on-stream-in-minutes.png', width: 1500, height: 1000, scale: 2, render: () => <GalleryStudio screen="05-studio-setup" title="On stream in" accent="minutes." caption="Copy one link into an OBS browser source, then connect Twitch chat." /> },
-  { id: 'youtube-thumbnail', out: 'hackathon/youtube-thumbnail-1280x720.png', width: 1280, height: 720, render: () => <YouTube /> },
-  { id: 'app-headshot', out: 'hackathon/app-headshot-1920x1080.png', width: 1920, height: 1080, scale: 2, render: () => <Headshot wordmark={300} x={0.68} /> },
-  { id: 'app-headshot-3x2', out: 'hackathon/app-headshot-1500x1000.png', width: 1500, height: 1000, scale: 2, render: () => <Headshot wordmark={250} x={0.68} /> },
-  { id: 'social-card', out: 'social/og-image-1200x630.png', width: 1200, height: 630, render: () => <Social /> },
-  { id: 'store-hero', out: 'store/hero-art-16x9-3840x2160.png', width: 1920, height: 1080, scale: 2, render: () => <StoreHero /> },
-  { id: 'store-box', out: 'store/box-art-1x1-2160x2160.png', width: 1080, height: 1080, scale: 2, render: () => <StoreBox /> },
-  { id: 'store-poster', out: 'store/poster-art-2x3-1440x2160.png', width: 720, height: 1080, scale: 2, render: () => <StorePoster /> },
+export const brandStills: {
+  id: string;
+  out: string;
+  width: number;
+  height: number;
+  scale?: number;
+  transparent?: boolean;
+  render: () => ReactNode;
+}[] = [
+  {
+    id: 'logo-wordmark',
+    out: 'logo/tavi-wordmark.png',
+    width: 2000,
+    height: 760,
+    transparent: true,
+    render: () => <WordmarkDark />,
+  },
+  {
+    id: 'logo-wordmark-light',
+    out: 'logo/tavi-wordmark-light.png',
+    width: 2000,
+    height: 760,
+    transparent: true,
+    render: () => <WordmarkLight />,
+  },
+  {
+    id: 'logo-icon',
+    out: 'logo/tavi-icon-1024.png',
+    width: 1024,
+    height: 1024,
+    transparent: true,
+    render: () => <Icon />,
+  },
+  {
+    id: 'logo-lockup',
+    out: 'logo/tavi-lockup.png',
+    width: 2000,
+    height: 760,
+    transparent: true,
+    render: () => <Lockup />,
+  },
+  {
+    id: 'devpost-thumbnail',
+    out: 'hackathon/devpost-thumbnail-1500x1000.png',
+    width: 1500,
+    height: 1000,
+    render: () => <DevpostThumbnail />,
+  },
+  {
+    id: 'gallery-1',
+    out: 'hackathon/gallery-1-introducing-tavi.png',
+    width: 1500,
+    height: 1000,
+    render: () => <GalleryIntro />,
+  },
+  {
+    id: 'gallery-2',
+    out: 'hackathon/gallery-2-reacts-to-chat.png',
+    width: 1500,
+    height: 1000,
+    render: () => <GalleryReacts />,
+  },
+  {
+    id: 'gallery-3',
+    out: 'hackathon/gallery-3-feels-every-moment.png',
+    width: 1500,
+    height: 1000,
+    render: () => <GalleryFeels />,
+  },
+  {
+    id: 'gallery-4',
+    out: 'hackathon/gallery-4-lives-on-your-stream.png',
+    width: 1500,
+    height: 1000,
+    render: () => <GalleryLives />,
+  },
+  {
+    id: 'gallery-5',
+    out: 'hackathon/gallery-5-make-her-yours.png',
+    width: 1500,
+    height: 1000,
+    scale: 2,
+    render: () => (
+      <GalleryStudio
+        screen="03-studio-look"
+        title="Make her"
+        accent="yours."
+        caption="Tavi Studio: hair, skin, outfit and accessories, live on stream as you change them."
+      />
+    ),
+  },
+  {
+    id: 'gallery-6',
+    out: 'hackathon/gallery-6-you-call-the-moments.png',
+    width: 1500,
+    height: 1000,
+    scale: 2,
+    render: () => (
+      <GalleryStudio
+        screen="02-studio-live"
+        title="You call the"
+        accent="moments."
+        caption="Cue a wave or a celebration with one key, move her around, or tuck her away."
+      />
+    ),
+  },
+  {
+    id: 'gallery-7',
+    out: 'hackathon/gallery-7-on-stream-in-minutes.png',
+    width: 1500,
+    height: 1000,
+    scale: 2,
+    render: () => (
+      <GalleryStudio
+        screen="05-studio-setup"
+        title="On stream in"
+        accent="minutes."
+        caption="Copy one link into an OBS browser source, then connect Twitch chat."
+      />
+    ),
+  },
+  {
+    id: 'youtube-thumbnail',
+    out: 'hackathon/youtube-thumbnail-1280x720.png',
+    width: 1280,
+    height: 720,
+    render: () => <YouTube />,
+  },
+  {
+    id: 'app-headshot',
+    out: 'hackathon/app-headshot-1920x1080.png',
+    width: 1920,
+    height: 1080,
+    scale: 2,
+    render: () => <Headshot wordmark={300} x={0.68} />,
+  },
+  {
+    id: 'app-headshot-3x2',
+    out: 'hackathon/app-headshot-1500x1000.png',
+    width: 1500,
+    height: 1000,
+    scale: 2,
+    render: () => <Headshot wordmark={250} x={0.68} />,
+  },
+  {
+    id: 'social-card',
+    out: 'social/og-image-1200x630.png',
+    width: 1200,
+    height: 630,
+    render: () => <Social />,
+  },
+  {
+    id: 'store-hero',
+    out: 'store/hero-art-16x9-3840x2160.png',
+    width: 1920,
+    height: 1080,
+    scale: 2,
+    render: () => <StoreHero />,
+  },
+  {
+    id: 'store-box',
+    out: 'store/box-art-1x1-2160x2160.png',
+    width: 1080,
+    height: 1080,
+    scale: 2,
+    render: () => <StoreBox />,
+  },
+  {
+    id: 'store-poster',
+    out: 'store/poster-art-2x3-1440x2160.png',
+    width: 720,
+    height: 1080,
+    scale: 2,
+    render: () => <StorePoster />,
+  },
   ...(Object.keys(poses) as PoseName[]).flatMap((pose) => [
-    { id: `expression-${pose}`, out: `expressions/tavi-${pose}.png`, width: 1024, height: 1024, transparent: true, render: () => <Cutout pose={pose} /> },
-    { id: `emote-${pose}`, out: `emotes/tavi-${pose}-448.png`, width: 448, height: 448, transparent: true, render: () => <Emote pose={pose} /> },
+    {
+      id: `expression-${pose}`,
+      out: `expressions/tavi-${pose}.png`,
+      width: 1024,
+      height: 1024,
+      transparent: true,
+      render: () => <Cutout pose={pose} />,
+    },
+    {
+      id: `emote-${pose}`,
+      out: `emotes/tavi-${pose}-448.png`,
+      width: 448,
+      height: 448,
+      transparent: true,
+      render: () => <Emote pose={pose} />,
+    },
   ]),
 ];
 
@@ -452,7 +842,11 @@ export function BrandStills() {
         <Composition
           key={s.id}
           id={s.id}
-          component={() => <AbsoluteFill style={{ background: s.transparent ? 'transparent' : ink.paper }}>{s.render()}</AbsoluteFill>}
+          component={() => (
+            <AbsoluteFill style={{ background: s.transparent ? 'transparent' : ink.paper }}>
+              {s.render()}
+            </AbsoluteFill>
+          )}
           durationInFrames={1}
           fps={30}
           width={s.width}

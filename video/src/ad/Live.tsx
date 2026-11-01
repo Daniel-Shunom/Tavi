@@ -1,6 +1,14 @@
 // Act two, continued: where she lives (the overlay), who is in charge (Studio), restraint (quiet
 // mode), and the big moment that wakes her back up. No captions: the scenery carries it.
-import { AbsoluteFill, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  AbsoluteFill,
+  Img,
+  interpolate,
+  spring,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import measured from './shots.json';
 import { Bubble } from './Bubble';
 import { ease, easeInOut, ink, Line, sans, Stage } from './look';
@@ -14,7 +22,16 @@ function Game({ t }: { t: number }) {
     const x = (i * 137.5) % 100;
     const y = (i * 61.8) % 46;
     const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.3 + i));
-    return <circle key={i} cx={`${x}%`} cy={`${y}%`} r={i % 5 ? 1.3 : 2} fill="#fff" opacity={tw * 0.7} />;
+    return (
+      <circle
+        key={i}
+        cx={`${x}%`}
+        cy={`${y}%`}
+        r={i % 5 ? 1.3 : 2}
+        fill="#fff"
+        opacity={tw * 0.7}
+      />
+    );
   });
   const hill = (offset: number, base: number, amp: number, color: string) => {
     const pts: string[] = [];
@@ -25,7 +42,11 @@ function Game({ t }: { t: number }) {
     return <polygon points={`0,900 ${pts.join(' ')} 1600,900`} fill={color} />;
   };
   return (
-    <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg
+      viewBox="0 0 1600 900"
+      preserveAspectRatio="xMidYMid slice"
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+    >
       <defs>
         <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#1b1530" />
@@ -47,7 +68,12 @@ function Game({ t }: { t: number }) {
   );
 }
 
-const romp = (measured as unknown as Record<string, { frames: number; box: ([number, number, number, number] | null)[] }>).romp;
+const romp = (
+  measured as unknown as Record<
+    string,
+    { frames: number; box: ([number, number, number, number] | null)[] }
+  >
+).romp;
 function rompCentre(index: number) {
   let n = 0;
   let x = 0;
@@ -79,7 +105,12 @@ export function Lives() {
   return (
     <AbsoluteFill>
       <Stage />
-      <AbsoluteFill style={{ transform: `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${zoom.toFixed(4)})`, transformOrigin: `${sx}px ${sy}px` }}>
+      <AbsoluteFill
+        style={{
+          transform: `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${zoom.toFixed(4)})`,
+          transformOrigin: `${sx}px ${sy}px`,
+        }}
+      >
         <div
           style={{
             position: 'absolute',
@@ -93,12 +124,38 @@ export function Lives() {
           }}
         >
           <Game t={frame / fps} />
-          <div style={{ position: 'absolute', left: 22, top: 20, display: 'flex', gap: 10, alignItems: 'center' }}>
-            <span style={{ background: '#e5484d', color: 'white', fontFamily: sans, fontWeight: 600, fontSize: 14, padding: '4px 9px', borderRadius: 6, letterSpacing: '0.08em' }}>LIVE</span>
-            <span style={{ fontFamily: sans, color: 'rgba(255,255,255,0.75)', fontSize: 15 }}>1,284 watching</span>
+          <div
+            style={{
+              position: 'absolute',
+              left: 22,
+              top: 20,
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
+            }}
+          >
+            <span
+              style={{
+                background: '#e5484d',
+                color: 'white',
+                fontFamily: sans,
+                fontWeight: 600,
+                fontSize: 14,
+                padding: '4px 9px',
+                borderRadius: 6,
+                letterSpacing: '0.08em',
+              }}
+            >
+              LIVE
+            </span>
+            <span style={{ fontFamily: sans, color: 'rgba(255,255,255,0.75)', fontSize: 15 }}>
+              1,284 watching
+            </span>
           </div>
           <Img
-            src={staticFile(`footage/tavi/romp/${String(Math.min(romp.frames - 1, index)).padStart(5, '0')}.png`)}
+            src={staticFile(
+              `footage/tavi/romp/${String(Math.min(romp.frames - 1, index)).padStart(5, '0')}.png`,
+            )}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
           />
         </div>
@@ -123,7 +180,12 @@ export function Lives() {
           }}
         >
           {chatLines.map(([c, n, m], i) => (
-            <div key={n} style={{ opacity: interpolate(frame, [chatAt(i) * fps, chatAt(i) * fps + 10], [0, 1], clamp) }}>
+            <div
+              key={n}
+              style={{
+                opacity: interpolate(frame, [chatAt(i) * fps, chatAt(i) * fps + 10], [0, 1], clamp),
+              }}
+            >
               <span style={{ color: c, fontWeight: 600 }}>{n}</span>
               <span style={{ color: ink.faint }}>: </span>
               {m}
@@ -132,7 +194,13 @@ export function Lives() {
         </div>
       </AbsoluteFill>
       <div style={{ position: 'absolute', left: 140, bottom: 120, width: 1000 }}>
-        <Line size={84} align="left" color="#ffffff" at={2.4 * fps} style={{ textShadow: '0 6px 40px rgba(20,12,30,0.55)' }}>
+        <Line
+          size={84}
+          align="left"
+          color="#ffffff"
+          at={2.4 * fps}
+          style={{ textShadow: '0 6px 40px rgba(20,12,30,0.55)' }}
+        >
           Lives on your stream.
         </Line>
       </div>
@@ -182,8 +250,17 @@ export function Studio() {
             return (
               <Img
                 key={start}
-                src={staticFile(`footage/screens/studio/${String(start + Math.max(0, local + 8)).padStart(5, '0')}.jpg`)}
-                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity }}
+                src={staticFile(
+                  `footage/screens/studio/${String(start + Math.max(0, local + 8)).padStart(5, '0')}.jpg`,
+                )}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  opacity,
+                }}
               />
             );
           })}
@@ -225,10 +302,30 @@ export function Quiet() {
       >
         <div>
           <div style={{ fontSize: 24, color: ink.white, fontWeight: 600 }}>Quiet mode</div>
-          <div style={{ fontSize: 18, color: '#b7aebb', marginTop: 6 }}>Fewer reactions, no big moves</div>
+          <div style={{ fontSize: 18, color: '#b7aebb', marginTop: 6 }}>
+            Fewer reactions, no big moves
+          </div>
         </div>
-        <div style={{ width: 64, height: 36, borderRadius: 99, background: on > 0.5 ? ink.lavender : '#3a3140', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 4, left: 4 + 28 * on, width: 28, height: 28, borderRadius: 99, background: on > 0.5 ? '#33203e' : '#f0e9ed' }} />
+        <div
+          style={{
+            width: 64,
+            height: 36,
+            borderRadius: 99,
+            background: on > 0.5 ? ink.lavender : '#3a3140',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 4,
+              left: 4 + 28 * on,
+              width: 28,
+              height: 28,
+              borderRadius: 99,
+              background: on > 0.5 ? '#33203e' : '#f0e9ed',
+            }}
+          />
         </div>
       </div>
     </AbsoluteFill>
@@ -250,7 +347,14 @@ export function Cheer() {
     <AbsoluteFill>
       <Stage tint={ink.pink} strength={0.16} glow={[50, 48]} />
       <AbsoluteFill style={{ transform: `scale(${push.toFixed(4)})`, transformOrigin: '50% 60%' }}>
-        <Tavi shot="chatread" from={8.95} height={0.66} at={[0.5, 0.88]} focus="feet" window={1.5} />
+        <Tavi
+          shot="chatread"
+          from={8.95}
+          height={0.66}
+          at={[0.5, 0.88]}
+          focus="feet"
+          window={1.5}
+        />
       </AbsoluteFill>
       {cheerBubbles.map((b) => (
         <Bubble key={b.name} {...b} size={32} />

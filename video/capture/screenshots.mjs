@@ -13,7 +13,11 @@ const out = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'brand'
 await mkdir(out, { recursive: true });
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 2, colorScheme: 'dark' });
+const context = await browser.newContext({
+  viewport: { width: 1920, height: 1080 },
+  deviceScaleFactor: 2,
+  colorScheme: 'dark',
+});
 const page = await context.newPage();
 const shot = async (name, options = {}) => {
   await page.screenshot({ path: join(out, `${name}.png`), ...options });
@@ -21,7 +25,11 @@ const shot = async (name, options = {}) => {
 };
 const room = async (name) => {
   const label = new RegExp(`^${name}\\b`);
-  await page.getByRole('link', { name: label }).or(page.getByRole('button', { name: label })).first().click();
+  await page
+    .getByRole('link', { name: label })
+    .or(page.getByRole('button', { name: label }))
+    .first()
+    .click();
   await page.waitForTimeout(2500);
 };
 
@@ -31,7 +39,11 @@ await shot('01-landing');
 
 await page.goto(`${base}/studio`);
 await page.waitForTimeout(5000);
-await page.getByRole('button', { name: /Celebrate/ }).first().click().catch(() => {});
+await page
+  .getByRole('button', { name: /Celebrate/ })
+  .first()
+  .click()
+  .catch(() => {});
 await page.waitForTimeout(900);
 await shot('02-studio-live');
 
@@ -43,9 +55,11 @@ await room('Setup');
 // The capture server runs on a spare port; show the links as a streamer sees them (default 4318).
 const port = new URL(base).port;
 await page.evaluate((port) => {
-  for (const input of document.querySelectorAll('input')) input.value = input.value.replace(`:${port}/`, ':4318/');
+  for (const input of document.querySelectorAll('input'))
+    input.value = input.value.replace(`:${port}/`, ':4318/');
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  while (walker.nextNode()) walker.currentNode.nodeValue = walker.currentNode.nodeValue.replace(`:${port}/`, ':4318/');
+  while (walker.nextNode())
+    walker.currentNode.nodeValue = walker.currentNode.nodeValue.replace(`:${port}/`, ':4318/');
 }, port);
 await shot('05-studio-setup');
 

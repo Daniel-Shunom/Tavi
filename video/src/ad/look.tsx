@@ -3,10 +3,23 @@
 import { loadFont as loadDmSans } from '@remotion/google-fonts/DMSans';
 import { loadFont as loadManrope } from '@remotion/google-fonts/Manrope';
 import type { CSSProperties, ReactNode } from 'react';
-import { AbsoluteFill, Easing, interpolate, random, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  random,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 
-export const { fontFamily: sans } = loadDmSans('normal', { weights: ['400', '500', '600'], subsets: ['latin'] });
-export const { fontFamily: wordmarkFont } = loadManrope('normal', { weights: ['800'], subsets: ['latin'] });
+export const { fontFamily: sans } = loadDmSans('normal', {
+  weights: ['400', '500', '600'],
+  subsets: ['latin'],
+});
+export const { fontFamily: wordmarkFont } = loadManrope('normal', {
+  weights: ['800'],
+  subsets: ['latin'],
+});
 export const serif = "Georgia, 'Times New Roman', serif";
 
 export const ink = {
@@ -51,10 +64,16 @@ export function Stage({
     .padStart(2, '0');
   return (
     <AbsoluteFill style={{ background: ink.paper, overflow: 'hidden' }}>
-      <AbsoluteFill style={{ background: `radial-gradient(ellipse 80% 70% at 50% 40%, ${ink.paper} 0%, ${ink.mist} 100%)` }} />
+      <AbsoluteFill
+        style={{
+          background: `radial-gradient(ellipse 80% 70% at 50% 40%, ${ink.paper} 0%, ${ink.mist} 100%)`,
+        }}
+      />
       {tint ? (
         <AbsoluteFill
-          style={{ background: `radial-gradient(ellipse 34% 44% at ${glow[0]}% ${glow[1]}%, ${tint}${alpha} 0%, transparent 70%)` }}
+          style={{
+            background: `radial-gradient(ellipse 34% 44% at ${glow[0]}% ${glow[1]}%, ${tint}${alpha} 0%, transparent 70%)`,
+          }}
         />
       ) : null}
       {children}
@@ -68,9 +87,19 @@ export function Finish() {
   const seed = Math.floor(random(`grain-${frame}`) * 1000);
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      <svg width="100%" height="100%" style={{ position: 'absolute', opacity: 0.035, mixBlendMode: 'multiply' }}>
+      <svg
+        width="100%"
+        height="100%"
+        style={{ position: 'absolute', opacity: 0.035, mixBlendMode: 'multiply' }}
+      >
         <filter id={`grain-${frame}`}>
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed={seed} stitchTiles="stitch" />
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.85"
+            numOctaves="2"
+            seed={seed}
+            stitchTiles="stitch"
+          />
           <feColorMatrix type="saturate" values="0" />
         </filter>
         <rect width="100%" height="100%" filter={`url(#grain-${frame})`} />
@@ -113,7 +142,10 @@ export function Line({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const words = children.split(' ');
-  const leave = out === undefined ? 0 : interpolate(frame, [out, out + 0.35 * fps], [0, 1], { ...clamp, easing: easeInOut });
+  const leave =
+    out === undefined
+      ? 0
+      : interpolate(frame, [out, out + 0.35 * fps], [0, 1], { ...clamp, easing: easeInOut });
   return (
     <div
       style={{
@@ -132,7 +164,10 @@ export function Line({
     >
       {words.map((word, i) => {
         const start = at + i * stagger;
-        const t = interpolate(frame, [start, start + 0.7 * fps], [0, 1], { ...clamp, easing: ease });
+        const t = interpolate(frame, [start, start + 0.7 * fps], [0, 1], {
+          ...clamp,
+          easing: ease,
+        });
         return (
           <span
             key={i}
@@ -152,7 +187,15 @@ export function Line({
   );
 }
 
-export function Wordmark({ size = 120, color = ink.text, style }: { size?: number; color?: string; style?: CSSProperties }) {
+export function Wordmark({
+  size = 120,
+  color = ink.text,
+  style,
+}: {
+  size?: number;
+  color?: string;
+  style?: CSSProperties;
+}) {
   return (
     <div
       style={{
@@ -168,7 +211,16 @@ export function Wordmark({ size = 120, color = ink.text, style }: { size?: numbe
       }}
     >
       tavi
-      <span style={{ color: ink.plum, fontSize: size * 0.32, marginLeft: size * 0.05, marginTop: size * 0.1 }}>✳</span>
+      <span
+        style={{
+          color: ink.plum,
+          fontSize: size * 0.32,
+          marginLeft: size * 0.05,
+          marginTop: size * 0.1,
+        }}
+      >
+        ✳
+      </span>
     </div>
   );
 }
@@ -176,14 +228,28 @@ export function Wordmark({ size = 120, color = ink.text, style }: { size?: numbe
 /** Fades its children in over the first `frames` of its sequence: a soft dissolve between shots. */
 export function Dissolve({ frames = 8, children }: { frames?: number; children: ReactNode }) {
   const frame = useCurrentFrame();
-  return <AbsoluteFill style={{ opacity: interpolate(frame, [0, frames], [0, 1], clamp) }}>{children}</AbsoluteFill>;
+  return (
+    <AbsoluteFill style={{ opacity: interpolate(frame, [0, frames], [0, 1], clamp) }}>
+      {children}
+    </AbsoluteFill>
+  );
 }
 
 /** Fade the whole scene in from / out to black on its edges, in frames. */
-export function Fade({ inFrames = 0, outFrames = 0, children }: { inFrames?: number; outFrames?: number; children: ReactNode }) {
+export function Fade({
+  inFrames = 0,
+  outFrames = 0,
+  children,
+}: {
+  inFrames?: number;
+  outFrames?: number;
+  children: ReactNode;
+}) {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const a = inFrames ? interpolate(frame, [0, inFrames], [0, 1], clamp) : 1;
-  const b = outFrames ? interpolate(frame, [durationInFrames - outFrames, durationInFrames], [1, 0], clamp) : 1;
+  const b = outFrames
+    ? interpolate(frame, [durationInFrames - outFrames, durationInFrames], [1, 0], clamp)
+    : 1;
   return <AbsoluteFill style={{ opacity: Math.min(a, b) }}>{children}</AbsoluteFill>;
 }

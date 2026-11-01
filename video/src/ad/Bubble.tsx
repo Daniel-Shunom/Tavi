@@ -21,7 +21,13 @@ export function Bubble({ at, name, color, text, x, y, out, size = 30 }: Message)
   const local = frame - at * fps;
   if (local < 0) return null;
   const pop = spring({ frame: local, fps, config: { damping: 13, stiffness: 210, mass: 0.8 } });
-  const leave = out === undefined ? 0 : interpolate(frame, [out * fps, out * fps + 8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const leave =
+    out === undefined
+      ? 0
+      : interpolate(frame, [out * fps, out * fps + 8], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
   const float = -local * 0.35;
   return (
     <div
@@ -44,8 +50,18 @@ export function Bubble({ at, name, color, text, x, y, out, size = 30 }: Message)
         gap: size * 0.4,
       }}
     >
-      <span style={{ width: size * 0.32, height: size * 0.32, borderRadius: 99, background: color, flex: 'none' }} />
-      <span style={{ color, fontWeight: 600, filter: 'saturate(1.4) brightness(0.8)' }}>{name}</span>
+      <span
+        style={{
+          width: size * 0.32,
+          height: size * 0.32,
+          borderRadius: 99,
+          background: color,
+          flex: 'none',
+        }}
+      />
+      <span style={{ color, fontWeight: 600, filter: 'saturate(1.4) brightness(0.8)' }}>
+        {name}
+      </span>
       <span>{text}</span>
     </div>
   );

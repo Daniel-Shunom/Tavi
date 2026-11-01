@@ -12,8 +12,13 @@ const root = resolve(here, '..');
 const outDir = resolve(root, '..', 'brand');
 const filter = process.argv[2] ?? '';
 
-const serveUrl = await bundle({ entryPoint: join(root, 'src', 'index.ts'), publicDir: join(root, 'public') });
-const stills = (await getCompositions(serveUrl)).filter((c) => c.defaultProps?.out && c.id.includes(filter));
+const serveUrl = await bundle({
+  entryPoint: join(root, 'src', 'index.ts'),
+  publicDir: join(root, 'public'),
+});
+const stills = (await getCompositions(serveUrl)).filter(
+  (c) => c.defaultProps?.out && c.id.includes(filter),
+);
 for (const composition of stills) {
   const { out, scale } = composition.defaultProps;
   const output = join(outDir, out);

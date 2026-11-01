@@ -11,12 +11,12 @@ python capture/emote-sizes.py               # from the repo root: 112/56/28 emot
 
 ## Hackathon (Devpost, YouTube)
 
-| File | Size | Use |
-| --- | --- | --- |
-| `hackathon/devpost-thumbnail-1500x1000.png` | 3:2 | Devpost project thumbnail |
-| `hackathon/gallery-1…7-*.png` | 3:2 | Devpost image gallery, in story order (gallery 5–7 are real Studio screenshots) |
-| `hackathon/app-headshot-*.png` | 16:9, 3:2 (2x) | Hero image: Tavi waving, tilted, beside the wordmark |
-| `hackathon/youtube-thumbnail-1280x720.png` | 16:9 | Thumbnail for the demo video |
+| File                                        | Size           | Use                                                                             |
+| ------------------------------------------- | -------------- | ------------------------------------------------------------------------------- |
+| `hackathon/devpost-thumbnail-1500x1000.png` | 3:2            | Devpost project thumbnail                                                       |
+| `hackathon/gallery-1…7-*.png`               | 3:2            | Devpost image gallery, in story order (gallery 5–7 are real Studio screenshots) |
+| `hackathon/app-headshot-*.png`              | 16:9, 3:2 (2x) | Hero image: Tavi waving, tilted, beside the wordmark                            |
+| `hackathon/youtube-thumbnail-1280x720.png`  | 16:9           | Thumbnail for the demo video                                                    |
 
 ## Screenshots
 

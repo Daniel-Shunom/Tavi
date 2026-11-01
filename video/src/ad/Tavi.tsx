@@ -19,7 +19,9 @@ const pad = (n: number) => String(n).padStart(5, '0');
 
 /** Median box over a window of capture frames: a steady framing reference that ignores gestures. */
 function referenceBox(shot: Measured, first: number, last: number): Box {
-  const boxes = shot.box.slice(Math.max(0, first), Math.min(shot.frames, last + 1)).filter(Boolean) as Box[];
+  const boxes = shot.box
+    .slice(Math.max(0, first), Math.min(shot.frames, last + 1))
+    .filter(Boolean) as Box[];
   const pool = boxes.length ? boxes : (shot.box.filter(Boolean) as Box[]);
   const median = (k: number) => {
     const v = pool.map((b) => b[k]).sort((a, b) => a - b);
@@ -82,7 +84,10 @@ export function Tavi({
   const H = area?.height ?? config.height;
   const shotData = shots[shot];
   const start = Math.round(from * 30);
-  const index = Math.max(0, Math.min(shotData.frames - 1, start + Math.floor((frame / config.fps) * 30 * rate)));
+  const index = Math.max(
+    0,
+    Math.min(shotData.frames - 1, start + Math.floor((frame / config.fps) * 30 * rate)),
+  );
   const ref = frameOn
     ? referenceBox(shotData, Math.round(frameOn[0] * 30), Math.round(frameOn[1] * 30))
     : referenceBox(shotData, start, start + Math.round(window * 30));
@@ -94,7 +99,13 @@ export function Tavi({
   const tall = ref[3] - ref[1];
   const top = live ? live[3] - tall : ref[1];
   const fy =
-    focus === 'head' ? top + 0.22 * tall : focus === 'eyes' ? top + 0.26 * tall : focus === 'feet' ? box[3] : (top + box[3]) / 2;
+    focus === 'head'
+      ? top + 0.22 * tall
+      : focus === 'eyes'
+        ? top + 0.26 * tall
+        : focus === 'feet'
+          ? box[3]
+          : (top + box[3]) / 2;
   const drawW = shotData.width * scale;
   const drawH = shotData.height * scale;
   const fx = mirror ? 1 - cx : cx;
