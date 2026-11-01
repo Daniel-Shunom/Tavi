@@ -111,7 +111,7 @@ fn start_service(app: &tauri::App) -> Result<u16, String> {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
-    let child = command.spawn().map_err(|e| {
+    let mut child = command.spawn().map_err(|e| {
         format!(
             "Could not start the bundled service ({}): {e}",
             node.display()

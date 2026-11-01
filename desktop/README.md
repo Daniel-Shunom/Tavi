@@ -17,7 +17,7 @@ Requirements: Windows 10 or 11 (x64). Microsoft Edge WebView2 is used to draw th
 
 macOS builds require macOS 13.5 or newer because the bundled Node 24 runtime requires it. Linux builds target an Ubuntu 22.04/WebKitGTK 4.1 baseline. Each app contains its own matching Node runtime; users do not install Node or Rust. Linux/macOS are new build targets and still need native UI/OBS acceptance checks.
 
-Pull requests that touch the app and pushes to main build all four targets. **Actions ? Desktop installers ? Run workflow** starts a manual build after the workflow is merged. Each successful job uploads installers and SHA-256 files as `tavi-studio-<platform>` artifacts, retained for seven days. Download the artifact ZIP from its workflow run and extract it before installing.
+Pull requests that touch the app and pushes to main build all four targets. **Actions > Desktop installers > Run workflow** starts a manual build after the workflow is merged. Each successful job uploads installers and SHA-256 files as `tavi-studio-<platform>` artifacts, retained for seven days. Download the artifact ZIP from its workflow run and extract it before installing.
 
 To publish a downloadable release, update `desktop/package.json` and `desktop/src-tauri/Cargo.toml` together, merge, then push the matching version tag, for example `v0.1.0`. Tag builds must match the app version exactly. Only after validation and all installer jobs pass does the pipeline create a GitHub Release with every platform's installers and checksums. Tags with a prerelease suffix become prereleases and stay out of GitHub's latest stable release endpoint.
 
