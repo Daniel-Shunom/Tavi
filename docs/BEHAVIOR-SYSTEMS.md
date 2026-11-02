@@ -186,15 +186,17 @@ always labelled "Preview (not real)".
 
 Your controls always win and never break the loop; life pauses and resumes on its own:
 
-| You do                                        | Life pauses             | Resumes                      |
-| --------------------------------------------- | ----------------------- | ---------------------------- |
-| An expression, a stream/support preview, Stop | while it plays          | a few seconds after it ends  |
-| Talk to her (typed line)                      | while she reacts        | a few seconds after          |
-| Quiet mode / tuck away                        | the whole time it is on | right after it is turned off |
-| Move her somewhere, or set a new home spot    | she stays put           | after 60 s                   |
-| A body state (sit, nap, perch, lean...)       | your pose is respected  | after 2 minutes              |
-| Scold her                                     | she sulks seated        | after about 2 minutes        |
-| A stream event                                | while she reacts        | 20 s later                   |
+| You do                                                                       | Life pauses                               | Resumes                                    |
+| ---------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------ |
+| An expression, a stream/support preview, Stop                                | while it plays                            | a few seconds after it ends                |
+| Talk to her (typed line)                                                     | while she reacts                          | a few seconds after                        |
+| Quiet mode / tuck away                                                       | the whole time it is on                   | right after it is turned off               |
+| Move her somewhere, or set a new home spot                                   | she stays put                             | after 60 s                                 |
+| A body state (sit, nap, perch, lean...)                                      | your pose is respected                    | after 2 minutes                            |
+| Scold her ("stand down", "bad Tavi")                                         | she sulks seated, awake, minimal movement | after 4 min (+2 per extra scolding, max 8) |
+| Make up ("sorry Tavi", "it's okay", "good girl", "come back") or press Stand | ends the sulk                             | at once: she perks up and walks again      |
+| A stream event                                                               | while she reacts                          | 20 s later                                 |
+| Many big events in a row (pacing relaxing)                                   | never stops her                           | she keeps walking, calmer, no play         |
 
 Tested in `tests/life.test.ts` (manual controls pause autonomous life, then it resumes).
 
