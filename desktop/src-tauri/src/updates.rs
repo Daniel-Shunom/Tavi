@@ -63,11 +63,7 @@ async fn check(
         // version so the service (and the OBS overlay) come back.
         let dialog = app
             .dialog()
-            .message(format!(
-                "The update could not be installed ({error}).
-
-Tavi Studio will restart on                  the current version."
-            ))
+            .message(install_failed(&error.to_string()))
             .title("Tavi Studio update")
             .kind(MessageDialogKind::Error);
         let _ = tauri::async_runtime::spawn_blocking(move || dialog.blocking_show()).await;
@@ -85,6 +81,13 @@ fn self_updating() -> bool {
     }
 }
 
+fn install_failed(error: &str) -> String {
+    format!(
+        "The update could not be installed ({error}).\n\n\
+         Tavi Studio will restart on the current version."
+    )
+}
+
 fn prompt(current: &str, next: &str) -> String {
     format!(
         "Tavi Studio {next} is available (you have {current}).\n\n\
@@ -95,7 +98,15 @@ fn prompt(current: &str, next: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::prompt;
+    use super::{install_failed, prompt};
+
+    #[test]
+    fn install_failure_message_reads_cleanly() {
+        assert_eq!(
+            install_failed("denied"),
+            "The update could not be installed (denied).\n\nTavi Studio will restart on the current version."
+        );
+    }
 
     #[test]
     fn prompt_names_both_versions_and_reassures_about_settings() {
