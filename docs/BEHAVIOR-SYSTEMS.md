@@ -182,6 +182,22 @@ which mood shaded it. Live view: a **Try a stream event** row previews follow, r
 gift x5, cheer 500, a hype train (start, each level, end) and poke / dance / snack rewards,
 always labelled "Preview (not real)".
 
+## Manual controls and autonomous life
+
+Your controls always win and never break the loop; life pauses and resumes on its own:
+
+| You do                                        | Life pauses             | Resumes                      |
+| --------------------------------------------- | ----------------------- | ---------------------------- |
+| An expression, a stream/support preview, Stop | while it plays          | a few seconds after it ends  |
+| Talk to her (typed line)                      | while she reacts        | a few seconds after          |
+| Quiet mode / tuck away                        | the whole time it is on | right after it is turned off |
+| Move her somewhere, or set a new home spot    | she stays put           | after 60 s                   |
+| A body state (sit, nap, perch, lean...)       | your pose is respected  | after 2 minutes              |
+| Scold her                                     | she sulks seated        | after about 2 minutes        |
+| A stream event                                | while she reacts        | 20 s later                   |
+
+Tested in `tests/life.test.ts` (manual controls pause autonomous life, then it resumes).
+
 ## Roadmap
 
 1. **Life tuning and a debug view**: per-activity cooldowns, a commitment bonus, and a score

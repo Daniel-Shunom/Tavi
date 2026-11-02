@@ -84,6 +84,8 @@ interface Pending {
   deadline: number;
 }
 const MOVE_COOLDOWN_MS = 45_000;
+/** After a manual move, autonomous life lets her stay put this long before wandering again. */
+const MANUAL_MOVE_HOLD_MS = 60_000;
 /** A provider may change the body state at most this often. */
 const AI_STATE_COOLDOWN_MS = 90_000;
 /** Decisions arriving later than this after their input are stale and dropped. */
@@ -296,12 +298,16 @@ export class Companion {
   }): boolean {
     const active = this.current.performance.movement;
     const now = this.now();
-    if (
-      active &&
-      active.priority > input.priority &&
-      (active.stay === undefined || now < active.startAt + (active.stay + 10) * 1000)
-    )
-      return false;
+    // A higher-priority movement holds the stage. One with no planned stay (a manual move,
+    // a new home spot) yields to autonomous life after MANUAL_MOVE_HOLD_MS; other sources wait
+    // until it is replaced.
+    const hold =
+      active?.stay !== undefined
+        ? (active.stay + 10) * 1000
+        : input.priority === priorities.idle
+          ? MANUAL_MOVE_HOLD_MS
+          : Infinity;
+    if (active && active.priority > input.priority && now < active.startAt + hold) return false;
     const movement: Movement = {
       id: this.id('move'),
       sourceEventId: input.sourceEventId,

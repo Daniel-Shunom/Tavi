@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LifeDirector, type LifeContext } from '../server/behavior/life';
 import { neutralAffect, type AffectSnapshot } from '../shared/affect';
-import { defaults } from '../shared/protocol';
+import { defaults, type Command } from '../shared/protocol';
 import { AiManager, settingsFromEnv } from '../server/ai/manager';
 import { Companion } from '../server/companion';
 import { catalog } from '../src/renderer/characters/registry';
@@ -110,5 +110,67 @@ describe('autonomous life over a quiet stream', () => {
     expect(walks.size).toBeGreaterThanOrEqual(8);
     // Walking happens throughout, not just in the first few minutes: every 5-minute block.
     expect(minutesWithWalk.size).toBe(4);
+  });
+});
+
+describe('manual controls pause autonomous life, then it resumes', () => {
+  async function firstWalkAfter(commands: Command[]) {
+    const clock = { now: 1_000_000 };
+    const ai = new AiManager(settingsFromEnv({}), undefined, () => clock.now);
+    const companion = new Companion({ config: defaults, catalog, ai, now: () => clock.now });
+    for (let i = 0; i < 60; i++) {
+      clock.now += 1000;
+      companion.tick();
+    }
+    for (const command of commands) {
+      await companion.handle(command);
+      clock.now += 2000;
+      companion.tick();
+    }
+    const start = clock.now;
+    let first = -1;
+    const seen = new Set<string>();
+    companion.subscribe((state) => {
+      const movement = state.performance.movement;
+      if (movement?.source === 'idle' && !seen.has(movement.id)) {
+        seen.add(movement.id);
+        if (first < 0) first = clock.now - start;
+      }
+    });
+    for (let i = 0; i < 10 * 60; i++) {
+      clock.now += 1000;
+      companion.tick();
+    }
+    return { first: first / 1000, walks: seen.size };
+  }
+  it.each([
+    ['an expression', [{ type: 'perform', expression: 'wave' }], 0, 30],
+    ['cancel', [{ type: 'cancel' }], 0, 30],
+    [
+      'quiet mode on and off',
+      [
+        { type: 'quiet', value: true },
+        { type: 'quiet', value: false },
+      ],
+      0,
+      40,
+    ],
+    [
+      'tuck away and back',
+      [
+        { type: 'retract', value: true },
+        { type: 'retract', value: false },
+      ],
+      0,
+      40,
+    ],
+    ['a manual move', [{ type: 'move', kind: 'move-to', anchor: 'chat' }], 50, 75],
+    ['a new home spot', [{ type: 'configure', patch: { x: 0.5, y: 0.72 } }], 50, 75],
+    ['a manual pose', [{ type: 'state', state: 'sit' }], 110, 140],
+  ] as [string, Command[], number, number][])('%s', async (_, commands, low, high) => {
+    const result = await firstWalkAfter(commands);
+    expect(result.first).toBeGreaterThanOrEqual(low);
+    expect(result.first).toBeLessThanOrEqual(high);
+    expect(result.walks).toBeGreaterThanOrEqual(8);
   });
 });
