@@ -62,6 +62,9 @@ import {
   type BodyStateId,
   type Spot,
 } from '../shared/states.js';
+import { streamEventReaction } from './behavior/streamEvents.js';
+import { isScolding } from './behavior/scold.js';
+import { streamEventSchema, type StreamEvent } from '../shared/streamEvents.js';
 
 export interface CompanionOptions {
   config: Config;
@@ -104,6 +107,9 @@ export class Companion {
   private readonly pacing: PacingDirector;
   /** Autonomous life: what Tavi does by herself when nothing is happening. */
   private readonly life: LifeDirector;
+  private readonly seenStreamEvents = new Set<string>();
+  private readonly eventCooldowns = new Map<string, number>();
+  private lastScold = -Infinity;
   private lastAiState = -Infinity;
   private timer: ReturnType<typeof setInterval> | null = null;
   constructor(private readonly options: CompanionOptions) {
@@ -505,6 +511,12 @@ export class Companion {
           true,
         );
         return;
+      case 'preview-stream-event':
+        this.streamEvent(
+          { ...command.event, id: this.id('stream-preview'), receivedAt: this.now() },
+          true,
+        );
+        return;
       case 'preview-support-event':
         this.supportEvent(
           {
@@ -573,6 +585,97 @@ export class Companion {
       this.engage('addressed', false);
     }
     return { accepted, reason: accepted ? `${tier} reaction` : 'A higher priority cue is active.' };
+  }
+
+  /** Twitch stream events: follows, raids, subs, gifts, cheers, hype trains, redemptions. */
+  streamEvent(input: StreamEvent, simulated = false): { accepted: boolean; reason: string } {
+    const prefix = simulated ? 'Preview (not real): ' : '';
+    const skip = (reason: string) => {
+      if (simulated) this.perform({ note: `${prefix}stream event skipped: ${reason}` });
+      return { accepted: false, reason };
+    };
+    const parsed = streamEventSchema.safeParse(input);
+    if (!parsed.success) return skip('the event is invalid.');
+    const event = parsed.data;
+    if (this.seenStreamEvents.has(event.id)) return skip('already handled.');
+    // Remember suppressed events too: leaving quiet mode never replays a backlog.
+    this.seenStreamEvents.add(event.id);
+    if (this.seenStreamEvents.size > 512) {
+      const oldest = this.seenStreamEvents.values().next().value;
+      if (oldest !== undefined) this.seenStreamEvents.delete(oldest);
+    }
+    const now = this.now();
+    if (now - event.receivedAt > 15_000 || event.receivedAt - now > 5_000)
+      return skip('the event is stale.');
+    const reaction = streamEventReaction(event);
+    // She feels it even when she cannot show it.
+    this.feel(reaction.stimulus);
+    if (this.current.retracted) return skip('tucked away.');
+    if (this.current.quiet) return skip('quiet mode is on.');
+    if (now - (this.eventCooldowns.get(reaction.cooldownKey) ?? -Infinity) < reaction.cooldownMs)
+      return skip('a similar event just played.');
+    if (this.pending && this.pending.priority > priorities.chat)
+      return skip('the streamer comes first.');
+    const active = this.activeScript();
+    if (active && active.priority > priorities.chat) return skip('the streamer comes first.');
+    this.eventCooldowns.set(reaction.cooldownKey, now);
+    this.life.defer(now, 20_000);
+    if (reaction.wake) this.engage('addressed', true);
+    else this.director.engage(now, 'addressed');
+    const decidedBy: DecidedBy = { kind: 'rules', label: 'Stream event rules (not AI)' };
+    if (reaction.toChat && this.current.config.initiative !== 'reserved') {
+      const home = this.home();
+      if (this.current.performance.body)
+        this.setBody('stand', {
+          source: 'chat',
+          decidedBy,
+          priority: priorities.chat,
+          sourceEventId: event.id,
+          keepMovement: true,
+        });
+      this.movement({
+        kind: 'move-to',
+        to: {
+          x: anchorPoint('chat', this.current.config.scene).x,
+          y: floorOf(this.current.config.scene, home),
+        },
+        source: 'chat',
+        decidedBy,
+        priority: priorities.chat,
+        sourceEventId: event.id,
+        gait: 'walk',
+        mood: 'excited',
+        stay: 10,
+      });
+    }
+    const { script } = this.script({
+      source: 'event',
+      sourceEventId: event.id,
+      decidedBy,
+      priority: priorities.chat,
+      beats: this.paced(
+        reaction.beats.map((value) =>
+          beat(value.expression, {
+            ...(value.target ? { target: value.target } : {}),
+            ...(value.hold !== undefined ? { hold: value.hold } : {}),
+            ...(value.intensity !== undefined ? { intensity: value.intensity } : {}),
+            ...(value.offset !== undefined ? { offset: value.offset } : {}),
+          }),
+        ),
+        reaction.size,
+      ),
+      settle: true,
+    });
+    const accepted = this.schedule(script, 'reacting', prefix + reaction.note);
+    if (accepted && reaction.body)
+      this.setBody(reaction.body, {
+        source: 'chat',
+        decidedBy,
+        priority: priorities.chat,
+        sourceEventId: event.id,
+        reason: reaction.note,
+      });
+    return { accepted, reason: accepted ? reaction.note : 'A higher priority cue is active.' };
   }
 
   private retract(value: boolean, override?: ChoreographyPreference) {
@@ -655,6 +758,7 @@ export class Companion {
       this.perform({ note: 'Quiet mode: heard you, staying quiet.' });
       return;
     }
+    if (this.scold(event, priorities.streamer)) return;
     await this.converse(event, priorities.streamer);
   }
   async chat(message: ChatMessage, simulated = false) {
@@ -693,6 +797,7 @@ export class Companion {
       return;
     }
     this.lastChatReaction = this.now();
+    if (this.scold(event, priorities.chat)) return;
     await this.converse(event, priorities.chat);
   }
 
@@ -774,6 +879,50 @@ export class Companion {
     }
     if (this.current.retracted || (this.current.quiet && priority < priorities.manual)) return;
     this.apply(result, event, priority, label);
+  }
+  /**
+   * Told off ("stand down", "bad Tavi"): sad and tired, she sulks over to her seat by the
+   * webcam and sits there for a while. Returns whether the line was a scolding.
+   */
+  private scold(event: ContextEvent, priority: number): boolean {
+    if (!isScolding(event.text, this.current.config.name)) return false;
+    const now = this.now();
+    this.abortPending('Scolded.');
+    this.feel('scolded');
+    if (now - this.lastScold < 20_000) {
+      this.perform({ note: 'Already sulking.' });
+      return true;
+    }
+    this.lastScold = now;
+    this.affect.tire(now, 0.25);
+    this.publishAffect();
+    // Sulk for a while before wandering off again.
+    this.life.defer(now, 120_000);
+    const decidedBy: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
+    const target = event.source === 'streamer' ? 'streamer' : 'chat';
+    const source = event.source === 'streamer' ? 'streamer' : 'chat';
+    const { script } = this.script({
+      source,
+      sourceEventId: event.id,
+      decidedBy,
+      priority,
+      beats: [
+        beat('sad', { target, hold: 1.8, intensity: 0.7 }),
+        beat('pout', { offset: 1.6, hold: 1.6, intensity: 0.6 }),
+        beat('sleepy', { offset: 3, hold: 2.4, intensity: 0.5 }),
+      ],
+      settle: true,
+    });
+    this.schedule(script, 'reacting', 'Got told off: sulking by the webcam.');
+    this.setBody('sit', {
+      source,
+      decidedBy,
+      priority,
+      sourceEventId: event.id,
+      prefer: 'ledge',
+      reason: 'Got told off: sulking by the webcam.',
+    });
+    return true;
   }
   private clearLocal(eventId: string, note: string) {
     const script = this.current.performance.script;

@@ -145,14 +145,41 @@ has the floor, right after a manual pose, or while the pacing director is relaxi
 visited on the scene floor. The Studio's "Last reaction" note shows the choice and top scores.
 Reserved initiative stays in place.
 
+## Implemented: stream events, scolding, mood faces
+
+**Stream events** (`shared/streamEvents.ts`, `server/behavior/streamEvents.ts`): follows, raids,
+subs, gift bombs, cheers, hype trains (begin, each level, end) and channel-point redemptions.
+Each maps to a fixed reaction scaled by size (a 50-viewer raid gets more than a 3-viewer one;
+a hype train builds per level and ends with an exhausted flop onto a seat). Reward titles map
+to mischief by keyword: poke (startle, dizzy, laugh), dance, snack, wave, nap. Raids walk her
+over to chat. Cooldowns batch floods (a follow train is one reaction), events are never
+replayed, stale ones are dropped, quiet mode and tuck-away suppress them, and the streamer
+always comes first. Every event also feeds the affect model and the pacing budget.
+Twitch: new read-only scopes are requested (followers, subscriptions, bits, redemptions, hype
+train); only chat is required, so existing connections keep working and events start after
+the streamer reconnects. Affiliate-only events that cannot be subscribed no longer fail the
+connection. Studio preview: the `preview-stream-event` command, labelled "Preview (not real)".
+
+**Scolding** (`server/behavior/scold.ts`): "Tavi, stand down", "bad Tavi", "no Tavi", "Tavi stop
+it" (her configured name works too) from the streamer or chat make her sad and tired: sad, pout
+and sleepy faces, then she sits by the webcam and sulks for about two minutes before wandering
+again. Rules, never AI.
+
+**Faces follow mood**: life activities pick faces from her state instead of always smiling.
+Overwhelmed: grossed out, wince, annoyed, eye-roll. Down: sad, frown, pout, worried. Uneasy:
+skeptical, worried, deadpan. Tired: sleepy, bored, deadpan. Bored: deadpan, eye-roll. Her walk
+matches (stomp when overwhelmed, trudge when down or tired, plain walk otherwise; a skip is a
+rare treat when she is genuinely happy). When overwhelmed or upset she may **decompress**:
+retreat home grumbling.
+
 ## Roadmap
 
 1. **Life tuning and a debug view**: per-activity cooldowns, a commitment bonus, and a score
    panel in the Studio.
 2. **Mood in gait and travel mood**: pleasure picks trot vs. trudge; dominance picks approach vs.
    peek. Extension point: `selectGait`.
-3. **Most-specific-rule reactions** for stream and support events; subscribe to follows,
-   hype trains and opt-in channel-point mischief (poke, dance, snack) with cooldowns.
+3. **Stream reactions shaded by mood** (an overwhelmed Tavi winces at a cheer instead of
+   celebrating) and a Studio row to preview stream events.
 4. **Attention**: glance at new chat with per-user habituation; first-time and returning chatter
    tags; batch floods into one reaction; "check on streamer" glances during lulls.
 5. **Default activity** (Disney's Read state) so idle reads as busy, not waiting.

@@ -25,6 +25,7 @@ export const activityIds = [
   'stretch', // stretch and yawn (tired)
   'play', // a little dance or hop (bored but energetic)
   'go-home', // head back to the home spot
+  'decompress', // overwhelmed or upset: retreat home and grumble
 ] as const;
 export type ActivityId = (typeof activityIds)[number];
 
@@ -72,11 +73,12 @@ export interface LifeContext {
 
 export const lifeRules = {
   /** Mean seconds between activities while standing, by initiative. */
-  intervalMs: { reserved: 150_000, occasional: 32_000, outgoing: 20_000 },
+  intervalMs: { reserved: 150_000, occasional: 18_000, outgoing: 12_000 },
   personality: { cozy: 1.2, playful: 0.7, shy: 1.1 },
-  /** While sitting/leaning (awake), activities are rarer and must beat this score. */
-  sittingIntervalScale: 2.2,
-  getUpThreshold: 0.55,
+  /** Sitting is a short break: she gets up to go somewhere after about this long. */
+  sittingIntervalScale: 3,
+  /** Activities that take her somewhere (the only ones that get her up from a seat). */
+  travelling: ['wander', 'visit-chat', 'check-streamer', 'play'] as readonly ActivityId[],
   /** Pick among the best few. */
   topK: 3,
 } as const;
@@ -96,26 +98,28 @@ export class LifeDirector {
   tick(context: LifeContext): LifeAction | null {
     const { now, body } = context;
     if (context.retracted || context.quiet) return null;
-    if (body && (sleepingStates.includes(body) || body === 'peek' || body === 'perch')) return null;
+    if (body && (sleepingStates.includes(body) || body === 'peek')) return null;
     if (context.busy || !context.initiative || context.manualHold) {
       // Try again soon after whatever is happening ends.
       this.nextAt = Math.max(this.nextAt, now + 5_000);
       return null;
     }
     if (now < this.nextAt) return null;
-    const seated = body === 'sit' || body === 'lean';
+    const seated = body === 'sit' || body === 'lean' || body === 'perch';
     const seed = `${String(this.count)}:${String(Math.floor(now / 1000))}`;
     this.count++;
     this.nextAt = now + interval(context, seated) * (0.7 + 0.6 * hash01('gap' + seed));
 
-    const scored = activityIds
+    // Seated, the only question is where to go next: sitting is a break, not a destination.
+    const candidates = seated
+      ? activityIds.filter((id) => lifeRules.travelling.includes(id))
+      : activityIds;
+    const scored = candidates
       .map((id) => ({ id, score: score(id, context, seated) * this.recency(id) }))
       .filter((entry) => entry.score > 0.05)
       .sort((a, b) => b.score - a.score);
     const best = scored[0];
     if (!best) return null;
-    // Sitting is comfortable: only get up for something worth it.
-    if (seated && best.score < lifeRules.getUpThreshold) return null;
     // Variety among the best few, but only real contenders: within 60% of the best.
     const top = scored.slice(0, lifeRules.topK).filter((entry) => entry.score >= best.score * 0.6);
     const total = top.reduce((sum, entry) => sum + entry.score ** 2, 0);
@@ -166,7 +170,7 @@ function score(id: ActivityId, context: LifeContext, seated: boolean): number {
     case 'wander':
       return (
         travel *
-        (0.55 + 0.6 * bored) *
+        (0.8 + 0.6 * bored) *
         (0.5 + 0.5 * lively) *
         awake *
         (personality === 'shy' ? 0.7 : 1)
@@ -174,7 +178,7 @@ function score(id: ActivityId, context: LifeContext, seated: boolean): number {
     case 'visit-chat':
       return context.places.chat
         ? travel *
-            (0.3 + 0.5 * bored) *
+            (0.45 + 0.5 * bored) *
             (0.5 + 0.5 * lively) *
             awake *
             (personality === 'shy' ? 1.1 : 1)
@@ -184,9 +188,9 @@ function score(id: ActivityId, context: LifeContext, seated: boolean): number {
         ? (0.3 + 0.4 * bold) * (0.6 + 0.4 * awake) * (personality === 'cozy' ? 1.2 : 1)
         : 0;
     case 'watch-game':
-      return context.places.game ? (0.35 + 0.3 * (1 - lively)) * (seated ? 1.2 : 1) : 0;
+      return context.places.game ? 0.2 + 0.2 * (1 - lively) : 0;
     case 'look-around':
-      return 0.35 + 0.25 * bored;
+      return 0.2 + 0.1 * bored;
     case 'stretch':
       return 0.9 * a.fatigue + 0.2 * bored * (1 - lively);
     case 'play':
@@ -199,6 +203,9 @@ function score(id: ActivityId, context: LifeContext, seated: boolean): number {
             (personality === 'playful' ? 1.5 : personality === 'shy' ? 0.6 : 1);
     case 'go-home':
       return context.awayFromHome && !seated ? 0.3 + 0.5 * a.fatigue : 0;
+    case 'decompress':
+      // Prolonged stress (overload) or a sour mood: she wants out of the spotlight.
+      return seated ? 0 : 1.2 * a.overload + 0.8 * Math.max(0, -a.pleasure - 0.15);
   }
 }
 
@@ -208,7 +215,7 @@ function perform(
   seed: string,
 ): Omit<LifeAction, 'standUp' | 'scores'> {
   const a = context.affect;
-  const travel = travelStyle(a, context.persona.personality);
+  const travel = travelStyle(a, context.persona.personality, seed);
   const pick = <T>(values: readonly T[], salt: string): T =>
     values[Math.floor(hash01(salt + seed) * values.length) % values.length] as T;
   switch (id) {
@@ -218,11 +225,11 @@ function perform(
         activity: id,
         destination: { stageX },
         ...travel,
-        stay: 6 + Math.round(8 * hash01('stay' + seed)),
+        stay: 3 + Math.round(4 * hash01('stay' + seed)),
         beats: [
           { expression: 'idle-glance', target: 'neutral', offset: 0.4, hold: 1.4 },
           {
-            expression: pick(['content', 'soft-smile', 'thinking'] as const, 'face'),
+            expression: face(a, seed, ['content', 'soft-smile', 'thinking']),
             offset: 1.8,
             hold: 2,
             intensity: 0.4,
@@ -236,11 +243,11 @@ function perform(
         activity: id,
         destination: { anchor: 'chat' },
         ...travel,
-        stay: 8 + Math.round(6 * hash01('stay' + seed)),
+        stay: 5 + Math.round(4 * hash01('stay' + seed)),
         beats: [
           { expression: 'glance', target: 'chat', hold: 1.6 },
           {
-            expression: pick(['soft-smile', 'teasing', 'amused'] as const, 'face'),
+            expression: face(a, seed, ['soft-smile', 'teasing', 'amused']),
             target: 'chat',
             offset: 1.5,
             hold: 2,
@@ -254,11 +261,11 @@ function perform(
         activity: id,
         destination: { anchor: 'webcam' },
         ...travel,
-        stay: 10,
+        stay: 6,
         beats: [
           { expression: 'listening', target: 'streamer', hold: 2 },
           {
-            expression: pick(['soft-smile', 'content', 'grin'] as const, 'face'),
+            expression: face(a, seed, ['soft-smile', 'content', 'grin']),
             target: 'streamer',
             offset: 1.8,
             hold: 1.8,
@@ -273,7 +280,7 @@ function perform(
         beats: [
           { expression: 'focused', target: 'game', hold: 4, intensity: 0.45 },
           {
-            expression: pick(['impressed', 'thinking', 'skeptical'] as const, 'face'),
+            expression: face(a, seed, ['impressed', 'thinking', 'skeptical']),
             target: 'game',
             offset: 3.5,
             hold: 1.6,
@@ -288,7 +295,7 @@ function perform(
         beats: [
           { expression: 'idle-glance', target: 'neutral', hold: 1.4 },
           { expression: 'look-away', target: 'neutral', offset: 1.4, hold: 1.2 },
-          { expression: 'idle-fidget', offset: 2.8, hold: 1.2 },
+          { expression: face(a, seed, ['idle-fidget']), offset: 2.8, hold: 1.4, intensity: 0.45 },
         ],
         note: 'Looking around.',
       };
@@ -302,7 +309,7 @@ function perform(
         note: a.fatigue > 0.5 ? 'Getting sleepy: stretching.' : 'Stretching.',
       };
     case 'play': {
-      const hop = context.persona.initiative !== 'reserved' && hash01('hop' + seed) < 0.5;
+      const hop = context.persona.initiative !== 'reserved' && hash01('hop' + seed) < 0.25;
       return {
         activity: id,
         ...(hop
@@ -332,17 +339,86 @@ function perform(
         beats: [],
         note: 'Heading back to her spot.',
       };
+    case 'decompress': {
+      const overwhelmed = a.overload >= 0.4;
+      return {
+        activity: id,
+        destination: { home: true },
+        gait: overwhelmed ? 'stomp' : 'trudge',
+        mood: overwhelmed ? 'annoyed' : 'sad',
+        beats: overwhelmed
+          ? [
+              {
+                expression: pick(['grossed-out', 'wince'] as const, 'a'),
+                hold: 1.6,
+                intensity: 0.6,
+              },
+              {
+                expression: pick(['annoyed', 'eye-roll'] as const, 'b'),
+                offset: 1.6,
+                hold: 1.8,
+                intensity: 0.55,
+              },
+              { expression: 'deadpan', offset: 3.4, hold: 2, intensity: 0.5 },
+            ]
+          : [
+              { expression: pick(['sad', 'worried'] as const, 'a'), hold: 2, intensity: 0.6 },
+              {
+                expression: pick(['pout', 'frown'] as const, 'b'),
+                offset: 2,
+                hold: 2,
+                intensity: 0.55,
+              },
+            ],
+        note: overwhelmed
+          ? 'Overwhelmed: retreating for a breather.'
+          : 'Feeling down: keeping to herself.',
+      };
+    }
   }
 }
 
+/**
+ * Her face follows her mood, not just the activity: she is not smiley all the time.
+ * Overwhelmed reads grossed out and annoyed; down reads sad, pouty, worried; tired reads sleepy;
+ * bored reads deadpan. Otherwise the activity's own (usually positive) faces.
+ */
+function face(a: AffectSnapshot, seed: string, normal: readonly ExpressionId[]): ExpressionId {
+  const options: readonly ExpressionId[] =
+    a.overload >= 0.5
+      ? ['grossed-out', 'wince', 'annoyed', 'eye-roll']
+      : a.pleasure <= -0.25
+        ? ['sad', 'frown', 'pout', 'worried']
+        : a.overload >= 0.3 || a.pleasure <= -0.1
+          ? ['skeptical', 'worried', 'deadpan', 'frown']
+          : a.fatigue >= 0.6
+            ? ['sleepy', 'bored', 'deadpan']
+            : a.boredom >= 0.7 && a.arousal < 0
+              ? ['bored', 'deadpan', 'eye-roll', ...normal]
+              : normal;
+  return options[Math.floor(hash01('face' + seed) * options.length) % options.length] ?? 'content';
+}
+
 /** How she travels: mood shows in the walk, not in meters (Petz). */
-function travelStyle(a: AffectSnapshot, personality: Personality): { gait?: Gait; mood?: Mood } {
+function travelStyle(
+  a: AffectSnapshot,
+  personality: Personality,
+  seed: string,
+): { gait: Gait; mood: Mood } {
+  // Walking is the norm. A skip is a once-in-a-while treat when she is genuinely happy.
+  if (a.overload >= 0.5) return { gait: 'stomp', mood: 'annoyed' };
+  if (a.pleasure <= -0.25)
+    return { gait: 'trudge', mood: hash01('m' + seed) < 0.5 ? 'sad' : 'pout' };
   if (a.fatigue > 0.6) return { gait: 'trudge', mood: 'sleepy' };
-  if (a.arousal > 0.35 && a.pleasure > 0.25) return { gait: 'skip', mood: 'excited' };
+  if (a.arousal > 0.45 && a.pleasure > 0.3 && hash01('skip' + seed) < 0.2)
+    return { gait: 'skip', mood: 'excited' };
   if (a.boredom > 0.6 && a.arousal < 0) return { gait: 'amble', mood: 'bored' };
-  if (personality === 'shy' && a.dominance < -0.2) return { gait: 'sneak', mood: 'content' };
-  if (a.pleasure > 0.3) return { mood: 'grin' };
-  return { mood: 'content' };
+  if (personality === 'shy' && a.dominance < -0.2 && hash01('sneak' + seed) < 0.3)
+    return { gait: 'sneak', mood: 'content' };
+  return {
+    gait: 'walk',
+    mood: a.pleasure > 0.3 ? 'grin' : a.pleasure < 0 ? 'frown' : 'content',
+  };
 }
 
 function clamp01(value: number) {

@@ -29,6 +29,7 @@ export type Stimulus =
   | 'support-large'
   | 'raid'
   | 'moderation' // a message was removed
+  | 'scolded' // told off: "stand down", "bad Tavi"
   | 'woken'; // woken up by something
 
 interface Appraisal extends Pad {
@@ -48,6 +49,7 @@ export const appraisals: Readonly<Record<Stimulus, Appraisal>> = {
   'support-large': { pleasure: 0.55, arousal: 0.55, dominance: 0.15, stimulation: 0.25 },
   raid: { pleasure: 0.45, arousal: 0.6, dominance: -0.1, stimulation: 0.3 },
   moderation: { pleasure: -0.15, arousal: 0.1, dominance: -0.1, stimulation: 0.02 },
+  scolded: { pleasure: -0.6, arousal: -0.35, dominance: -0.5, stimulation: 0.05 },
   woken: { pleasure: -0.08, arousal: 0.3, dominance: -0.1, stimulation: 0.05 },
 };
 
@@ -192,6 +194,11 @@ export class Affect {
     }
     this.stimulation = Math.min(1.5, this.stimulation + appraisal.stimulation);
   }
+  /** Drains energy at once (being told off is tiring). */
+  tire(now: number, amount: number) {
+    this.step(now, false);
+    this.fatigue = Math.min(1, this.fatigue + amount);
+  }
   /** The visible state: mood plus what is still felt right now. Quantized so it changes rarely. */
   snapshot(): AffectSnapshot {
     const felt = (axis: keyof Pad) =>
@@ -237,11 +244,12 @@ export function describeAffect(a: Omit<AffectSnapshot, 'label'>): string {
 
 /**
  * How affect changes behavior timing: multiplies the quiet-time schedule (settle, doze, lie).
- * Tired or bored Tavi settles sooner; an excited one stays up longer.
+ * Tired Tavi settles sooner; an excited one stays up longer. Boredom makes her go do something
+ * (server/behavior/life.ts) rather than sit down.
  */
 export function restScale(a: AffectSnapshot) {
   const awake = 1 + 0.8 * Math.max(0, a.arousal) + 0.4 * a.overload;
-  const sleepy = 1 - 0.5 * a.fatigue - 0.25 * a.boredom;
+  const sleepy = 1 - 0.5 * a.fatigue;
   return clamp(awake * sleepy, 0.35, 2);
 }
 

@@ -88,3 +88,27 @@ describe('autonomous life', () => {
     expect(moved).toBeGreaterThan(0);
   });
 });
+
+describe('autonomous life over a quiet stream', () => {
+  it('keeps getting up and walking around for 20 minutes instead of sitting for good', () => {
+    const clock = { now: 1_000_000 };
+    const ai = new AiManager(settingsFromEnv({}), undefined, () => clock.now);
+    const companion = new Companion({ config: defaults, catalog, ai, now: () => clock.now });
+    const walks = new Set<string>();
+    const minutesWithWalk = new Set<number>();
+    companion.subscribe((state) => {
+      const movement = state.performance.movement;
+      if (movement?.source === 'idle' && !walks.has(movement.id)) {
+        walks.add(movement.id);
+        minutesWithWalk.add(Math.floor((clock.now - 1_000_000) / 300_000));
+      }
+    });
+    for (let i = 0; i < 20 * 60; i++) {
+      clock.now += 1000;
+      companion.tick();
+    }
+    expect(walks.size).toBeGreaterThanOrEqual(8);
+    // Walking happens throughout, not just in the first few minutes: every 5-minute block.
+    expect(minutesWithWalk.size).toBe(4);
+  });
+});

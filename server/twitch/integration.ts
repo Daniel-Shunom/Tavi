@@ -1,7 +1,7 @@
 import {
   disconnectedTwitch,
   TWITCH_CLIENT_ID,
-  TWITCH_SCOPES,
+  REQUIRED_TWITCH_SCOPES,
   type ChatMessage,
   type TwitchStatus,
 } from '../../shared/twitch.js';
@@ -13,11 +13,13 @@ import {
   type Token,
   type TwitchGateway,
 } from './gateway.js';
+import type { StreamEvent } from '../../shared/streamEvents.js';
 export type TwitchOptions = {
   gateway?: TwitchGateway;
   clientId?: string;
   onMessage?: (message: ChatMessage) => void;
-  onModeration?: (event: Exclude<ChatChange, { type: 'message' }>) => void;
+  onModeration?: (event: Extract<ChatChange, { type: 'delete' | 'clearUser' | 'clear' }>) => void;
+  onStreamEvent?: (event: StreamEvent) => void;
 };
 const errorMessages = {
   denied: 'Twitch authorization was declined. You can try again.',
@@ -132,7 +134,7 @@ export class TwitchIntegration {
     if (run !== this.generation) return;
     if (
       identity.client_id !== this.clientId ||
-      !TWITCH_SCOPES.every((scope) => identity.scopes.includes(scope))
+      !REQUIRED_TWITCH_SCOPES.every((scope) => identity.scopes.includes(scope))
     )
       throw new TwitchRequestError('invalid_token');
     if (this.identity && this.identity.user_id !== identity.user_id)
@@ -188,7 +190,7 @@ export class TwitchIntegration {
           if (
             identity.client_id !== this.clientId ||
             identity.user_id !== this.identity?.user_id ||
-            !TWITCH_SCOPES.every((scope) => identity.scopes.includes(scope))
+            !REQUIRED_TWITCH_SCOPES.every((scope) => identity.scopes.includes(scope))
           )
             throw new TwitchRequestError('invalid_token');
           this.expiresAt = Date.now() + identity.expires_in * 1000;
@@ -199,6 +201,10 @@ export class TwitchIntegration {
     );
   }
   private receive(event: ChatChange) {
+    if (event.type === 'event') {
+      this.options.onStreamEvent?.(event.event);
+      return;
+    }
     if (event.type !== 'message') this.options.onModeration?.(event);
     if (event.type === 'delete') {
       this.state.messages = this.state.messages.filter((message) => message.id !== event.id);

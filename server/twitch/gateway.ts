@@ -3,6 +3,7 @@ import { ApiClient } from '@twurple/api';
 import { StaticAuthProvider } from '@twurple/auth';
 import { EventSubWsListener } from '@twurple/eventsub-ws';
 import { TWITCH_SCOPES, type ChatMessage } from '../../shared/twitch.js';
+import { mischiefFor, type StreamEvent, type StreamEventBody } from '../../shared/streamEvents.js';
 const deviceSchema = z.object({
   device_code: z.string().min(1),
   user_code: z.string().min(1),
@@ -36,7 +37,9 @@ export type ChatChange =
   | { type: 'message'; message: ChatMessage }
   | { type: 'delete'; id: string }
   | { type: 'clearUser'; userId: string }
-  | { type: 'clear' };
+  | { type: 'clear' }
+  /** Follows, raids, subs, gifts, cheers, hype trains, channel-point redemptions. */
+  | { type: 'event'; event: StreamEvent };
 export type ListenerInput = {
   clientId: string;
   token: Token;
@@ -137,8 +140,10 @@ export function createTwitchGateway(request: typeof fetch = fetch): TwitchGatewa
           if (active) onStatus('connected');
         }
       });
-      listener.onSubscriptionCreateFailure(() => {
-        if (active) onStatus('failed');
+      listener.onSubscriptionCreateFailure((subscription) => {
+        // Only chat is required. Stream events may be unavailable (subs, cheers, channel
+        // points and hype trains need an affiliate channel); Tavi simply does not see them.
+        if (active && subscription === chatSubscription) onStatus('failed');
       });
       listener.onUserSocketDisconnect(() => {
         if (active) onStatus('reconnecting');
@@ -174,6 +179,72 @@ export function createTwitchGateway(request: typeof fetch = fetch): TwitchGatewa
       });
       listener.onChannelChatClear(identity.user_id, identity.user_id, () => {
         if (active) onChange({ type: 'clear' });
+      });
+      const emit = (id: string, body: StreamEventBody) => {
+        if (active) onChange({ type: 'event', event: { ...body, id, receivedAt: Date.now() } });
+      };
+      const me = identity.user_id;
+      listener.onChannelFollow(me, me, (event) => {
+        emit(`follow:${event.userId}`, { kind: 'follow', user: event.userDisplayName });
+      });
+      listener.onChannelRaidTo(me, (event) => {
+        emit(`raid:${event.raidingBroadcasterId}:${String(Date.now())}`, {
+          kind: 'raid',
+          from: event.raidingBroadcasterDisplayName,
+          viewers: event.viewers,
+        });
+      });
+      listener.onChannelSubscription(me, (event) => {
+        emit(`sub:${event.userId}:${String(Date.now())}`, {
+          kind: 'subscription',
+          user: event.userDisplayName,
+          tier: event.tier,
+          gifted: event.isGift,
+        });
+      });
+      listener.onChannelSubscriptionGift(me, (event) => {
+        emit(`gift:${event.gifterId ?? 'anon'}:${String(Date.now())}`, {
+          kind: 'gift',
+          user: event.isAnonymous ? null : event.gifterDisplayName,
+          count: Math.max(1, Math.min(1000, event.amount)),
+        });
+      });
+      listener.onChannelCheer(me, (event) => {
+        emit(`cheer:${event.userId ?? 'anon'}:${String(Date.now())}`, {
+          kind: 'cheer',
+          user: event.isAnonymous ? null : event.userDisplayName,
+          bits: event.bits,
+        });
+      });
+      listener.onChannelRedemptionAdd(me, (event) => {
+        emit(`redeem:${event.id}`, {
+          kind: 'redemption',
+          user: event.userDisplayName,
+          reward: event.rewardTitle.slice(0, 100),
+          mischief: mischiefFor(event.rewardTitle),
+        });
+      });
+      const level = (value: number) => Math.max(1, Math.min(100, value));
+      listener.onChannelHypeTrainBeginV2(me, (event) => {
+        emit(`hype:${event.id}:begin`, {
+          kind: 'hype-train',
+          phase: 'begin',
+          level: level(event.level),
+        });
+      });
+      listener.onChannelHypeTrainProgressV2(me, (event) => {
+        emit(`hype:${event.id}:${String(event.level)}`, {
+          kind: 'hype-train',
+          phase: 'progress',
+          level: level(event.level),
+        });
+      });
+      listener.onChannelHypeTrainEndV2(me, (event) => {
+        emit(`hype:${event.id}:end`, {
+          kind: 'hype-train',
+          phase: 'end',
+          level: level(event.level),
+        });
       });
       listener.start();
       return () => {
