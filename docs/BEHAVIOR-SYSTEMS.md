@@ -172,20 +172,28 @@ matches (stomp when overwhelmed, trudge when down or tired, plain walk otherwise
 rare treat when she is genuinely happy). When overwhelmed or upset she may **decompress**:
 retreat home grumbling.
 
+## Implemented: reactions follow mood, Studio previews
+
+Stream and support reactions are shaded by how she feels (`shadeForMood`):
+overwhelmed she winces, deadpans and stays where she is (muted, 70%); down she manages a
+small smile or a blush; tired she gives sleepy thanks; hyped plays everything 15% bigger.
+She always still acknowledges the event (thank-yous and waves stay). The Studio note says
+which mood shaded it. Live view: a **Try a stream event** row previews follow, raid, sub,
+gift x5, cheer 500, a hype train (start, each level, end) and poke / dance / snack rewards,
+always labelled "Preview (not real)".
+
 ## Roadmap
 
 1. **Life tuning and a debug view**: per-activity cooldowns, a commitment bonus, and a score
    panel in the Studio.
 2. **Mood in gait and travel mood**: pleasure picks trot vs. trudge; dominance picks approach vs.
    peek. Extension point: `selectGait`.
-3. **Stream reactions shaded by mood** (an overwhelmed Tavi winces at a cheer instead of
-   celebrating) and a Studio row to preview stream events.
-4. **Attention**: glance at new chat with per-user habituation; first-time and returning chatter
+3. **Attention**: glance at new chat with per-user habituation; first-time and returning chatter
    tags; batch floods into one reaction; "check on streamer" glances during lulls.
-5. **Default activity** (Disney's Read state) so idle reads as busy, not waiting.
-6. **Memory**: session callbacks (raider, first chatter, top gifter), then opt-in regulars and
+4. **Default activity** (Disney's Read state) so idle reads as busy, not waiting.
+5. **Memory**: session callbacks (raider, first chatter, top gifter), then opt-in regulars and
    bounded temperament drift the streamer can lock.
-7. **LLM**: retrieved memory as context; a deterministic playful "filtered" beat for blocked
+6. **LLM**: retrieved memory as context; a deterministic playful "filtered" beat for blocked
    output.
 
 ## Side findings

@@ -2,7 +2,7 @@
 // Size feeds the pacing director, the stimulus feeds the affect model, cooldowns keep floods
 // (a follow train, a gift bomb) to one reaction. Specific beats generic: a hype-train level 5
 // gets a bigger celebration than level 1; a raid of 50 a bigger welcome than a raid of 2.
-import type { Stimulus } from '../../shared/affect.js';
+import type { AffectSnapshot, Stimulus } from '../../shared/affect.js';
 import type { BodyStateId } from '../../shared/states.js';
 import type { StreamEventBody } from '../../shared/streamEvents.js';
 import type { ExpressionId, Target } from '../../shared/expressions.js';
@@ -270,4 +270,80 @@ function redemption(
         note: `${user} redeemed ${reward}.`,
       };
   }
+}
+
+/** Which mood shades a reaction (null: she reacts as written). */
+export type ReactionMood = 'overwhelmed' | 'down' | 'tired' | 'hyped' | null;
+
+export function reactionMood(a: AffectSnapshot | null): ReactionMood {
+  if (!a) return null;
+  if (a.overload >= 0.5) return 'overwhelmed';
+  if (a.pleasure <= -0.25) return 'down';
+  if (a.fatigue >= 0.6) return 'tired';
+  if (a.pleasure >= 0.4 && a.arousal >= 0.3) return 'hyped';
+  return null;
+}
+
+// How each mood rewrites the cheerful parts of a reaction. She still acknowledges the event
+// (thank-yous and waves stay), but the face and energy come from how she actually feels:
+// overwhelmed she winces at one more cheer, down she manages a small smile, tired she is
+// sleepy-grateful. Hyped plays everything a little bigger.
+const swaps: Record<
+  Exclude<ReactionMood, 'hyped' | null>,
+  Partial<Record<ExpressionId, ExpressionId>>
+> = {
+  overwhelmed: {
+    celebrate: 'wince',
+    excited: 'shocked',
+    'happy-dance': 'grossed-out',
+    grin: 'deadpan',
+    'soft-smile': 'deadpan',
+    laugh: 'eye-roll',
+    impressed: 'wince',
+  },
+  down: {
+    celebrate: 'soft-smile',
+    excited: 'blush',
+    'happy-dance': 'shrug',
+    grin: 'soft-smile',
+    laugh: 'soft-smile',
+    startled: 'worried',
+  },
+  tired: {
+    celebrate: 'thank-you',
+    excited: 'sleepy',
+    'happy-dance': 'sleepy',
+    grin: 'soft-smile',
+    laugh: 'soft-smile',
+  },
+};
+const scale: Record<Exclude<ReactionMood, null>, number> = {
+  overwhelmed: 0.7,
+  down: 0.75,
+  tired: 0.8,
+  hyped: 1.15,
+};
+const moodNotes: Record<Exclude<ReactionMood, null>, string> = {
+  overwhelmed: ' (overwhelmed: muted)',
+  down: ' (feeling down: a small smile)',
+  tired: ' (tired: sleepy thanks)',
+  hyped: ' (hyped!)',
+};
+
+/** Shades a reaction by her current mood: faces, intensity, the walk, and whether to flop. */
+export function shadeForMood(reaction: EventReaction, a: AffectSnapshot | null): EventReaction {
+  const mood = reactionMood(a);
+  if (!mood) return reaction;
+  const swap = mood === 'hyped' ? {} : swaps[mood];
+  return {
+    ...reaction,
+    beats: reaction.beats.map((value) => ({
+      ...value,
+      expression: swap[value.expression] ?? value.expression,
+      intensity: Math.min(1, (value.intensity ?? 0.6) * scale[mood]),
+    })),
+    // Too frazzled or low to run over to chat; she reacts from where she is.
+    ...(mood === 'overwhelmed' || mood === 'down' ? { toChat: false } : {}),
+    note: reaction.note + moodNotes[mood],
+  };
 }

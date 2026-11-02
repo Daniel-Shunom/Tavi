@@ -1,5 +1,19 @@
 import { useRef, useState, type PointerEvent } from 'react';
-import { ChevronDown, Move, Square } from 'lucide-react';
+import {
+  ChevronDown,
+  Cookie,
+  Gem,
+  Gift,
+  Move,
+  Music,
+  Pointer,
+  Square,
+  Star,
+  TrainFront,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import type { StreamEventBody } from '../../shared/streamEvents';
 import { Avatar } from '../renderer/Avatar';
 import { BodyStateDock } from '../StatesPanel';
 import { catalog } from '../renderer/characters/registry';
@@ -20,6 +34,83 @@ import { Card, Segmented, SwitchRow, natures, quickCues, supports, type Cue } fr
 // home spot. Reactions fire from the pad (or keys 1–8).
 
 const frameLabels = { game: 'Game', webcam: 'Webcam', chat: 'Chat' };
+// Stream-event previews: the same rules as live Twitch events, always labelled "not real".
+const streamPreviews: {
+  label: string;
+  icon: React.ReactNode;
+  title: string;
+  event: StreamEventBody | ((level: number) => StreamEventBody);
+}[] = [
+  {
+    label: 'Follow',
+    icon: <UserPlus />,
+    title: 'A new follower',
+    event: { kind: 'follow', user: 'Preview viewer' },
+  },
+  {
+    label: 'Raid',
+    icon: <Users />,
+    title: 'A 42-viewer raid',
+    event: { kind: 'raid', from: 'Preview streamer', viewers: 42 },
+  },
+  {
+    label: 'Sub',
+    icon: <Star />,
+    title: 'A tier 1 subscription',
+    event: { kind: 'subscription', user: 'Preview viewer', tier: '1000', gifted: false },
+  },
+  {
+    label: 'Gift ×5',
+    icon: <Gift />,
+    title: 'Five gifted subs',
+    event: { kind: 'gift', user: 'Preview viewer', count: 5 },
+  },
+  {
+    label: 'Cheer 500',
+    icon: <Gem />,
+    title: '500 bits',
+    event: { kind: 'cheer', user: 'Preview viewer', bits: 500 },
+  },
+  {
+    label: 'Hype train',
+    icon: <TrainFront />,
+    title: 'Starts a hype train, then each click is the next level; the fifth click ends it',
+    event: (level) =>
+      level === 0
+        ? { kind: 'hype-train', phase: 'begin', level: 1 }
+        : level >= 4
+          ? { kind: 'hype-train', phase: 'end', level }
+          : { kind: 'hype-train', phase: 'progress', level: level + 1 },
+  },
+  {
+    label: 'Poke',
+    icon: <Pointer />,
+    title: 'Channel points: Poke Tavi',
+    event: { kind: 'redemption', user: 'Preview viewer', reward: 'Poke Tavi', mischief: 'poke' },
+  },
+  {
+    label: 'Dance',
+    icon: <Music />,
+    title: 'Channel points: Make Tavi dance',
+    event: {
+      kind: 'redemption',
+      user: 'Preview viewer',
+      reward: 'Make Tavi dance',
+      mischief: 'dance',
+    },
+  },
+  {
+    label: 'Snack',
+    icon: <Cookie />,
+    title: 'Channel points: Feed Tavi a snack',
+    event: {
+      kind: 'redemption',
+      user: 'Preview viewer',
+      reward: 'Feed Tavi a snack',
+      mischief: 'snack',
+    },
+  },
+];
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 export function LiveView({
@@ -34,6 +125,15 @@ export function LiveView({
   const character = catalog[c.character];
   const patch = (value: Partial<Config>) => {
     send({ type: 'configure', patch: value });
+  };
+  const [hypeLevel, setHypeLevel] = useState(0);
+  const previewStream = (entry: (typeof streamPreviews)[number]) => {
+    if (typeof entry.event === 'function') {
+      send({ type: 'preview-stream-event', event: entry.event(hypeLevel) });
+      setHypeLevel(hypeLevel >= 4 ? 0 : hypeLevel + 1);
+      return;
+    }
+    send({ type: 'preview-stream-event', event: entry.event });
   };
   const perform = (cue: Cue, target?: (typeof quickCues)[number]['target']) => {
     send({ type: 'perform', ...cue, ...(target ? { target } : {}) });
@@ -231,6 +331,38 @@ export function LiveView({
               </div>
             </fieldset>
           </details>
+        </section>
+
+        <section className="st-block" aria-labelledby="stream-events-title">
+          <div className="st-block-head">
+            <h2 id="stream-events-title">Try a stream event</h2>
+            <span className="st-hint">
+              Previews, never real events · she reacts the way she feels
+            </span>
+          </div>
+          <div className="st-pad" role="group" aria-label="Stream event previews">
+            {streamPreviews.map((entry) => (
+              <button
+                key={entry.label}
+                type="button"
+                className="st-pad-key"
+                disabled={!connected || state.retracted}
+                title={entry.title}
+                onClick={() => {
+                  previewStream(entry);
+                }}
+              >
+                {entry.icon}
+                <span>
+                  {entry.label === 'Hype train' && hypeLevel > 0
+                    ? hypeLevel >= 4
+                      ? 'End hype train'
+                      : `Hype level ${String(hypeLevel + 1)}`
+                    : entry.label}
+                </span>
+              </button>
+            ))}
+          </div>
         </section>
       </div>
 

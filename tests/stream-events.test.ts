@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { defaults, commandSchema, type State } from '../shared/protocol';
 import { mischiefFor } from '../shared/streamEvents';
 import { isScolding } from '../server/behavior/scold';
-import { streamEventReaction } from '../server/behavior/streamEvents';
+import { reactionMood, shadeForMood, streamEventReaction } from '../server/behavior/streamEvents';
 import { LifeDirector, type LifeContext } from '../server/behavior/life';
 import { neutralAffect } from '../shared/affect';
 import { AiManager, settingsFromEnv } from '../server/ai/manager';
@@ -158,5 +158,33 @@ describe('faces follow mood', () => {
   it('a happy Tavi smiles', () => {
     const happy = faces({ ...neutralAffect, pleasure: 0.5 });
     expect(happy.filter((id) => negative.includes(id))).toEqual([]);
+  });
+});
+
+describe('stream reactions follow her mood', () => {
+  const gift = streamEventReaction({ kind: 'gift', user: 'a', count: 20 });
+  const faces = (reaction: ReturnType<typeof streamEventReaction>) =>
+    reaction.beats.map((value) => value.expression);
+  it('overwhelmed: winces instead of celebrating, stays put, plays muted', () => {
+    const shaded = shadeForMood(gift, { ...neutralAffect, overload: 0.8 });
+    expect(faces(shaded)).not.toContain('celebrate');
+    expect(faces(shaded)).toContain('wince');
+    expect(faces(shaded)).toContain('thank-you'); // still acknowledges it
+    expect(shaded.note).toMatch(/overwhelmed/);
+    const raid = shadeForMood(streamEventReaction({ kind: 'raid', from: 'x', viewers: 50 }), {
+      ...neutralAffect,
+      overload: 0.8,
+    });
+    expect(raid.toChat).toBe(false);
+  });
+  it('down: a small smile; tired: sleepy thanks; hyped: bigger; neutral: as written', () => {
+    expect(faces(shadeForMood(gift, { ...neutralAffect, pleasure: -0.5 }))).toContain('soft-smile');
+    expect(faces(shadeForMood(gift, { ...neutralAffect, fatigue: 0.8 }))).not.toContain(
+      'celebrate',
+    );
+    const hyped = shadeForMood(gift, { ...neutralAffect, pleasure: 0.6, arousal: 0.5 });
+    expect(hyped.beats[1]?.intensity ?? 0).toBeGreaterThan(gift.beats[1]?.intensity ?? 0);
+    expect(shadeForMood(gift, neutralAffect)).toEqual(gift);
+    expect(reactionMood(null)).toBeNull();
   });
 });

@@ -62,7 +62,7 @@ import {
   type BodyStateId,
   type Spot,
 } from '../shared/states.js';
-import { streamEventReaction } from './behavior/streamEvents.js';
+import { shadeForMood, streamEventReaction } from './behavior/streamEvents.js';
 import { isScolding } from './behavior/scold.js';
 import { streamEventSchema, type StreamEvent } from '../shared/streamEvents.js';
 
@@ -192,6 +192,29 @@ export class Companion {
   /** Feeds the affect model. Never changes what plays by itself; it shades timing and motion. */
   private feel(stimulus: Stimulus) {
     this.affect.feel(this.now(), stimulus, this.asleep());
+  }
+  /** Rule-written beats played the way she currently feels (shared with stream events). */
+  private moodBeats(beats: Beat[]): Beat[] {
+    const shaded = shadeForMood(
+      {
+        beats,
+        size: 'small',
+        stimulus: 'chat',
+        cooldownKey: '',
+        cooldownMs: 0,
+        wake: false,
+        note: '',
+      },
+      this.affect.snapshot(),
+    );
+    return shaded.beats.map((value, i) => {
+      const original = beats[i];
+      return {
+        ...(original ?? value),
+        expression: value.expression,
+        intensity: clampIntensity(value.expression, value.intensity ?? 0.6),
+      } as Beat;
+    });
   }
   /** Automatic reactions spend the pacing budget; while relaxing they play softer. */
   private paced(beats: Beat[], size: ReactionSize): Beat[] {
@@ -567,7 +590,7 @@ export class Companion {
       decidedBy: { kind: 'rules', label: 'Support event rules (not AI)' },
       priority: priorities.chat,
       beats: this.paced(
-        supportBeats(tier, event.kind, this.current.performance.body === null),
+        this.moodBeats(supportBeats(tier, event.kind, this.current.performance.body === null)),
         tier === 'big' ? 'large' : tier,
       ),
       settle: true,
@@ -607,9 +630,9 @@ export class Companion {
     const now = this.now();
     if (now - event.receivedAt > 15_000 || event.receivedAt - now > 5_000)
       return skip('the event is stale.');
-    const reaction = streamEventReaction(event);
-    // She feels it even when she cannot show it.
-    this.feel(reaction.stimulus);
+    // She feels it even when she cannot show it; then shows it the way she feels.
+    this.feel(streamEventReaction(event).stimulus);
+    const reaction = shadeForMood(streamEventReaction(event), this.affect.snapshot());
     if (this.current.retracted) return skip('tucked away.');
     if (this.current.quiet) return skip('quiet mode is on.');
     if (now - (this.eventCooldowns.get(reaction.cooldownKey) ?? -Infinity) < reaction.cooldownMs)
