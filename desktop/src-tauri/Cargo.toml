@@ -1,7 +1,7 @@
 [package]
 name = "tavi-studio"
 # Keep in sync with desktop/package.json (the release script enforces this).
-version = "0.1.0"
+version = "0.1.1"
 description = "Tavi streamer companion studio"
 edition = "2021"
 rust-version = "1.77.2"
@@ -13,6 +13,8 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2.12", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-dialog = "2"
 serde_json = "1"
 dunce = "1"
 

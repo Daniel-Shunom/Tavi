@@ -102,6 +102,11 @@ jobs:
           cargo test --locked
       - name: Build native installers
         working-directory: desktop
+        # Signs the in-app update bundle when the key is available (absent on fork PRs, which
+        # then build unsigned; tagged releases refuse to build without it).
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run release
       - name: Verify bundled runtime and service
         working-directory: desktop
@@ -157,6 +162,8 @@ jobs:
           pattern: tavi-studio-*
           merge-multiple: true
           path: release-assets
+      - name: Build the updater manifest (latest.json) from every platform
+        run: node desktop/scripts/updater-manifest.mjs release-assets 4
       - name: Publish tagged release after every platform passes
         env:
           GH_TOKEN: ${{ github.token }}

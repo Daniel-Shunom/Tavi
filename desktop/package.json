@@ -1,6 +1,6 @@
 {
   "name": "tavi-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,7 @@
     "verify": "node scripts/verify-running.mjs",
     "icon": "node scripts/render-icon.mjs",
     "prepare:icons": "node scripts/prepare-icons.mjs",
-    "test:packaging": "node --test scripts/platform.test.mjs scripts/notices.test.mjs",
+    "test:packaging": "node --test scripts/platform.test.mjs scripts/notices.test.mjs scripts/updater-manifest.test.mjs",
     "verify:service": "node scripts/verify-service.mjs"
   },
   "devDependencies": {

@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod links;
 mod ready;
+mod updates;
 #[cfg(windows)]
 mod win;
 
@@ -177,8 +178,10 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        // Used from Rust only. No capability grants page JavaScript access to it.
+        // Used from Rust only. No capability grants page JavaScript access to these.
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(Service(Mutex::new(None)))
         .setup(|app| {
             let service_port = if cfg!(debug_assertions) {
@@ -226,6 +229,12 @@ fn main() {
             .build()?;
             fit_to_monitor(&window);
             window.show()?;
+            // Release builds check GitHub Releases for a signed update (asks before installing).
+            if !cfg!(debug_assertions) {
+                let handle = app.handle().clone();
+                let service = app.handle().clone();
+                updates::spawn(handle, move || service.state::<Service>().stop());
+            }
             Ok(())
         });
     let app = match builder.build(tauri::generate_context!()) {
