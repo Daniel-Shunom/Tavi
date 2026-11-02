@@ -125,7 +125,16 @@ Icon: `npm run icon -- http://127.0.0.1:4318 icon-source.png` renders a 1024 px 
 
 ### CI
 
-See the cross-platform build pipeline above. Build jobs need no signing secrets; only the tag-only release job receives `contents: write` through the repository token.
+See the cross-platform build pipeline above. Installer jobs receive the updater signing secrets (below) only for the build step; only the tag-only release job receives `contents: write` through the repository token.
+
+### Automatic updates
+
+Installed copies update themselves from GitHub Releases (`tauri-plugin-updater`). About eight seconds after launch, release builds download `https://github.com/Daniel-Shunom/Tavi/releases/latest/download/latest.json`. If it names a newer version, a native dialog asks **Update now** or **Later**; nothing installs without consent. Updating downloads the bundle, verifies its signature against the public key in `tauri.conf.json`, stops the bundled service, installs (Windows: a passive NSIS install) and relaunches. Character data, settings and the OBS overlay link are untouched. Offline, or before any signed release exists, the check fails quietly and the app keeps working.
+
+- Update bundles: Windows `*-setup.exe`, macOS `Tavi.Studio_<version>_darwin-<arch>.app.tar.gz`, Linux `*.AppImage`. Debian package installs do not self-update; install the new `.deb`.
+- Signing: `npm run release` signs the update bundle when `TAURI_SIGNING_PRIVATE_KEY` (and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`) are set and writes `latest-<platform>.json`; the release job merges the four into `latest.json`. Tagged releases refuse to build unsigned; local and fork builds stay unsigned.
+- Keys: the repository secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` hold the private key. Keep a private backup: if the key is lost, installed copies can never accept another update and must be reinstalled by hand. Rotating the key means shipping the new public key in a release signed with the old one.
+- Testing an update: install version N, publish N+1 with a tag, launch N.
 
 ### Code signing
 

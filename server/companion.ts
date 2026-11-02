@@ -658,7 +658,8 @@ export class Companion {
       return skip('the streamer comes first.');
     const active = this.activeScript();
     if (active && active.priority > priorities.chat) return skip('the streamer comes first.');
-    this.eventCooldowns.set(reaction.cooldownKey, now);
+    // Only real events start cooldowns: a preview must never suppress a live reaction.
+    if (!simulated) this.eventCooldowns.set(reaction.cooldownKey, now);
     this.life.defer(now, 20_000);
     if (reaction.wake) this.engage('addressed', true);
     else this.director.engage(now, 'addressed');

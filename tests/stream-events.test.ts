@@ -233,3 +233,22 @@ describe('chat cannot keep her sulking', () => {
     expect(t.get().performance.note).toMatch(/ignoring|told off|sulking|Rules/);
   });
 });
+
+describe('previews never block live events', () => {
+  it('a raid preview does not put a real raid on cooldown', async () => {
+    const t = setup();
+    await t.companion.handle({
+      type: 'preview-stream-event',
+      event: { kind: 'raid', from: 'preview', viewers: 30 },
+    });
+    t.clock.now += 5000;
+    expect(
+      t.companion.streamEvent({
+        kind: 'raid',
+        from: 'friend',
+        viewers: 30,
+        ...event(t.clock, 'live'),
+      }).accepted,
+    ).toBe(true);
+  });
+});
