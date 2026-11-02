@@ -30,6 +30,7 @@ export type Stimulus =
   | 'raid'
   | 'moderation' // a message was removed
   | 'scolded' // told off: "stand down", "bad Tavi"
+  | 'forgiven' // made up: "sorry Tavi", "it's okay", "good girl"
   | 'woken'; // woken up by something
 
 interface Appraisal extends Pad {
@@ -50,6 +51,7 @@ export const appraisals: Readonly<Record<Stimulus, Appraisal>> = {
   raid: { pleasure: 0.45, arousal: 0.6, dominance: -0.1, stimulation: 0.3 },
   moderation: { pleasure: -0.15, arousal: 0.1, dominance: -0.1, stimulation: 0.02 },
   scolded: { pleasure: -0.6, arousal: -0.35, dominance: -0.5, stimulation: 0.05 },
+  forgiven: { pleasure: 0.7, arousal: 0.25, dominance: 0.35, stimulation: 0.08 },
   woken: { pleasure: -0.08, arousal: 0.3, dominance: -0.1, stimulation: 0.05 },
 };
 

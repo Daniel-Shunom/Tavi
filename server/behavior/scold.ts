@@ -18,3 +18,19 @@ export function isScolding(text: string, name: string): boolean {
     new RegExp(pattern.source.replaceAll('NAME', escaped), 'i').test(lower),
   );
 }
+
+const forgiving = [
+  /\b(?:sorry|my\s+bad|forgive\s+me)\b/,
+  /\b(?:it'?s|its)\s+(?:ok(?:ay)?|fine|alright|all\s+right)\b/,
+  /\bgood\s+(?:girl|tavi|NAME|job)\b/,
+  /\b(?:come\s+(?:back|here|on\s+out)|cheer\s+up|don'?t\s+be\s+sad|love\s+you|you'?re\s+(?:fine|good|forgiven))\b/,
+];
+
+/** Whether a line makes up with Tavi after a scolding ("sorry Tavi", "it's okay", "good girl"). */
+export function isForgiving(text: string, name: string): boolean {
+  const lower = text.toLowerCase();
+  const escaped = name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return forgiving.some((pattern) =>
+    new RegExp(pattern.source.replaceAll('NAME', escaped), 'i').test(lower),
+  );
+}

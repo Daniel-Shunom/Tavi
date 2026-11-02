@@ -57,7 +57,6 @@ describe('autonomous life', () => {
       { body: 'nap' as const },
       { body: 'doze' as const },
       { busy: true },
-      { initiative: false },
       { manualHold: true },
     ])
       expect(run(neutralAffect, 10, partial)).toEqual([]);
@@ -172,5 +171,109 @@ describe('manual controls pause autonomous life, then it resumes', () => {
     expect(result.first).toBeGreaterThanOrEqual(low);
     expect(result.first).toBeLessThanOrEqual(high);
     expect(result.walks).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe('pacing calms her, sulking stills her', () => {
+  it('after a run of big moments she keeps walking, just calmer and without play', () => {
+    const calm = run({ ...neutralAffect, boredom: 1, arousal: 0.6, pleasure: 0.4 }, 30, {
+      initiative: false,
+    });
+    const normal = run({ ...neutralAffect, boredom: 1, arousal: 0.6, pleasure: 0.4 }, 30);
+    expect(calm.length).toBeGreaterThan(5);
+    expect(calm.length).toBeLessThan(normal.length);
+    expect(calm).not.toContain('play');
+  });
+
+  it('a flurry of stream event previews does not freeze her for long', async () => {
+    const clock = { now: 1_000_000 };
+    const ai = new AiManager(settingsFromEnv({}), undefined, () => clock.now);
+    const companion = new Companion({ config: defaults, catalog, ai, now: () => clock.now });
+    const events: Command[] = [
+      { type: 'preview-stream-event', event: { kind: 'raid', from: 'a', viewers: 50 } },
+      { type: 'preview-stream-event', event: { kind: 'gift', user: 'b', count: 20 } },
+      { type: 'preview-stream-event', event: { kind: 'cheer', user: 'c', bits: 5000 } },
+      { type: 'preview-stream-event', event: { kind: 'hype-train', phase: 'begin', level: 1 } },
+      {
+        type: 'preview-stream-event',
+        event: { kind: 'subscription', user: 'd', tier: '3000', gifted: false },
+      },
+    ];
+    for (const command of events) {
+      await companion.handle(command);
+      clock.now += 3000;
+      companion.tick();
+    }
+    const start = clock.now;
+    let first = -1;
+    companion.subscribe((state) => {
+      if (first < 0 && state.performance.movement?.source === 'idle') first = clock.now - start;
+    });
+    for (let i = 0; i < 5 * 60; i++) {
+      clock.now += 1000;
+      companion.tick();
+    }
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThan(90_000);
+  });
+
+  it('told to stand down, she stays put for about four minutes, longer if scolded again', async () => {
+    const clock = { now: 1_000_000 };
+    const ai = new AiManager(settingsFromEnv({}), undefined, () => clock.now);
+    const companion = new Companion({ config: defaults, catalog, ai, now: () => clock.now });
+    const walksBetween = (from: number, to: number, log: number[]) =>
+      log.filter((at) => at >= from && at < to).length;
+    const walks: number[] = [];
+    const seen = new Set<string>();
+    companion.subscribe((state) => {
+      const movement = state.performance.movement;
+      if (movement?.source === 'idle' && !seen.has(movement.id)) {
+        seen.add(movement.id);
+        walks.push(clock.now);
+      }
+    });
+    const scoldAt = clock.now;
+    await companion.utterance({ id: 's1', text: 'Tavi, stand down', at: clock.now, via: 'typed' });
+    clock.now += 10_000;
+    await companion.utterance({ id: 's2', text: 'bad tavi', at: clock.now, via: 'typed' });
+    for (let i = 0; i < 12 * 60; i++) {
+      clock.now += 1000;
+      companion.tick();
+    }
+    const minute = 60_000;
+    // No walking while sulking (two scoldings: about six minutes).
+    expect(walksBetween(scoldAt, scoldAt + 5.5 * minute, walks)).toBe(0);
+    // Then she gets going again.
+    expect(walksBetween(scoldAt + 5.5 * minute, scoldAt + 12 * minute, walks)).toBeGreaterThan(2);
+  });
+});
+
+describe('making up after a scolding', () => {
+  it.each([
+    ['sorry tavi', true],
+    ["it's okay Tavi", true],
+    ['good girl', true],
+    ['tavi come back', true],
+    ['the Stand button', false],
+  ])('%s gets her walking again within a minute', async (line, spoken) => {
+    const clock = { now: 1_000_000 };
+    const ai = new AiManager(settingsFromEnv({}), undefined, () => clock.now);
+    const companion = new Companion({ config: defaults, catalog, ai, now: () => clock.now });
+    await companion.utterance({ id: 's1', text: 'Tavi, stand down', at: clock.now, via: 'typed' });
+    clock.now += 20_000;
+    companion.tick();
+    if (spoken) await companion.utterance({ id: 'f1', text: line, at: clock.now, via: 'typed' });
+    else await companion.handle({ type: 'state', state: 'stand' });
+    const start = clock.now;
+    let first = -1;
+    companion.subscribe((state) => {
+      if (first < 0 && state.performance.movement?.source === 'idle') first = clock.now - start;
+    });
+    for (let i = 0; i < 3 * 60; i++) {
+      clock.now += 1000;
+      companion.tick();
+    }
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThan(spoken ? 60_000 : 130_000);
   });
 });

@@ -26,6 +26,7 @@ export const activityIds = [
   'play', // a little dance or hop (bored but energetic)
   'go-home', // head back to the home spot
   'decompress', // overwhelmed or upset: retreat home and grumble
+  'sulk', // told off: stays put, minimal movement (only via LifeDirector.sulk)
 ] as const;
 export type ActivityId = (typeof activityIds)[number];
 
@@ -63,7 +64,10 @@ export interface LifeContext {
   retracted: boolean;
   /** Streamer talking, a streamer cue playing, or any reaction/movement in progress. */
   busy: boolean;
-  /** Pacing director allows initiative (not relaxing after a peak). */
+  /**
+   * Pacing director allows initiative. False after a run of big moments: she keeps living but
+   * calmer (slower rhythm, no play). It never stops her.
+   */
   initiative: boolean;
   /** Is Tavi away from home right now? */
   awayFromHome: boolean;
@@ -81,12 +85,18 @@ export const lifeRules = {
   travelling: ['wander', 'visit-chat', 'check-streamer', 'play'] as readonly ActivityId[],
   /** Pick among the best few. */
   topK: 3,
+  /** Sulking after being told off: first scolding, and the most it can stack to. */
+  sulkMs: 240_000,
+  /** Each further scolding while sulking adds this much. */
+  sulkExtendMs: 120_000,
+  maxSulkMs: 480_000,
 } as const;
 
 export class LifeDirector {
   private nextAt: number;
   private history: ActivityId[] = [];
   private count = 0;
+  private sulkUntil = -Infinity;
   constructor(now: number) {
     // A short first wait so a fresh overlay comes alive quickly.
     this.nextAt = now + 20_000;
@@ -95,11 +105,30 @@ export class LifeDirector {
   defer(now: number, ms = 15_000) {
     this.nextAt = Math.max(this.nextAt, now + ms);
   }
+  /**
+   * Told off: she sulks in place with minimal movement. The first scolding lasts
+   * `lifeRules.sulkMs`; scolding again extends it, up to `lifeRules.maxSulkMs` from now.
+   */
+  sulk(now: number) {
+    this.sulkUntil =
+      this.sulkUntil > now
+        ? Math.min(now + lifeRules.maxSulkMs, this.sulkUntil + lifeRules.sulkExtendMs)
+        : now + lifeRules.sulkMs;
+    this.nextAt = now + 40_000;
+  }
+  sulking(now: number) {
+    return now < this.sulkUntil;
+  }
+  /** Made up with her (or the streamer stood her up): back into the loop right away. */
+  endSulk(now: number) {
+    this.sulkUntil = -Infinity;
+    this.nextAt = now + 4_000;
+  }
   tick(context: LifeContext): LifeAction | null {
     const { now, body } = context;
     if (context.retracted || context.quiet) return null;
     if (body && (sleepingStates.includes(body) || body === 'peek')) return null;
-    if (context.busy || !context.initiative || context.manualHold) {
+    if (context.busy || context.manualHold) {
       // Try again soon after whatever is happening ends.
       this.nextAt = Math.max(this.nextAt, now + 5_000);
       return null;
@@ -108,6 +137,25 @@ export class LifeDirector {
     const seated = body === 'sit' || body === 'lean' || body === 'perch';
     const seed = `${String(this.count)}:${String(Math.floor(now / 1000))}`;
     this.count++;
+    if (this.sulking(now)) {
+      // Minimal movement: an occasional sad glance or pout, never a walk.
+      this.nextAt = now + 35_000 + 30_000 * hash01('sulk' + seed);
+      return {
+        activity: 'sulk',
+        beats: [
+          {
+            expression: (['pout', 'look-away', 'sad', 'frown'] as const)[
+              Math.floor(hash01('sulkface' + seed) * 4) % 4
+            ] as ExpressionId,
+            hold: 2.2,
+            intensity: 0.5,
+          },
+        ],
+        standUp: false,
+        note: 'Still sulking after being told off.',
+        scores: [],
+      };
+    }
     this.nextAt = now + interval(context, seated) * (0.7 + 0.6 * hash01('gap' + seed));
 
     // Seated, the only question is where to go next: sitting is a break, not a destination.
@@ -115,6 +163,7 @@ export class LifeDirector {
       ? activityIds.filter((id) => lifeRules.travelling.includes(id))
       : activityIds;
     const scored = candidates
+      .filter((id) => id !== 'sulk' && (context.initiative || id !== 'play'))
       .map((id) => ({ id, score: score(id, context, seated) * this.recency(id) }))
       .filter((entry) => entry.score > 0.05)
       .sort((a, b) => b.score - a.score);
@@ -153,7 +202,11 @@ function interval(context: LifeContext, seated: boolean) {
   const energy = 1.3 - 0.6 * (Math.max(0, Math.min(100, context.persona.energy)) / 100);
   // Aroused: sooner. Tired: later.
   const affect = (1 - 0.35 * context.affect.arousal) * (1 + 0.6 * context.affect.fatigue);
-  return base * personality * energy * affect * (seated ? lifeRules.sittingIntervalScale : 1);
+  // After a run of big moments (pacing relaxing) she keeps going, just at a calmer rhythm.
+  const calm = context.initiative ? 1 : 1.8;
+  return (
+    base * personality * energy * affect * calm * (seated ? lifeRules.sittingIntervalScale : 1)
+  );
 }
 
 /** Utility of each activity right now (0..~1.5). Considerations multiply. */
@@ -203,6 +256,8 @@ function score(id: ActivityId, context: LifeContext, seated: boolean): number {
             (personality === 'playful' ? 1.5 : personality === 'shy' ? 0.6 : 1);
     case 'go-home':
       return context.awayFromHome && !seated ? 0.3 + 0.5 * a.fatigue : 0;
+    case 'sulk':
+      return 0;
     case 'decompress':
       // Prolonged stress (overload) or a sour mood: she wants out of the spotlight.
       return seated ? 0 : 1.2 * a.overload + 0.8 * Math.max(0, -a.pleasure - 0.15);
@@ -338,6 +393,12 @@ function perform(
         ...travel,
         beats: [],
         note: 'Heading back to her spot.',
+      };
+    case 'sulk':
+      return {
+        activity: id,
+        beats: [{ expression: 'pout', hold: 2.2, intensity: 0.5 }],
+        note: 'Sulking.',
       };
     case 'decompress': {
       const overwhelmed = a.overload >= 0.4;

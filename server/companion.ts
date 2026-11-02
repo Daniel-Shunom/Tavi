@@ -63,7 +63,7 @@ import {
   type Spot,
 } from '../shared/states.js';
 import { shadeForMood, streamEventReaction } from './behavior/streamEvents.js';
-import { isScolding } from './behavior/scold.js';
+import { isForgiving, isScolding } from './behavior/scold.js';
 import { streamEventSchema, type StreamEvent } from '../shared/streamEvents.js';
 
 export interface CompanionOptions {
@@ -112,6 +112,7 @@ export class Companion {
   private readonly seenStreamEvents = new Set<string>();
   private readonly eventCooldowns = new Map<string, number>();
   private lastScold = -Infinity;
+  private wasSulking = false;
   private lastAiState = -Infinity;
   private timer: ReturnType<typeof setInterval> | null = null;
   constructor(private readonly options: CompanionOptions) {
@@ -446,6 +447,7 @@ export class Companion {
         return;
       }
       case 'state': {
+        if (command.state === 'stand') this.life.endSulk(this.now());
         if (this.current.retracted) {
           this.perform({ note: 'Tucked away. Bring the companion back first.' });
           return;
@@ -914,19 +916,24 @@ export class Companion {
    * webcam and sits there for a while. Returns whether the line was a scolding.
    */
   private scold(event: ContextEvent, priority: number): boolean {
+    if (this.life.sulking(this.now()) && isForgiving(event.text, this.current.config.name)) {
+      this.forgive(event, priority);
+      return true;
+    }
     if (!isScolding(event.text, this.current.config.name)) return false;
     const now = this.now();
     this.abortPending('Scolded.');
     this.feel('scolded');
     if (now - this.lastScold < 20_000) {
-      this.perform({ note: 'Already sulking.' });
+      this.life.sulk(now);
+      this.perform({ note: 'Already sulking: sulking longer.' });
       return true;
     }
     this.lastScold = now;
     this.affect.tire(now, 0.25);
     this.publishAffect();
-    // Sulk for a while before wandering off again.
-    this.life.defer(now, 120_000);
+    // Sulk for a while (minimal movement) before wandering off again; scolding again extends it.
+    this.life.sulk(now);
     const decidedBy: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
     const target = event.source === 'streamer' ? 'streamer' : 'chat';
     const source = event.source === 'streamer' ? 'streamer' : 'chat';
@@ -952,6 +959,37 @@ export class Companion {
       reason: 'Got told off: sulking by the webcam.',
     });
     return true;
+  }
+  /** Made up after a scolding: she perks up, stands and rejoins the loop. */
+  private forgive(event: ContextEvent, priority: number) {
+    const now = this.now();
+    this.life.endSulk(now);
+    this.feel('forgiven');
+    this.publishAffect();
+    const decidedBy: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
+    const source = event.source === 'streamer' ? 'streamer' : 'chat';
+    const target = event.source === 'streamer' ? 'streamer' : 'chat';
+    this.setBody('stand', {
+      source,
+      decidedBy,
+      priority,
+      sourceEventId: event.id,
+      keepMovement: true,
+      reason: 'Made up: back on her feet.',
+    });
+    this.director.engage(now, 'activity');
+    const { script } = this.script({
+      source,
+      sourceEventId: event.id,
+      decidedBy,
+      priority,
+      beats: [
+        beat('blush', { target, hold: 1.4, intensity: 0.5 }),
+        beat('soft-smile', { target, offset: 1.2, hold: 1.8, intensity: 0.55 }),
+      ],
+      settle: true,
+    });
+    this.schedule(script, 'reacting', 'Made up: back to her old self.');
   }
   private clearLocal(eventId: string, note: string) {
     const script = this.current.performance.script;
@@ -1057,6 +1095,9 @@ export class Companion {
     const active = this.activeScript();
     const scene = { scene: state.config.scene, home: this.home() };
     this.publishAffect();
+    const sulking = this.life.sulking(now);
+    if (this.wasSulking && !sulking) this.director.engage(now, 'activity');
+    this.wasSulking = sulking;
     const affect = this.current.performance.affect;
     const action = this.director.tick({
       now,
@@ -1077,7 +1118,8 @@ export class Companion {
         perch: resolveSpot('perch', scene) !== null,
         lean: resolveSpot('lean', scene) !== null,
       },
-      restScale: affect ? restScale(affect) : 1,
+      // Sulking is awake: she does not doze off until the sulk is over.
+      restScale: this.life.sulking(now) ? 4 : affect ? restScale(affect) : 1,
       initiative: this.pacing.allowsInitiative(now),
     });
     if (action) this.applyAction(action);
