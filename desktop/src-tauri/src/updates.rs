@@ -35,6 +35,9 @@ async fn check(
     app: &AppHandle,
     before_install: impl FnOnce() + Send + 'static,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if !self_updating() {
+        return Ok(());
+    }
     let Some(update) = app.updater()?.check().await? else {
         return Ok(());
     };
@@ -55,8 +58,31 @@ async fn check(
     let bytes = update.download(|_, _| {}, || {}).await?;
     before_install();
     // Windows: hands over to the installer, which closes and relaunches Tavi Studio.
-    update.install(bytes)?;
+    if let Err(error) = update.install(bytes) {
+        // The service is already stopped: tell the streamer, then restart on the current
+        // version so the service (and the OBS overlay) come back.
+        let dialog = app
+            .dialog()
+            .message(format!(
+                "The update could not be installed ({error}).
+
+Tavi Studio will restart on                  the current version."
+            ))
+            .title("Tavi Studio update")
+            .kind(MessageDialogKind::Error);
+        let _ = tauri::async_runtime::spawn_blocking(move || dialog.blocking_show()).await;
+    }
     app.restart();
+}
+
+/// Linux updates only replace an AppImage (Tauri sets `APPIMAGE` when running one); .deb
+/// installs update through the system package manager, so they never see an update prompt.
+fn self_updating() -> bool {
+    if cfg!(target_os = "linux") {
+        std::env::var_os("APPIMAGE").is_some()
+    } else {
+        true
+    }
 }
 
 fn prompt(current: &str, next: &str) -> String {
