@@ -69,7 +69,8 @@ export class ChatBurst {
   }
 }
 
-export type Engagement = 'studio' | 'streamer' | 'addressed' | 'burst';
+/** `activity`: Tavi got up to do something on her own (restarts the quiet clock only). */
+export type Engagement = 'studio' | 'streamer' | 'addressed' | 'burst' | 'activity';
 
 export interface DirectorContext {
   now: number;
@@ -81,6 +82,10 @@ export interface DirectorContext {
   streamerBusy: boolean;
   /** Which settle states the scene supports. */
   available: Readonly<Record<'sit' | 'perch' | 'lean', boolean>>;
+  /** Multiplies the quiet-time schedule (affect: tired or bored settles sooner). Default 1. */
+  restScale?: number;
+  /** False while the pacing director is relaxing after a peak: no chat-burst peeks. */
+  initiative?: boolean;
 }
 export interface StateAction {
   state: BodyStateId;
@@ -182,6 +187,7 @@ export class StateDirector {
     if (
       !context.quiet &&
       !context.streamerBusy &&
+      context.initiative !== false &&
       now - this.lastStreamer >= quietRules.streamerGraceMs &&
       this.burst.isBurst(now, persona) &&
       this.canPeek(now, persona) &&
@@ -212,7 +218,7 @@ export class StateDirector {
       if (now >= this.sleepWakeAt) {
         this.sleepWakeAt = null;
         // Restart the quiet clock at "just settled" so it dozes again after the doze interval.
-        const schedule = quietSchedule(persona);
+        const schedule = scaled(quietSchedule(persona), context.restScale);
         this.lastEngagement = now - schedule.settle;
         return {
           state: 'sit',
@@ -229,7 +235,7 @@ export class StateDirector {
     if (context.quiet || context.streamerBusy) return null;
     if (now - this.lastStreamer < quietRules.streamerGraceMs) return null;
     const quiet = now - this.lastEngagement;
-    const schedule = quietSchedule(persona);
+    const schedule = scaled(quietSchedule(persona), context.restScale);
     const awake = this.chatAwake(now);
     if (state === 'doze' && quiet >= schedule.lie && !awake)
       return {
@@ -275,4 +281,12 @@ export class StateDirector {
     }
     return null;
   }
+}
+
+function scaled(schedule: { settle: number; doze: number; lie: number }, scale = 1) {
+  return {
+    settle: schedule.settle * scale,
+    doze: schedule.doze * scale,
+    lie: schedule.lie * scale,
+  };
 }

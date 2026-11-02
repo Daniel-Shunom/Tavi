@@ -20,7 +20,9 @@ import {
   withChanges,
 } from './variants.js';
 import { bodyCueSchema, defaultScene, requestableStates, sceneSchema } from './states.js';
+import { affectSnapshotSchema } from './affect.js';
 import { defaultSupportSettings, supportPreviewSchema, supportSettingsSchema } from './support.js';
+import { streamEventBodySchema } from './streamEvents.js';
 
 export const CONFIG_VERSION = 3;
 /** Used when a saved character id is unknown. Characters themselves live in manifests. */
@@ -168,6 +170,8 @@ export const performanceSchema = z
     presence: presenceTransitionSchema.nullable(),
     /** Current body state (sit, nap, peek...); null = standing at home. */
     body: bodyCueSchema.nullable().default(null),
+    /** Tavi's current mood and drives (rules, never AI); null until the service reports one. */
+    affect: affectSnapshotSchema.nullable().default(null),
     note: z.string().max(400),
   })
   .strict();
@@ -231,6 +235,8 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('simulate'), source: z.literal('chat'), text }).strict(),
   /** A test event, never a claim that a donation or subscription was received. */
   z.object({ type: z.literal('preview-support-event'), event: supportPreviewSchema }).strict(),
+  /** A test stream event (follow, raid, hype train...), never a claim that it happened. */
+  z.object({ type: z.literal('preview-stream-event'), event: streamEventBodySchema }).strict(),
 ]);
 export type Command = z.infer<typeof commandSchema>;
 export const serverMessageSchema = z.discriminatedUnion('type', [
@@ -250,6 +256,7 @@ export function initialState(config: Config = defaults): State {
       movement: null,
       presence: null,
       body: null,
+      affect: null,
       note: 'Ready to hang out.',
     },
   };

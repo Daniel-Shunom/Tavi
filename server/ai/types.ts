@@ -43,6 +43,8 @@ export interface DecisionContext {
   canChangeState?: boolean;
   /** The current body state, e.g. "sit" or "nap". */
   bodyState?: string;
+  /** Plain-language mood from the affect model, e.g. "upbeat, a bit sleepy". */
+  mood?: string;
 }
 export interface ProviderInfo {
   id: 'rules' | 'openai' | 'anthropic' | (string & {});

@@ -1,6 +1,20 @@
 import { z } from 'zod';
 export const TWITCH_CLIENT_ID = 'stdwkc13njfgfgvspbj8sls28zra0h';
-export const TWITCH_SCOPES = ['user:read:chat'];
+/**
+ * Read-only scopes. Chat is required; the rest let Tavi see stream events (follows need
+ * moderator:read:followers; subs, cheers, channel points and hype trains need an affiliate
+ * channel). Adding scopes asks streamers to reconnect Twitch once.
+ */
+export const TWITCH_SCOPES = [
+  'user:read:chat',
+  'moderator:read:followers',
+  'channel:read:subscriptions',
+  'bits:read',
+  'channel:read:redemptions',
+  'channel:read:hype_train',
+];
+/** Only chat is required; the event scopes are requested but optional. */
+export const REQUIRED_TWITCH_SCOPES = ['user:read:chat'];
 export const chatMessageSchema = z.object({
   id: z.string().max(200),
   userId: z.string().max(100),

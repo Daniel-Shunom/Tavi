@@ -46,9 +46,14 @@ import { chatGate } from './twitch/reactions.js';
 import { StateDirector, type Engagement, type StateAction } from './behavior/states.js';
 import { supportEventSchema, supportTier, type SupportEvent } from '../shared/support.js';
 import { supportBeats } from './behavior/support.js';
+import { PacingDirector, type ReactionSize } from './behavior/pacing.js';
+import { LifeDirector, type LifeAction } from './behavior/life.js';
+import { Affect, restScale, type AffectPersona, type Stimulus } from '../shared/affect.js';
+import { clampIntensity } from '../shared/expressions.js';
 import {
   atSpotApproach,
   bodyStates,
+  floorOf,
   hash01,
   resolveSpot,
   sameSpot,
@@ -57,6 +62,9 @@ import {
   type BodyStateId,
   type Spot,
 } from '../shared/states.js';
+import { shadeForMood, streamEventReaction } from './behavior/streamEvents.js';
+import { isForgiving, isScolding } from './behavior/scold.js';
+import { streamEventSchema, type StreamEvent } from '../shared/streamEvents.js';
 
 export interface CompanionOptions {
   config: Config;
@@ -76,6 +84,10 @@ interface Pending {
   deadline: number;
 }
 const MOVE_COOLDOWN_MS = 45_000;
+/** Viewers can scold her at most this often. */
+const CHAT_SCOLD_COOLDOWN_MS = 300_000;
+/** After a manual move, autonomous life lets her stay put this long before wandering again. */
+const MANUAL_MOVE_HOLD_MS = 60_000;
 /** A provider may change the body state at most this often. */
 const AI_STATE_COOLDOWN_MS = 90_000;
 /** Decisions arriving later than this after their input are stale and dropped. */
@@ -93,11 +105,26 @@ export class Companion {
   private sequence = 0;
   private readonly now: () => number;
   private readonly director: StateDirector;
+  /** Inner life: emotions, mood, fatigue, boredom (rules, never AI). */
+  private readonly affect: Affect;
+  /** Intensity budget for automatic reactions. */
+  private readonly pacing: PacingDirector;
+  /** Autonomous life: what Tavi does by herself when nothing is happening. */
+  private readonly life: LifeDirector;
+  private readonly seenStreamEvents = new Set<string>();
+  private readonly eventCooldowns = new Map<string, number>();
+  private lastScold = -Infinity;
+  /** Chat may scold at most this often; only the streamer extends a sulk or tires her. */
+  private lastChatScold = -Infinity;
+  private wasSulking = false;
   private lastAiState = -Infinity;
   private timer: ReturnType<typeof setInterval> | null = null;
   constructor(private readonly options: CompanionOptions) {
     this.now = options.now ?? Date.now;
     this.director = new StateDirector(this.now());
+    this.affect = new Affect(this.now(), affectPersona(options.config));
+    this.pacing = new PacingDirector(this.now());
+    this.life = new LifeDirector(this.now());
     if (options.tickMs) {
       this.timer = setInterval(() => {
         this.tick();
@@ -116,6 +143,7 @@ export class Companion {
         movement: null,
         presence: null,
         body: null,
+        affect: this.affect.snapshot(),
         note: 'Ready to hang out.',
       },
     };
@@ -163,6 +191,55 @@ export class Companion {
     if (!this.pending) return;
     this.pending.controller.abort(new Error(reason));
     this.pending = null;
+  }
+  private asleep() {
+    const body = this.current.performance.body;
+    return !!body && sleepingStates.includes(body.state);
+  }
+  /** Feeds the affect model. Never changes what plays by itself; it shades timing and motion. */
+  private feel(stimulus: Stimulus) {
+    this.affect.feel(this.now(), stimulus, this.asleep());
+  }
+  /** Rule-written beats played the way she currently feels (shared with stream events). */
+  private moodBeats(beats: Beat[]): Beat[] {
+    const shaded = shadeForMood(
+      {
+        beats,
+        size: 'small',
+        stimulus: 'chat',
+        cooldownKey: '',
+        cooldownMs: 0,
+        wake: false,
+        note: '',
+      },
+      this.affect.snapshot(),
+    );
+    return shaded.beats.map((value, i) => {
+      const original = beats[i];
+      return {
+        ...(original ?? value),
+        expression: value.expression,
+        intensity: clampIntensity(value.expression, value.intensity ?? 0.6),
+      } as Beat;
+    });
+  }
+  /** Automatic reactions spend the pacing budget; while relaxing they play softer. */
+  private paced(beats: Beat[], size: ReactionSize): Beat[] {
+    const scale = this.pacing.react(this.now(), size);
+    if (scale === 1) return beats;
+    return beats.map((value) => ({
+      ...value,
+      intensity: clampIntensity(value.expression, value.intensity * scale),
+    }));
+  }
+  /** Publishes the affect snapshot when it changes (quantized, so rarely). No revision bump. */
+  private publishAffect() {
+    this.affect.setPersona(affectPersona(this.current.config));
+    this.affect.step(this.now(), this.asleep());
+    const next = this.affect.snapshot();
+    const previous = this.current.performance.affect;
+    if (previous && JSON.stringify(previous) === JSON.stringify(next)) return;
+    this.set({ ...this.current, performance: { ...this.current.performance, affect: next } });
   }
   private activeScript() {
     const script = this.current.performance.script;
@@ -221,16 +298,21 @@ export class Companion {
     priority: number;
     sourceEventId: string;
     gait?: Movement['gait'];
+    mood?: Movement['mood'];
     stay?: number;
   }): boolean {
     const active = this.current.performance.movement;
     const now = this.now();
-    if (
-      active &&
-      active.priority > input.priority &&
-      (active.stay === undefined || now < active.startAt + (active.stay + 10) * 1000)
-    )
-      return false;
+    // A higher-priority movement holds the stage. One with no planned stay (a manual move,
+    // a new home spot) yields to autonomous life after MANUAL_MOVE_HOLD_MS; other sources wait
+    // until it is replaced.
+    const hold =
+      active?.stay !== undefined
+        ? (active.stay + 10) * 1000
+        : input.priority === priorities.idle
+          ? MANUAL_MOVE_HOLD_MS
+          : Infinity;
+    if (active && active.priority > input.priority && now < active.startAt + hold) return false;
     const movement: Movement = {
       id: this.id('move'),
       sourceEventId: input.sourceEventId,
@@ -243,6 +325,7 @@ export class Companion {
       expiresAt: now + 3000,
       ...(input.anchor ? { anchor: input.anchor } : {}),
       ...(input.gait ? { gait: input.gait } : {}),
+      ...(input.mood ? { mood: input.mood } : {}),
       ...(input.stay !== undefined ? { stay: input.stay } : {}),
     };
     this.perform({ movement });
@@ -259,7 +342,8 @@ export class Companion {
       command.type !== 'quiet' &&
       command.type !== 'say' &&
       command.type !== 'simulate' &&
-      command.type !== 'preview-support-event'
+      command.type !== 'preview-support-event' &&
+      command.type !== 'preview-stream-event'
     )
       this.engage('studio', command.type === 'perform');
     switch (command.type) {
@@ -368,6 +452,7 @@ export class Companion {
         return;
       }
       case 'state': {
+        if (command.state === 'stand') this.life.endSulk(this.now());
         if (this.current.retracted) {
           this.perform({ note: 'Tucked away. Bring the companion back first.' });
           return;
@@ -462,6 +547,12 @@ export class Companion {
           true,
         );
         return;
+      case 'preview-stream-event':
+        this.streamEvent(
+          { ...command.event, id: this.id('stream-preview'), receivedAt: this.now() },
+          true,
+        );
+        return;
       case 'preview-support-event':
         this.supportEvent(
           {
@@ -511,7 +602,10 @@ export class Companion {
       sourceEventId: event.id,
       decidedBy: { kind: 'rules', label: 'Support event rules (not AI)' },
       priority: priorities.chat,
-      beats: supportBeats(tier, event.kind, this.current.performance.body === null),
+      beats: this.paced(
+        this.moodBeats(supportBeats(tier, event.kind, this.current.performance.body === null)),
+        tier === 'big' ? 'large' : tier,
+      ),
       settle: true,
     });
     const accepted = this.schedule(
@@ -519,11 +613,109 @@ export class Companion {
       'reacting',
       `${simulated ? 'Simulated' : 'Received'} ${event.kind}: ${tier} reaction, looking toward chat.`,
     );
+    this.feel(
+      tier === 'big' ? 'support-large' : tier === 'medium' ? 'support-medium' : 'support-small',
+    );
     if (accepted) {
       this.lastSupportReaction = now;
       this.engage('addressed', false);
     }
     return { accepted, reason: accepted ? `${tier} reaction` : 'A higher priority cue is active.' };
+  }
+
+  /** Twitch stream events: follows, raids, subs, gifts, cheers, hype trains, redemptions. */
+  streamEvent(input: StreamEvent, simulated = false): { accepted: boolean; reason: string } {
+    const prefix = simulated ? 'Preview (not real): ' : '';
+    const skip = (reason: string) => {
+      if (simulated) this.perform({ note: `${prefix}stream event skipped: ${reason}` });
+      return { accepted: false, reason };
+    };
+    const parsed = streamEventSchema.safeParse(input);
+    if (!parsed.success) return skip('the event is invalid.');
+    const event = parsed.data;
+    if (this.seenStreamEvents.has(event.id)) return skip('already handled.');
+    // Remember suppressed events too: leaving quiet mode never replays a backlog.
+    this.seenStreamEvents.add(event.id);
+    if (this.seenStreamEvents.size > 512) {
+      const oldest = this.seenStreamEvents.values().next().value;
+      if (oldest !== undefined) this.seenStreamEvents.delete(oldest);
+    }
+    const now = this.now();
+    if (now - event.receivedAt > 15_000 || event.receivedAt - now > 5_000)
+      return skip('the event is stale.');
+    // She feels it even when she cannot show it; then shows it the way she feels.
+    this.feel(streamEventReaction(event).stimulus);
+    const reaction = shadeForMood(streamEventReaction(event), this.affect.snapshot());
+    if (this.current.retracted) return skip('tucked away.');
+    if (this.current.quiet) return skip('quiet mode is on.');
+    // Previews skip cooldowns so every click plays (the hype-train button steps through levels).
+    if (
+      !simulated &&
+      now - (this.eventCooldowns.get(reaction.cooldownKey) ?? -Infinity) < reaction.cooldownMs
+    )
+      return skip('a similar event just played.');
+    if (this.pending && this.pending.priority > priorities.chat)
+      return skip('the streamer comes first.');
+    const active = this.activeScript();
+    if (active && active.priority > priorities.chat) return skip('the streamer comes first.');
+    this.eventCooldowns.set(reaction.cooldownKey, now);
+    this.life.defer(now, 20_000);
+    if (reaction.wake) this.engage('addressed', true);
+    else this.director.engage(now, 'addressed');
+    const decidedBy: DecidedBy = { kind: 'rules', label: 'Stream event rules (not AI)' };
+    if (reaction.toChat && this.current.config.initiative !== 'reserved') {
+      const home = this.home();
+      if (this.current.performance.body)
+        this.setBody('stand', {
+          source: 'chat',
+          decidedBy,
+          priority: priorities.chat,
+          sourceEventId: event.id,
+          keepMovement: true,
+        });
+      this.movement({
+        kind: 'move-to',
+        to: {
+          x: anchorPoint('chat', this.current.config.scene).x,
+          y: floorOf(this.current.config.scene, home),
+        },
+        source: 'chat',
+        decidedBy,
+        priority: priorities.chat,
+        sourceEventId: event.id,
+        gait: 'walk',
+        mood: 'excited',
+        stay: 10,
+      });
+    }
+    const { script } = this.script({
+      source: 'event',
+      sourceEventId: event.id,
+      decidedBy,
+      priority: priorities.chat,
+      beats: this.paced(
+        reaction.beats.map((value) =>
+          beat(value.expression, {
+            ...(value.target ? { target: value.target } : {}),
+            ...(value.hold !== undefined ? { hold: value.hold } : {}),
+            ...(value.intensity !== undefined ? { intensity: value.intensity } : {}),
+            ...(value.offset !== undefined ? { offset: value.offset } : {}),
+          }),
+        ),
+        reaction.size,
+      ),
+      settle: true,
+    });
+    const accepted = this.schedule(script, 'reacting', prefix + reaction.note);
+    if (accepted && reaction.body)
+      this.setBody(reaction.body, {
+        source: 'chat',
+        decidedBy,
+        priority: priorities.chat,
+        sourceEventId: event.id,
+        reason: reaction.note,
+      });
+    return { accepted, reason: accepted ? reaction.note : 'A higher priority cue is active.' };
   }
 
   private retract(value: boolean, override?: ChoreographyPreference) {
@@ -570,6 +762,7 @@ export class Companion {
     change:
       { type: 'delete'; id: string } | { type: 'clearUser'; userId: string } | { type: 'clear' },
   ) {
+    this.feel('moderation');
     const script = this.current.performance.script;
     const affected = (eventId: string | undefined) =>
       change.type === 'delete' ? eventId === change.id : eventId !== undefined;
@@ -605,14 +798,18 @@ export class Companion {
       this.perform({ note: 'Quiet mode: heard you, staying quiet.' });
       return;
     }
+    if (this.scold(event, priorities.streamer)) return;
     await this.converse(event, priorities.streamer);
   }
   async chat(message: ChatMessage, simulated = false) {
     // Every message feeds the chat-burst detector, addressed or not.
     this.director.chat(this.now(), message.userId + (simulated ? ':' + message.id : ''));
+    this.feel('chat');
     const gate = chatGate(this.current, message, this.now(), this.lastChatReaction);
-    if (gate.allowed) this.engage('addressed', false);
-    else if (this.director.stir(this.now(), this.current.performance.body)) {
+    if (gate.allowed) {
+      this.feel('addressed');
+      this.engage('addressed', false);
+    } else if (this.director.stir(this.now(), this.current.performance.body)) {
       const body = this.current.performance.body;
       if (body) this.perform({ body: { ...body, stirAt: this.now() } });
     }
@@ -640,6 +837,7 @@ export class Companion {
       return;
     }
     this.lastChatReaction = this.now();
+    if (this.scold(event, priorities.chat)) return;
     await this.converse(event, priorities.chat);
   }
 
@@ -704,6 +902,9 @@ export class Companion {
             (event.source === 'streamer' || this.current.config.initiative !== 'reserved') &&
             now - this.lastAiState > AI_STATE_COOLDOWN_MS,
           bodyState: this.current.performance.body?.state ?? 'stand',
+          ...(this.current.performance.affect
+            ? { mood: this.current.performance.affect.label }
+            : {}),
         },
         controller.signal,
       );
@@ -718,6 +919,95 @@ export class Companion {
     }
     if (this.current.retracted || (this.current.quiet && priority < priorities.manual)) return;
     this.apply(result, event, priority, label);
+  }
+  /**
+   * Told off ("stand down", "bad Tavi"): sad and tired, she sulks over to her seat by the
+   * webcam and sits there for a while. Returns whether the line was a scolding.
+   */
+  private scold(event: ContextEvent, priority: number): boolean {
+    if (this.life.sulking(this.now()) && isForgiving(event.text, this.current.config.name)) {
+      this.forgive(event, priority);
+      return true;
+    }
+    if (!isScolding(event.text, this.current.config.name)) return false;
+    const now = this.now();
+    if (event.source !== 'streamer') {
+      // Viewers can make her sad, but cannot keep her sulking: once per CHAT_SCOLD_COOLDOWN_MS,
+      // never while already sulking, and without the fatigue drain.
+      if (this.life.sulking(now) || now - this.lastChatScold < CHAT_SCOLD_COOLDOWN_MS) {
+        this.perform({ note: 'Chat tried to tell her off; she is ignoring it.' });
+        return true;
+      }
+      this.lastChatScold = now;
+    }
+    this.abortPending('Scolded.');
+    this.feel('scolded');
+    if (event.source === 'streamer' && now - this.lastScold < 20_000) {
+      this.life.sulk(now);
+      this.perform({ note: 'Already sulking: sulking longer.' });
+      return true;
+    }
+    this.lastScold = now;
+    if (event.source === 'streamer') this.affect.tire(now, 0.25);
+    this.publishAffect();
+    // Sulk for a while (minimal movement) before wandering off again; scolding again extends it.
+    this.life.sulk(now);
+    const decidedBy: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
+    const target = event.source === 'streamer' ? 'streamer' : 'chat';
+    const source = event.source === 'streamer' ? 'streamer' : 'chat';
+    const { script } = this.script({
+      source,
+      sourceEventId: event.id,
+      decidedBy,
+      priority,
+      beats: [
+        beat('sad', { target, hold: 1.8, intensity: 0.7 }),
+        beat('pout', { offset: 1.6, hold: 1.6, intensity: 0.6 }),
+        beat('sleepy', { offset: 3, hold: 2.4, intensity: 0.5 }),
+      ],
+      settle: true,
+    });
+    this.schedule(script, 'reacting', 'Got told off: sulking by the webcam.');
+    this.setBody('sit', {
+      source,
+      decidedBy,
+      priority,
+      sourceEventId: event.id,
+      prefer: 'ledge',
+      reason: 'Got told off: sulking by the webcam.',
+    });
+    return true;
+  }
+  /** Made up after a scolding: she perks up, stands and rejoins the loop. */
+  private forgive(event: ContextEvent, priority: number) {
+    const now = this.now();
+    this.life.endSulk(now);
+    this.feel('forgiven');
+    this.publishAffect();
+    const decidedBy: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
+    const source = event.source === 'streamer' ? 'streamer' : 'chat';
+    const target = event.source === 'streamer' ? 'streamer' : 'chat';
+    this.setBody('stand', {
+      source,
+      decidedBy,
+      priority,
+      sourceEventId: event.id,
+      keepMovement: true,
+      reason: 'Made up: back on her feet.',
+    });
+    this.director.engage(now, 'activity');
+    const { script } = this.script({
+      source,
+      sourceEventId: event.id,
+      decidedBy,
+      priority,
+      beats: [
+        beat('blush', { target, hold: 1.4, intensity: 0.5 }),
+        beat('soft-smile', { target, offset: 1.2, hold: 1.8, intensity: 0.55 }),
+      ],
+      settle: true,
+    });
+    this.schedule(script, 'reacting', 'Made up: back to her old self.');
   }
   private clearLocal(eventId: string, note: string) {
     const script = this.current.performance.script;
@@ -737,7 +1027,8 @@ export class Companion {
       return;
     }
     const target = event.source === 'streamer' ? 'streamer' : 'chat';
-    const beats = this.beatsFrom(decision, target);
+    const chosen = this.beatsFrom(decision, target);
+    const beats = priority <= priorities.chat ? this.paced(chosen, 'small') : chosen;
     if (!beats.length && decision.state) {
       // A body-state request on its own ("take a nap").
       const changed = this.applyState(decision.state, event, priority, decidedBy);
@@ -802,9 +1093,11 @@ export class Companion {
   /** Something worth staying awake for: resets the quiet clock and wakes a sleeping Tavi. */
   private engage(kind: Engagement, wake: boolean) {
     this.director.engage(this.now(), kind);
+    if (kind === 'studio' || kind === 'streamer') this.feel(kind);
     if (!wake || this.current.retracted) return;
     const action = this.director.wakeFor(kind, this.current.performance.body);
     if (!action) return;
+    this.feel('woken');
     this.setBody(action.state, {
       source: action.source,
       decidedBy: kind === 'addressed' ? rulesDecider : { kind: 'manual', label: 'Studio' },
@@ -819,6 +1112,11 @@ export class Companion {
     const state = this.current;
     const active = this.activeScript();
     const scene = { scene: state.config.scene, home: this.home() };
+    this.publishAffect();
+    const sulking = this.life.sulking(now);
+    if (this.wasSulking && !sulking) this.director.engage(now, 'activity');
+    this.wasSulking = sulking;
+    const affect = this.current.performance.affect;
     const action = this.director.tick({
       now,
       persona: {
@@ -838,10 +1136,121 @@ export class Companion {
         perch: resolveSpot('perch', scene) !== null,
         lean: resolveSpot('lean', scene) !== null,
       },
+      // Sulking is awake: she does not doze off until the sulk is over.
+      restScale: this.life.sulking(now) ? 4 : affect ? restScale(affect) : 1,
+      initiative: this.pacing.allowsInitiative(now),
     });
     if (action) this.applyAction(action);
+    else this.live(now);
+  }
+  /** Autonomous life: when nothing else is going on, pick something to do. */
+  private live(now: number) {
+    const state = this.current;
+    const body = state.performance.body;
+    const movement = state.performance.movement;
+    const home = this.home();
+    const affect = state.performance.affect;
+    if (!affect) return;
+    const moving = !!movement && now - movement.startAt < ((movement.stay ?? 0) + 8) * 1000;
+    const action = this.life.tick({
+      now,
+      persona: {
+        personality: state.config.personality,
+        initiative: state.config.initiative,
+        energy: state.config.energy,
+      },
+      affect,
+      body: body?.state ?? null,
+      manualHold: body?.source === 'manual' && now - body.startAt < 120_000,
+      quiet: state.quiet,
+      retracted: state.retracted,
+      busy: this.pending !== null || this.activeScript() !== null || moving,
+      initiative: this.pacing.allowsInitiative(now),
+      awayFromHome:
+        !!movement &&
+        movement.stay === undefined &&
+        Math.hypot(movement.to.x - home.x, movement.to.y - home.y) > 0.05,
+      places: {
+        chat: state.config.scene.chat.enabled,
+        webcam: state.config.scene.webcam.enabled,
+        game: state.config.scene.game.enabled,
+      },
+    });
+    if (action) this.applyLife(action, now);
+  }
+  private applyLife(action: LifeAction, now: number) {
+    const eventId = this.id('life');
+    const home = this.home();
+    if (action.standUp) {
+      const stood = this.setBody('stand', {
+        source: 'idle',
+        decidedBy: lifeDecider,
+        priority: priorities.idle,
+        sourceEventId: eventId,
+        keepMovement: true,
+      });
+      if (!stood) return;
+      // Up and about: restart the quiet clock so she does not sit straight back down.
+      this.director.engage(now, 'activity');
+    }
+    let travel = 0;
+    const destination = action.destination;
+    const floor = floorOf(this.current.config.scene, home);
+    if (destination) {
+      // Places are visited on the floor below them, never mid-air.
+      const to =
+        'anchor' in destination
+          ? { x: anchorPoint(destination.anchor, this.current.config.scene).x, y: floor }
+          : 'stageX' in destination
+            ? { x: destination.stageX, y: floor }
+            : home;
+      const from = this.current.performance.movement?.to ?? home;
+      travel = Math.hypot(to.x - from.x, to.y - from.y) / 0.22;
+      const moved = this.movement({
+        kind: 'home' in destination ? 'return' : 'move-to',
+        to,
+
+        source: 'idle',
+        decidedBy: lifeDecider,
+        priority: priorities.idle,
+        sourceEventId: eventId,
+        ...(action.gait ? { gait: action.gait } : {}),
+        ...(action.mood ? { mood: action.mood } : {}),
+        ...(action.stay !== undefined ? { stay: action.stay } : {}),
+      });
+      if (!moved) return;
+    }
+    const note = `${action.note} (life: ${action.scores
+      .map((entry) => `${entry.id} ${entry.score.toFixed(2)}`)
+      .join(', ')})`;
+    if (!action.beats.length) {
+      this.perform({ note });
+      return;
+    }
+    // Act once she gets there.
+    const lead = destination ? Math.min(6, 0.6 + travel) : 0;
+    const { script } = this.script({
+      source: 'idle',
+      sourceEventId: eventId,
+      decidedBy: lifeDecider,
+      priority: priorities.idle,
+      beats: action.beats.map((value) =>
+        beat(value.expression, {
+          ...(value.target ? { target: value.target } : {}),
+          ...(value.hold !== undefined ? { hold: value.hold } : {}),
+          ...(value.intensity !== undefined ? { intensity: value.intensity } : {}),
+          offset: lead + (value.offset ?? 0),
+        }),
+      ),
+      settle: true,
+    });
+    if (!this.schedule(script, 'idle', note)) this.perform({ note });
   }
   private applyAction(action: StateAction) {
+    if (action.state === 'peek' && action.source === 'chat') {
+      this.feel('burst');
+      this.pacing.react(this.now(), 'medium');
+    }
     this.setBody(action.state, {
       source: action.source,
       decidedBy: rulesDecider,
@@ -1021,6 +1430,7 @@ export class Companion {
 }
 
 const rulesDecider: DecidedBy = { kind: 'rules', label: 'Rules (not AI)' };
+const lifeDecider: DecidedBy = { kind: 'rules', label: 'Autonomous life rules (not AI)' };
 
 function describe(
   by: DecidedBy | ProviderInfo,
@@ -1035,4 +1445,8 @@ function describe(
   if (resolution.dropped.length)
     parts.push(`Skipped ${resolution.dropped.map((value) => value.expression).join(', ')}.`);
   return parts.join(' ');
+}
+
+function affectPersona(config: Config): AffectPersona {
+  return { personality: config.personality, attitude: config.attitude, energy: config.energy };
 }

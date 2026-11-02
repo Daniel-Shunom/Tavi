@@ -29,6 +29,7 @@ import {
 import { Performer, smooth } from './timeline';
 import { headPoint, resolveAttention, type AttentionVector } from '../../shared/attention';
 import { clearSceneLanding } from '../../shared/scenePlacement';
+import { effectiveEnergy } from '../../shared/affect';
 import { AttentionSmoother } from './attentionInput';
 import { drawStateEffects } from './motion/states/effects';
 
@@ -238,7 +239,7 @@ export function Avatar({
         const side = (target: Target): -1 | 1 => attend(target)?.side ?? facing;
         const pose = composePose(layers, manifest, {
           reducedMotion,
-          energy: config.energy,
+          energy: effectiveEnergy(config.energy, current.performance.affect),
           attitude: config.attitude,
           side,
           delegated: new Set(motion?.performances ?? []),
@@ -280,7 +281,7 @@ export function Avatar({
               attitude: config.attitude,
               initiative: config.initiative,
               personality: config.personality,
-              energy: config.energy,
+              energy: effectiveEnergy(config.energy, current.performance.affect),
             },
             reducedMotion,
             quiet: current.quiet,
