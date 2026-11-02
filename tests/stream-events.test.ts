@@ -92,9 +92,30 @@ describe('stream events', () => {
 
 describe('scolding', () => {
   it('recognizes being told off, including her configured name', () => {
-    for (const line of ['Tavi, stand down', 'bad tavi', 'no tavi!', 'Tavi stop it', 'bad Pip'])
-      expect(isScolding(line, line.includes('Pip') ? 'Pip' : 'Tavi')).toBe(true);
-    for (const line of ['Tavi you are great', 'that was a bad play', 'stand up tavi'])
+    for (const line of [
+      'Tavi, stand down',
+      'stand down tavi',
+      'bad tavi',
+      'no tavi!',
+      'Tavi stop it',
+      'enough, Tavi',
+      'shame on you tavi',
+    ])
+      expect(isScolding(line, 'Tavi')).toBe(true);
+    expect(isScolding('bad Pip', 'Pip')).toBe(true);
+  });
+
+  it('ignores ordinary speech that does not tell her off', () => {
+    for (const line of [
+      'Tavi you are great',
+      'that was a bad play',
+      'stand up tavi',
+      "I'll stand down from this fight",
+      "you're bad at this game",
+      'Tavi, no way!',
+      'Tavi, sit down',
+      'bad girl energy',
+    ])
       expect(isScolding(line, 'Tavi')).toBe(false);
   });
 
@@ -186,5 +207,29 @@ describe('stream reactions follow her mood', () => {
     expect(hyped.beats[1]?.intensity ?? 0).toBeGreaterThan(gift.beats[1]?.intensity ?? 0);
     expect(shadeForMood(gift, neutralAffect)).toEqual(gift);
     expect(reactionMood(null)).toBeNull();
+  });
+});
+
+describe('chat cannot keep her sulking', () => {
+  it('viewers scold at most every five minutes and never extend a sulk or tire her', async () => {
+    const t = setup();
+    const chat = (id: string) =>
+      t.companion.chat({
+        id,
+        userId: 'troll',
+        author: 'troll',
+        text: 'bad tavi',
+        receivedAt: t.clock.now,
+      });
+    await chat('c1');
+    const tired = t.get().performance.affect?.fatigue ?? 0;
+    expect(t.get().performance.body?.state).toBe('sit');
+    for (let i = 0; i < 6; i++) {
+      t.clock.now += 40_000;
+      t.companion.tick();
+      await chat(`c${String(i + 2)}`);
+    }
+    expect(t.get().performance.affect?.fatigue ?? 0).toBeLessThanOrEqual(tired + 0.05);
+    expect(t.get().performance.note).toMatch(/ignoring|told off|sulking|Rules/);
   });
 });

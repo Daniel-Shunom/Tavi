@@ -84,6 +84,8 @@ interface Pending {
   deadline: number;
 }
 const MOVE_COOLDOWN_MS = 45_000;
+/** Viewers can scold her at most this often. */
+const CHAT_SCOLD_COOLDOWN_MS = 300_000;
 /** After a manual move, autonomous life lets her stay put this long before wandering again. */
 const MANUAL_MOVE_HOLD_MS = 60_000;
 /** A provider may change the body state at most this often. */
@@ -112,6 +114,8 @@ export class Companion {
   private readonly seenStreamEvents = new Set<string>();
   private readonly eventCooldowns = new Map<string, number>();
   private lastScold = -Infinity;
+  /** Chat may scold at most this often; only the streamer extends a sulk or tires her. */
+  private lastChatScold = -Infinity;
   private wasSulking = false;
   private lastAiState = -Infinity;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -338,7 +342,8 @@ export class Companion {
       command.type !== 'quiet' &&
       command.type !== 'say' &&
       command.type !== 'simulate' &&
-      command.type !== 'preview-support-event'
+      command.type !== 'preview-support-event' &&
+      command.type !== 'preview-stream-event'
     )
       this.engage('studio', command.type === 'perform');
     switch (command.type) {
@@ -643,7 +648,11 @@ export class Companion {
     const reaction = shadeForMood(streamEventReaction(event), this.affect.snapshot());
     if (this.current.retracted) return skip('tucked away.');
     if (this.current.quiet) return skip('quiet mode is on.');
-    if (now - (this.eventCooldowns.get(reaction.cooldownKey) ?? -Infinity) < reaction.cooldownMs)
+    // Previews skip cooldowns so every click plays (the hype-train button steps through levels).
+    if (
+      !simulated &&
+      now - (this.eventCooldowns.get(reaction.cooldownKey) ?? -Infinity) < reaction.cooldownMs
+    )
       return skip('a similar event just played.');
     if (this.pending && this.pending.priority > priorities.chat)
       return skip('the streamer comes first.');
@@ -922,15 +931,24 @@ export class Companion {
     }
     if (!isScolding(event.text, this.current.config.name)) return false;
     const now = this.now();
+    if (event.source !== 'streamer') {
+      // Viewers can make her sad, but cannot keep her sulking: once per CHAT_SCOLD_COOLDOWN_MS,
+      // never while already sulking, and without the fatigue drain.
+      if (this.life.sulking(now) || now - this.lastChatScold < CHAT_SCOLD_COOLDOWN_MS) {
+        this.perform({ note: 'Chat tried to tell her off; she is ignoring it.' });
+        return true;
+      }
+      this.lastChatScold = now;
+    }
     this.abortPending('Scolded.');
     this.feel('scolded');
-    if (now - this.lastScold < 20_000) {
+    if (event.source === 'streamer' && now - this.lastScold < 20_000) {
       this.life.sulk(now);
       this.perform({ note: 'Already sulking: sulking longer.' });
       return true;
     }
     this.lastScold = now;
-    this.affect.tire(now, 0.25);
+    if (event.source === 'streamer') this.affect.tire(now, 0.25);
     this.publishAffect();
     // Sulk for a while (minimal movement) before wandering off again; scolding again extends it.
     this.life.sulk(now);

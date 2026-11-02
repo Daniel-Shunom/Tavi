@@ -162,8 +162,9 @@ connection. Studio preview: the `preview-stream-event` command, labelled "Previe
 
 **Scolding** (`server/behavior/scold.ts`): "Tavi, stand down", "bad Tavi", "no Tavi", "Tavi stop
 it" (her configured name works too) from the streamer or chat make her sad and tired: sad, pout
-and sleepy faces, then she sits by the webcam and sulks for about two minutes before wandering
-again. Rules, never AI.
+and sleepy faces, then she sits by the webcam and sulks for about four minutes (the streamer can extend it by
+scolding again, up to eight; viewers can make her sad at most every five minutes but cannot
+extend a sulk) before wandering again. Rules, never AI.
 
 **Faces follow mood**: life activities pick faces from her state instead of always smiling.
 Overwhelmed: grossed out, wince, annoyed, eye-roll. Down: sad, frown, pout, worried. Uneasy:
