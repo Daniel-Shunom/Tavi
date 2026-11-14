@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Command, Config } from '../shared/protocol';
+import { trackProductEvent } from './analytics';
 import {
   supportPreviewSchema,
   supportSettingsSchema,
@@ -126,6 +127,7 @@ export function EventReactionsPanel({
         onSubmit={(event) => {
           event.preventDefault();
           if (!preview.success) return;
+          trackProductEvent('support_event_previewed', { event: kind });
           send({ type: 'preview-support-event', event: preview.data });
           setNotice('Simulated event sent. See the reaction status above.');
         }}

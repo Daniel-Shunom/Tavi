@@ -16,6 +16,8 @@ import riveWasm from '@rive-app/webgl2/rive.wasm?url';
 import taviArtwork from './renderer/characters/tavi-foundation/tavi-foundation.riv?url';
 import { JudgeStart, SessionBoundary } from './judging/Session';
 import { isJudgingSession } from './judging/transport';
+import { inject } from '@vercel/analytics';
+import { trackProductEvent } from './analytics';
 
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
@@ -27,6 +29,13 @@ const RigLab = React.lazy(() => import('./RigLab').then((module) => ({ default: 
 if (rigLab) document.documentElement.classList.add('rig-lab-mode');
 const avatarLab = location.pathname === '/avatar-lab';
 const dock = location.pathname === '/dock';
+const analyticsHost = !['localhost', '127.0.0.1', 'tauri.localhost'].includes(location.hostname);
+if (import.meta.env.PROD && analyticsHost) {
+  inject();
+  if (studio) trackProductEvent('studio_opened');
+  if (overlay) trackProductEvent('overlay_opened');
+  if (judge) trackProductEvent('preview_entry_opened');
+}
 const AvatarLab = React.lazy(() =>
   import('./AvatarLab').then((module) => ({ default: module.AvatarLab })),
 );
