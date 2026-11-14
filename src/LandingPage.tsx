@@ -1,4 +1,5 @@
 import { hostedPreview, studioEntryHref } from './landing/links';
+import { trackProductEvent } from './analytics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown,
@@ -826,7 +827,13 @@ export function LandingPage() {
           <a href="#the-scene">Meet Tavi</a>
           <a href="#personality">How it feels</a>
           <a href="/download">Download</a>
-          <a className="nav-cta" href={studioEntryHref}>
+          <a
+            className="nav-cta"
+            href={studioEntryHref}
+            onClick={() => {
+              trackProductEvent('preview_link_clicked', { placement: 'navigation' });
+            }}
+          >
             {hostedPreview ? 'Try preview' : 'Open Studio'} <ArrowUpRight size={15} />
           </a>
         </nav>
@@ -850,6 +857,7 @@ export function LandingPage() {
               aria-controls="demo"
               aria-pressed={demoPlaying}
               onClick={() => {
+                trackProductEvent('landing_demo_played');
                 setDemoRun((run) => run + 1);
               }}
             >
@@ -1095,6 +1103,9 @@ export function LandingPage() {
             className="button-primary closing-button"
             href={studioEntryHref}
             ref={closingButtonRef}
+            onClick={() => {
+              trackProductEvent('preview_link_clicked', { placement: 'closing' });
+            }}
           >
             Make Tavi yours
             <ArrowUpRight size={16} />

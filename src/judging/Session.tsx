@@ -9,6 +9,7 @@ import { initialState } from '../../shared/protocol';
 import { fetchService, isJudgingSession, sessionUrl } from './transport';
 import '../studio.css';
 import './judging.css';
+import { trackProductEvent } from '../analytics';
 
 const SessionContext = createContext<JudgingSession | null>(null);
 export function useJudgingSession() {
@@ -41,6 +42,7 @@ export function JudgeStart() {
     setError('');
     try {
       const body = (await action('/api/judging/sessions')) as { studioUrl: string };
+      trackProductEvent('preview_session_started');
       const url = new URL(body.studioUrl);
       if (url.origin !== location.origin)
         throw new Error('Preview origin does not match this site.');
