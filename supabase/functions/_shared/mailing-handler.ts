@@ -137,7 +137,7 @@ export function createMailingHandler(settings: MailingSettings, request: typeof 
             job_lease: job.lease,
           });
           if (allowed !== true) continue;
-          const base = `${settings.supabaseUrl}/functions/v1/mailing-email`;
+          const base = `${new URL(settings.siteUrl).origin}/email`;
           const unsubscribeUrl = `${base}/unsubscribe?token=${job.unsubscribeToken}`;
           const email = await renderEmail(
             job.kind,

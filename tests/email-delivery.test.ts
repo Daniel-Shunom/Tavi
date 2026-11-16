@@ -124,6 +124,10 @@ describe('email delivery', () => {
       to: ['person@example.com'],
       headers: { 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
     });
+    expect(rawBody).toContain('https://example.com/email/unsubscribe?token=');
+    expect(rawBody).not.toContain(
+      'https://example.supabase.co/functions/v1/mailing-email/unsubscribe',
+    );
     expect(fetcher.mock.calls[4]?.[1]?.body).toContain('resend-test-id');
   });
 
