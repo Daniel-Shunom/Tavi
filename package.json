@@ -12,6 +12,8 @@
     "start": "tsx server/index.ts",
     "test": "vitest run",
     "skills:verify": "python tools/skills.py",
+    "email:preview": "tsx tools/email-preview.ts --serve",
+    "email:release": "tsx tools/release-email.ts",
     "typecheck": "tsc --noEmit",
     "build:judging": "node tools/build-judging.mjs",
     "start:judging": "tsx server/judging/local.ts",
@@ -43,6 +45,7 @@
     "pixi.js": "^8.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-email": "6.11.13",
     "three": "^0.186.1",
     "ws": "^8.22.1",
     "zod": "^4.6.7"

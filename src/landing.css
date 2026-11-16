@@ -1031,7 +1031,7 @@ html.landing-mode body #root {
 .closing-scene {
   position: relative;
   min-height: 900px;
-  padding: 185px clamp(30px, 12vw, 190px) 38px;
+  padding: 185px clamp(30px, 12vw, 190px) 200px;
   overflow: hidden;
   display: flex;
   flex-direction: column;

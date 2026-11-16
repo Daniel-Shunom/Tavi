@@ -39,6 +39,7 @@ import { TaviLife, type LifeCue, type Posture } from './landing/life';
 import { AWAY, VisitorReactions } from './landing/reactions';
 import { HeroGaze, type GazeFrame } from './landing/heroGaze';
 import { sceneLayoutRect } from './landing/sceneLayout';
+import { MailingListSignup } from './landing/MailingListSignup';
 import './landing.css';
 
 /**
@@ -1113,6 +1114,7 @@ export function LandingPage() {
           <span className="closing-footnote">
             Start in Studio. Bring Tavi to your stream when you’re ready.
           </span>
+          <MailingListSignup />
         </div>
         <div className="closing-ground" aria-hidden="true" />
         <div className="closing-floor" ref={closingFloorRef} />
@@ -1131,7 +1133,7 @@ export function LandingPage() {
             by APOD Videos (NASA),{' '}
             <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>
           </span>
-          <span>A little life in the corner.</span>
+          <span>Tavi 2026</span>
         </div>
       </section>
     </main>
