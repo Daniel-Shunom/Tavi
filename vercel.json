@@ -4,7 +4,7 @@
   "buildCommand": "npm run build:judging",
   "outputDirectory": "dist",
   "cleanUrls": true,
-  "functions": { "api/server.ts": { "maxDuration": 300 } },
+  "functions": { "api/server.ts": { "maxDuration": 300 }, "api/mailing.ts": { "maxDuration": 30 } },
   "daemons": {
     "judging-worker": {
       "root": ".",
@@ -15,6 +15,8 @@
     }
   },
   "rewrites": [
+    { "source": "/email/confirm", "destination": "/api/mailing?action=confirm" },
+    { "source": "/email/unsubscribe", "destination": "/api/mailing?action=unsubscribe" },
     { "source": "/ws", "destination": "/api/server?path=ws" },
     { "source": "/api/:path*", "destination": "/api/server?path=:path*" },
     { "source": "/judge", "destination": "/" },
