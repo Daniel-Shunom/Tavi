@@ -10,8 +10,8 @@ import {
 } from '../shared/states';
 import { ChatBurst, StateDirector, type DirectorContext } from '../server/behavior/states';
 import { AiManager, settingsFromEnv } from '../server/ai/manager';
-import { Companion } from '../server/companion';
-import { stateRequest } from '../server/ai/rules';
+import { Companion } from '../server/behavior/engine';
+import { stateRequest } from '../server/behavior/reactions/conversation';
 import { decisionSchema } from '../shared/decision';
 import { catalog } from '../src/renderer/characters/registry';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AiManager, settingsFromEnv } from '../server/ai/manager';
-import { Companion } from '../server/companion';
+import { Companion } from '../server/behavior/engine';
 import { commandSchema, configSchema, defaults } from '../shared/protocol';
 import {
   defaultSupportSettings,

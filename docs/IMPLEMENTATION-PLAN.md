@@ -32,7 +32,7 @@ Delivery constraint: eight total days, solo development; target a complete end-t
 
 Twitch authorization and a real message-to-wave reaction were verified earlier in this session. That proves the existing live-chat path, not future AI or microphone behavior. Re-run appropriate checks after the current parallel integration settles.
 
-Implementation references: `shared/protocol.ts`, `src/renderer/performance.ts`, `src/renderer/riveRig.ts`, `src/renderer/Avatar.tsx`, `server/twitch/reactions.ts`, `src/studio.tsx`, and `desktop/README.md`. Existing product direction: `docs/PERSONALITY.md`. Character attribution: `public/credits/rive-avatar.md`.
+Implementation references: `shared/protocol.ts`, `src/renderer/performance.ts`, `src/renderer/riveRig.ts`, `src/renderer/Avatar.tsx`, `server/behavior/reactions/chat.ts`, `src/studio.tsx`, and `desktop/README.md`. Existing product direction: `docs/PERSONALITY.md`. Character attribution: `public/credits/rive-avatar.md`.
 
 ## 2. Why expressiveness feels limited
 

@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { defaults, commandSchema, type State } from '../shared/protocol';
 import { mischiefFor } from '../shared/streamEvents';
-import { isScolding } from '../server/behavior/scold';
-import { reactionMood, shadeForMood, streamEventReaction } from '../server/behavior/streamEvents';
+import { isScolding } from '../server/behavior/reactions/scold';
+import {
+  reactionMood,
+  shadeForMood,
+  streamEventReaction,
+} from '../server/behavior/reactions/streamEvents';
 import { LifeDirector, type LifeContext } from '../server/behavior/life';
 import { neutralAffect } from '../shared/affect';
 import { AiManager, settingsFromEnv } from '../server/ai/manager';
-import { Companion } from '../server/companion';
+import { Companion } from '../server/behavior/engine';
 import { catalog } from '../src/renderer/characters/registry';
 
 function setup() {

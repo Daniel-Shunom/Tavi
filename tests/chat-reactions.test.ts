@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { chatGate } from '../server/twitch/reactions';
+import { chatGate } from '../server/behavior/reactions/chat';
 import { initialState } from '../shared/protocol';
 const message = { text: 'Hey Tavi!' };
 it('reacts only to invitations, respects cooldowns, initiative and streamer controls', () => {

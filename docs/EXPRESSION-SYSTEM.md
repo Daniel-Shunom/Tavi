@@ -8,7 +8,7 @@ decided.
 Studio "say" box / live Twitch chat / (later) microphone StreamerUtterance
         |                                   studio controls (perform, move, cancel,
         v                                   quiet, retract) always win
-server/companion.ts  -- bounded, source-tagged context (server/ai/context.ts)
+server/behavior/engine.ts  -- bounded, source-tagged context (server/ai/context.ts)
         |  1. immediate local cue: listening/glance + thinking (open-ended)
         |  2. AiManager.decide(): active DecisionProvider with timeout, abort, budget
         |     -> OpenAI-compatible | Anthropic | rules (default and fallback)
@@ -48,7 +48,7 @@ validation, the studio gallery and the rules provider are all generated from it.
   smoothly. All cues are sampled by time, so a reconnecting overlay shows the current state and
   never replays finished cues.
 
-## Policy (`server/companion.ts`)
+## Policy (`server/behavior/engine.ts`)
 
 Streamer controls first. Manual studio cues outrank conversation; chat never interrupts a
 streamer cue or pending streamer decision. A newer input aborts the older decision

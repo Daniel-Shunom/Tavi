@@ -1,9 +1,9 @@
 // Deterministic, keyword-based decisions. The default provider and the fallback when an AI
 // provider is unconfigured, over budget, slow or failing. Never presented as AI.
-import { supportedSequences } from '../../shared/capabilities.js';
-import type { Decision } from '../../shared/decision.js';
-import type { SequenceId } from '../../shared/expressions.js';
-import type { DecisionContext, DecisionProvider } from './types.js';
+import { supportedSequences } from '../../../shared/capabilities.js';
+import type { Decision } from '../../../shared/decision.js';
+import type { SequenceId } from '../../../shared/expressions.js';
+import type { DecisionContext, DecisionProvider } from '../../ai/types.js';
 
 type Intent =
   'greeting' | 'win' | 'boast' | 'setback' | 'question' | 'laugh' | 'blame' | 'thanks' | 'other';

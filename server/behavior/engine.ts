@@ -8,7 +8,7 @@ import {
   resolveBeats,
   type CharacterCatalog,
   type CharacterCapabilities,
-} from '../shared/capabilities.js';
+} from '../../shared/capabilities.js';
 import {
   beat,
   expandSequence,
@@ -18,8 +18,8 @@ import {
   type Beat,
   type DecidedBy,
   type ExpressionScript,
-} from '../shared/cue.js';
-import type { Decision } from '../shared/decision.js';
+} from '../../shared/cue.js';
+import type { Decision } from '../../shared/decision.js';
 import {
   anchors,
   clampPoint,
@@ -27,29 +27,33 @@ import {
   type Movement,
   type MovementKind,
   type Point,
-} from '../shared/locomotion.js';
-import { hiddenAmount, pickChoreography, type ChoreographyPreference } from '../shared/presence.js';
+} from '../../shared/locomotion.js';
+import {
+  hiddenAmount,
+  pickChoreography,
+  type ChoreographyPreference,
+} from '../../shared/presence.js';
 import {
   normalizeConfig,
   reduce,
   type Command,
   type Config,
   type State,
-} from '../shared/protocol.js';
-import type { ChatMessage } from '../shared/twitch.js';
-import { anchorPoint, describeLayout } from '../shared/attention.js';
-import type { ItemCatalog } from '../shared/wardrobe.js';
-import { ConversationContext } from './ai/context.js';
-import type { AiManager, DecisionResult } from './ai/manager.js';
-import type { ContextEvent, ProviderInfo, StreamerUtterance } from './ai/types.js';
-import { chatGate } from './twitch/reactions.js';
-import { StateDirector, type Engagement, type StateAction } from './behavior/states.js';
-import { supportEventSchema, supportTier, type SupportEvent } from '../shared/support.js';
-import { supportBeats } from './behavior/support.js';
-import { PacingDirector, type ReactionSize } from './behavior/pacing.js';
-import { LifeDirector, type LifeAction } from './behavior/life.js';
-import { Affect, restScale, type AffectPersona, type Stimulus } from '../shared/affect.js';
-import { clampIntensity } from '../shared/expressions.js';
+} from '../../shared/protocol.js';
+import type { ChatMessage } from '../../shared/twitch.js';
+import { anchorPoint, describeLayout } from '../../shared/attention.js';
+import type { ItemCatalog } from '../../shared/wardrobe.js';
+import { ConversationContext } from '../ai/context.js';
+import type { AiManager, DecisionResult } from '../ai/manager.js';
+import type { ContextEvent, ProviderInfo, StreamerUtterance } from '../ai/types.js';
+import { chatGate } from './reactions/chat.js';
+import { StateDirector, type Engagement, type StateAction } from './states.js';
+import { supportEventSchema, supportTier, type SupportEvent } from '../../shared/support.js';
+import { supportBeats } from './reactions/support.js';
+import { PacingDirector, type ReactionSize } from './pacing.js';
+import { LifeDirector, type LifeAction } from './life.js';
+import { Affect, restScale, type AffectPersona, type Stimulus } from './affect.js';
+import { clampIntensity } from '../../shared/expressions.js';
 import {
   atSpotApproach,
   bodyStates,
@@ -61,10 +65,10 @@ import {
   type BodyCue,
   type BodyStateId,
   type Spot,
-} from '../shared/states.js';
-import { shadeForMood, streamEventReaction } from './behavior/streamEvents.js';
-import { isForgiving, isScolding } from './behavior/scold.js';
-import { streamEventSchema, type StreamEvent } from '../shared/streamEvents.js';
+} from '../../shared/states.js';
+import { shadeForMood, streamEventReaction } from './reactions/streamEvents.js';
+import { isForgiving, isScolding } from './reactions/scold.js';
+import { streamEventSchema, type StreamEvent } from '../../shared/streamEvents.js';
 
 export interface CompanionOptions {
   config: Config;

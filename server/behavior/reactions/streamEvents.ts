@@ -2,11 +2,12 @@
 // Size feeds the pacing director, the stimulus feeds the affect model, cooldowns keep floods
 // (a follow train, a gift bomb) to one reaction. Specific beats generic: a hype-train level 5
 // gets a bigger celebration than level 1; a raid of 50 a bigger welcome than a raid of 2.
-import type { AffectSnapshot, Stimulus } from '../../shared/affect.js';
-import type { BodyStateId } from '../../shared/states.js';
-import type { StreamEventBody } from '../../shared/streamEvents.js';
-import type { ExpressionId, Target } from '../../shared/expressions.js';
-import type { ReactionSize } from './pacing.js';
+import type { AffectSnapshot } from '../../../shared/affect.js';
+import type { Stimulus } from '../affect.js';
+import type { BodyStateId } from '../../../shared/states.js';
+import type { StreamEventBody } from '../../../shared/streamEvents.js';
+import type { ExpressionId, Target } from '../../../shared/expressions.js';
+import type { ReactionSize } from '../pacing.js';
 
 export interface EventBeat {
   expression: ExpressionId;

@@ -1,7 +1,7 @@
 // Gate for live chat: only invitations (Tavi is named), within cooldown and streamer controls.
 // What to express is decided afterwards by the shared decision pipeline.
-import type { State } from '../../shared/protocol.js';
-import type { ChatMessage } from '../../shared/twitch.js';
+import type { State } from '../../../shared/protocol.js';
+import type { ChatMessage } from '../../../shared/twitch.js';
 
 const initiativeCooldown = { reserved: 1.5, occasional: 1, outgoing: 0.6 } as const;
 export function chatCooldown(state: State) {

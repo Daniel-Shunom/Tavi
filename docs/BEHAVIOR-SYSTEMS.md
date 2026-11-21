@@ -1,5 +1,8 @@
 # Behavior systems: research and direction
 
+For the current engine layout and module boundaries, see
+[`server/behavior/README.md`](../server/behavior/README.md).
+
 How Tavi decides what to do, what the field has learned about believable companions, and the
 architecture we are growing toward. The first layer (affect + pacing) is implemented; the rest is
 the roadmap. Everything here is deterministic rules unless it says AI.
@@ -93,7 +96,7 @@ Avoid: GOAP, full HTN planning, learned behavior, per-tick LLM calls.
 
 ## Implemented: affect and pacing
 
-`shared/affect.ts` (pure, clock-injected, deterministic):
+`server/behavior/affect.ts` (pure, clock-injected, deterministic):
 
 - **Appraisal table**: chat, addressed chat, streamer, studio, chat burst, support (small,
   medium, large), raid, moderation, woken -> PAD impulse plus stimulation.
@@ -147,7 +150,7 @@ Reserved initiative stays in place.
 
 ## Implemented: stream events, scolding, mood faces
 
-**Stream events** (`shared/streamEvents.ts`, `server/behavior/streamEvents.ts`): follows, raids,
+**Stream events** (`shared/streamEvents.ts`, `server/behavior/reactions/streamEvents.ts`): follows, raids,
 subs, gift bombs, cheers, hype trains (begin, each level, end) and channel-point redemptions.
 Each maps to a fixed reaction scaled by size (a 50-viewer raid gets more than a 3-viewer one;
 a hype train builds per level and ends with an exhausted flop onto a seat). Reward titles map
@@ -160,7 +163,7 @@ train); only chat is required, so existing connections keep working and events s
 the streamer reconnects. Affiliate-only events that cannot be subscribed no longer fail the
 connection. Studio preview: the `preview-stream-event` command, labelled "Preview (not real)".
 
-**Scolding** (`server/behavior/scold.ts`): "Tavi, stand down", "bad Tavi", "no Tavi", "Tavi stop
+**Scolding** (`server/behavior/reactions/scold.ts`): "Tavi, stand down", "bad Tavi", "no Tavi", "Tavi stop
 it" (her configured name works too) from the streamer or chat make her sad and tired: sad, pout
 and sleepy faces, then she sits by the webcam and sulks for about four minutes (the streamer can extend it by
 scolding again, up to eight; viewers can make her sad at most every five minutes but cannot

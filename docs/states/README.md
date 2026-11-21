@@ -8,7 +8,7 @@ Research and numbers: `docs/motion/BODY-STATES-RESEARCH.md`. Rive authoring note
 ## Data flow
 
 ```text
-studio dock / rules triggers / provider "state"     server/companion.ts (priority, wake, stir)
+studio dock / rules triggers / provider "state"     server/behavior/engine.ts (priority, wake, stir)
         |                                                   |
 server/behavior/states.ts (chat burst, quiet chain) --> BodyCue in performance.body (+ walk in
         |                                                   performance.movement)

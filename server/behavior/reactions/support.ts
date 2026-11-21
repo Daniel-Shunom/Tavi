@@ -1,5 +1,5 @@
-import { beat, type Beat } from '../../shared/cue.js';
-import type { SupportTier } from '../../shared/support.js';
+import { beat, type Beat } from '../../../shared/cue.js';
+import type { SupportTier } from '../../../shared/support.js';
 
 /** Short reactions directed at the existing chat region; no arbitrary source movement. */
 export function supportBeats(

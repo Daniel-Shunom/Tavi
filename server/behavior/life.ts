@@ -1,6 +1,6 @@
 // Autonomous life: what Tavi does on her own when nothing is happening. Every so often she picks
 // an activity by utility scoring (Dave Mark / Kevin Dill): each candidate is scored from mood and
-// drives (shared/affect.ts) and personality, recently used activities score lower, and she picks
+// drives (server/behavior/affect.ts) and personality, recently used activities score lower, and she picks
 // at random among the best few so she never loops. Places advertise what they offer (The Sims):
 // chat is social, the webcam is "check on the streamer", the open stage is curiosity.
 // Deterministic rules, never AI. Pure and clock-injected so tests can simulate hours.

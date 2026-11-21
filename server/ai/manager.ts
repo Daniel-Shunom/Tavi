@@ -4,7 +4,7 @@ import { connectionMethods, type AiStatus, type Selection } from '../../shared/a
 import type { Decision } from '../../shared/decision.js';
 import { AnthropicProvider } from './anthropic.js';
 import { OpenAICompatibleProvider } from './openai.js';
-import { RulesProvider } from './rules.js';
+import { RulesProvider } from '../behavior/reactions/conversation.js';
 import type { DecisionContext, DecisionProvider, ProviderInfo } from './types.js';
 
 export interface AiSettings {
