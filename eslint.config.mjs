@@ -7,6 +7,7 @@ export default tseslint.config(
       '.claude/**',
       '.codex/**',
       'dist/**',
+      'build/**',
       '.agents/**',
       '.github/agents/**',
       '.github/hooks/**',
