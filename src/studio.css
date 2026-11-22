@@ -1480,6 +1480,19 @@
 .studio .panel-title h2 {
   display: none;
 }
+.studio .st-platform-connections {
+  display: grid;
+  gap: 24px;
+}
+.studio .st-platform-connections .panel-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.studio .st-platform-connections > section + section {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
 .studio .twitch-phase {
   display: inline-flex;
   align-items: center;

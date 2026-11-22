@@ -19,7 +19,7 @@ The generation source is pinned on the media branch: [brand compositions](https:
 
 ## Logo
 
-`logo/tavi-wordmark.png` (dark), `logo/tavi-wordmark-light.png` (for dark backgrounds), `logo/tavi-lockup.png` (icon + wordmark) and `logo/tavi-icon-1024.png` (app icon tile). All transparent PNGs. The desktop app's installed icon (`desktop/src-tauri/icons`) is unchanged.
+`logo/tavi-wordmark.png` (dark), `logo/tavi-wordmark-light.png` (for dark backgrounds), `logo/tavi-lockup.png` (icon + wordmark) and `logo/tavi-icon-1024.png` (app icon tile). All transparent PNGs. The app icon tile is also the source for the installed desktop and installer icons (`desktop/src-tauri/icons`) and browser favicon (`public/favicon.png`). Run `npm run icon` in `desktop/` to regenerate them; platform releases prepare icons from this same source.
 
 ## Store (Microsoft Store listing art)
 
