@@ -21,18 +21,28 @@ export function YoutubePanel({
 }) {
   const [status, setStatus] = useState<YoutubeStatus>(() => disconnectedYoutube());
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const [readError, setReadError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const readVersion = useRef(0);
   const listener = useRef(onPhase);
-  listener.current = onPhase;
   useEffect(() => {
-    listener.current?.(status.phase);
-  }, [status.phase]);
+    listener.current = onPhase;
+  }, [onPhase]);
   useEffect(() => {
-    if (!serviceConnected || isJudgingSession()) return;
+    if (confirmed) listener.current?.(status.phase);
+  }, [status.phase, confirmed]);
+  useEffect(() => {
+    if (!serviceConnected) {
+      setConfirmed(false);
+      return;
+    }
+    if (busy || isJudgingSession()) return;
     let disposed = false;
     const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     async function read() {
+      const version = readVersion.current;
       try {
         const response = await fetchService('/api/youtube', {
           cache: 'no-store',
@@ -40,12 +50,14 @@ export function YoutubePanel({
         });
         if (!response.ok) throw new Error('Status unavailable');
         const next = youtubeStatusSchema.parse(await response.json());
-        if (!disposed) {
+        if (!disposed && version === readVersion.current) {
           setStatus(next);
-          setError('');
+          setConfirmed(true);
+          setReadError('');
         }
       } catch {
-        if (!disposed) setError('YouTube status is unavailable. Check the local service.');
+        if (!disposed && version === readVersion.current)
+          setReadError('YouTube status is unavailable. Check the local service.');
       } finally {
         if (!disposed)
           timer = setTimeout(() => {
@@ -59,10 +71,11 @@ export function YoutubePanel({
       abort.abort();
       clearTimeout(timer);
     };
-  }, [serviceConnected]);
+  }, [serviceConnected, busy]);
   async function action(action: 'connect' | 'disconnect' | 'select', id?: string) {
+    ++readVersion.current;
     setBusy(true);
-    setError('');
+    setActionError('');
     try {
       const response = await fetchService('/api/youtube/' + action, {
         method: 'POST',
@@ -74,8 +87,9 @@ export function YoutubePanel({
       });
       if (!response.ok) throw new Error('Action failed');
       setStatus(youtubeStatusSchema.parse(await response.json()));
+      setConfirmed(true);
     } catch {
-      setError('Could not update YouTube. Check the local service and try again.');
+      setActionError('Could not update YouTube. Check the local service and try again.');
     } finally {
       setBusy(false);
     }
@@ -92,7 +106,13 @@ export function YoutubePanel({
           role="status"
         >
           <Radio size={12} />
-          {serviceConnected ? labels[status.phase] : 'Local service disconnected'}
+          {serviceConnected
+            ? confirmed
+              ? labels[status.phase]
+              : readError
+                ? 'Status unavailable'
+                : 'Checking YouTube connection...'
+            : 'Local service disconnected'}
         </span>
       </div>
       <div className="twitch-content">
@@ -102,7 +122,7 @@ export function YoutubePanel({
         </p>
         {isJudgingSession() ? (
           <p className="small-print">YouTube is available in the local Tavi app.</p>
-        ) : !status.configured ? (
+        ) : confirmed && serviceConnected && !status.configured ? (
           <p className="small-print">
             YouTube sign-in is not available in this version of Tavi yet. No account setup is needed
             on your computer.
@@ -167,15 +187,17 @@ export function YoutubePanel({
             </strong>
           </p>
         ) : null}
-        {error || status.error ? (
+        {actionError || readError || status.error ? (
           <p className="twitch-error" role="alert">
-            {error || status.error}
+            {actionError || readError || status.error}
           </p>
         ) : null}
         <button
           type="button"
           className="secondary-button"
-          disabled={busy || !serviceConnected || !status.configured || isJudgingSession()}
+          disabled={
+            busy || !serviceConnected || !confirmed || !status.configured || isJudgingSession()
+          }
           onClick={() => {
             void action(active || status.account ? 'disconnect' : 'connect');
           }}

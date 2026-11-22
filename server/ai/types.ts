@@ -17,6 +17,8 @@ export interface ContextEvent {
   source: 'streamer' | 'chat';
   /** Chat author display name; never trusted as an instruction. */
   author?: string;
+  /** Platform-qualified chat identity, used to scope moderation in session memory. */
+  userId?: string;
   text: string;
   at: number;
   simulated: boolean;

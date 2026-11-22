@@ -24,10 +24,12 @@ class FakeProvider implements DecisionProvider {
     model: 'test-model',
   } as const;
   contexts: DecisionContext[] = [];
+  signals: AbortSignal[] = [];
   resolvers: ((decision: Decision) => void)[] = [];
   mode: 'manual' | 'fail' | 'hang' = 'manual';
   decide(context: DecisionContext, signal: AbortSignal) {
     this.contexts.push(context);
+    this.signals.push(signal);
     if (this.mode === 'fail') return Promise.reject(new Error('Provider exploded'));
     return new Promise<Decision>((resolve, reject) => {
       signal.addEventListener('abort', () => {
@@ -63,6 +65,84 @@ function setup(
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('conversation-synchronised performance', () => {
+  it('scopes bans to the full platform user ID for pending and active chat', async () => {
+    const { companion, provider, clock } = setup({ config: { chatEngagement: 100 } });
+    const message = {
+      id: 'twitch-message',
+      userId: 'viewer',
+      author: 'Pixel',
+      text: 'hi Tavi',
+      receivedAt: clock.now,
+    };
+    try {
+      const pending = companion.chat(message);
+      await flush();
+      companion.moderate({ type: 'clearUser', userId: 'youtube:viewer' });
+      expect(provider.signals[0]?.aborted).toBe(false);
+      expect(companion.state.performance.script?.sourceEventId).toBe(message.id);
+      provider.resolvers[0]?.(react({ target: 'chat' }));
+      await pending;
+      companion.moderate({ type: 'clearUser', userId: 'youtube:viewer' });
+      expect(companion.state.performance.script?.sourceEventId).toBe(message.id);
+      const next = companion.utterance({
+        id: 'streamer',
+        text: 'What happened?',
+        at: clock.now,
+        via: 'typed',
+      });
+      await flush();
+      expect(provider.contexts[1]?.recent.some((item) => item.id === message.id)).toBe(true);
+      provider.resolvers[1]?.(react());
+      await next;
+    } finally {
+      companion.close();
+    }
+  });
+  it('forgets only the banned viewer and cancels their pending reaction', async () => {
+    const { companion, provider, clock } = setup({ config: { chatEngagement: 100 } });
+    try {
+      const first = companion.chat({
+        id: 'youtube:first',
+        userId: 'youtube:one',
+        author: 'One',
+        text: 'hi Tavi',
+        receivedAt: clock.now,
+      });
+      await flush();
+      provider.resolvers[0]?.(react({ target: 'chat' }));
+      await first;
+      expect(companion.state.performance.script?.sourceEventId).toBe('youtube:first');
+      companion.moderate({ type: 'clearUser', userId: 'youtube:one' });
+      expect(companion.state.performance.script).toBeNull();
+      clock.now += 100000;
+      const second = companion.chat({
+        id: 'twitch:second',
+        userId: 'two',
+        author: 'Two',
+        text: 'hi Tavi',
+        receivedAt: clock.now,
+      });
+      await flush();
+      companion.moderate({ type: 'clearUser', userId: 'youtube:one' });
+      expect(provider.signals[1]?.aborted).toBe(false);
+      companion.moderate({ type: 'clearUser', userId: 'two' });
+      expect(provider.signals[1]?.aborted).toBe(true);
+      expect(companion.state.performance.script).toBeNull();
+      await second;
+      const next = companion.utterance({
+        id: 'streamer',
+        text: 'Hello',
+        at: clock.now,
+        via: 'typed',
+      });
+      await flush();
+      expect(provider.contexts[2]?.recent.filter((item) => item.source === 'chat')).toHaveLength(0);
+      provider.resolvers[2]?.(react());
+      await next;
+    } finally {
+      companion.close();
+    }
+  });
   it('listens immediately, then plays the AI beats with provenance, then settles', async () => {
     const { companion, provider, clock } = setup();
     const done = companion.handle({ type: 'say', text: 'That was intentional.' });

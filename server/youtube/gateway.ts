@@ -54,7 +54,9 @@ export interface YoutubeGateway {
   messages(token: string, chatId: string, pageToken: string | undefined): Promise<YoutubePage>;
 }
 export class YoutubeRequestError extends Error {
-  constructor(readonly kind: 'auth' | 'quota' | 'ended' | 'unavailable' | 'permission') {
+  constructor(
+    readonly kind: 'auth' | 'quota' | 'rate_limit' | 'ended' | 'unavailable' | 'permission',
+  ) {
     super(kind);
   }
 }
@@ -69,8 +71,17 @@ export function createYoutubeGateway(
     } catch {
       throw new YoutubeRequestError('unavailable');
     }
+    let details: unknown;
+    try {
+      details = await response.json();
+    } catch (error) {
+      // A body stream can fail after successful headers. Retry transport errors;
+      // malformed successful JSON remains a protocol error, as do schema mismatches.
+      if (!(error instanceof SyntaxError)) throw new YoutubeRequestError('unavailable');
+      if (response.ok) throw error;
+      details = null;
+    }
     if (!response.ok) {
-      const details: unknown = await response.json().catch(() => null);
       const parsed = z
         .object({
           error: z.object({ errors: z.array(z.object({ reason: z.string() })).optional() }),
@@ -82,12 +93,13 @@ export function createYoutubeGateway(
         (response.status === 400 && url.includes('oauth2.googleapis.com'))
       )
         throw new YoutubeRequestError('auth');
-      if (
-        reasons.some((reason) =>
-          ['quotaExceeded', 'dailyLimitExceeded', 'rateLimitExceeded'].includes(reason),
-        )
-      )
+      if (reasons.some((reason) => ['quotaExceeded', 'dailyLimitExceeded'].includes(reason)))
         throw new YoutubeRequestError('quota');
+      if (
+        response.status === 429 ||
+        reasons.some((reason) => ['rateLimitExceeded', 'userRateLimitExceeded'].includes(reason))
+      )
+        throw new YoutubeRequestError('rate_limit');
       if (
         reasons.some((reason) =>
           ['liveChatEnded', 'liveChatDisabled', 'liveChatNotFound'].includes(reason),
@@ -96,7 +108,7 @@ export function createYoutubeGateway(
         throw new YoutubeRequestError('ended');
       throw new YoutubeRequestError(response.status === 403 ? 'permission' : 'unavailable');
     }
-    return response.json();
+    return details;
   }
   async function token(params: Record<string, string>) {
     return tokenSchema.parse(

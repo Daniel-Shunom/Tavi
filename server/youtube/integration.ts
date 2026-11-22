@@ -32,6 +32,8 @@ export class YoutubeIntegration {
   private seen = new Set<string>();
   private failures = 0;
   private authFailures = 0;
+  private discoveryOperation = 0;
+  private pollingInterval = 10000;
   constructor(private readonly options: YoutubeOptions = {}) {
     this.gateway =
       options.gateway ??
@@ -114,14 +116,25 @@ export class YoutubeIntegration {
       if (token.scope && !token.scope.split(' ').includes(YOUTUBE_SCOPE))
         throw new YoutubeRequestError('permission');
       this.expiresAt = Date.now() + token.expires_in * 1000;
-      const account = await this.gateway?.account(token.access_token);
-      if (!account || run !== this.generation) return false;
-      this.state.account = account;
-      await this.discover(run);
+      await this.attach(run);
     } catch (error) {
       if (run === this.generation) this.fail(error);
     }
     return true;
+  }
+  private async attach(run: number) {
+    try {
+      const access = await this.access();
+      if (run !== this.generation) return;
+      const account = await this.gateway?.account(access);
+      if (!account || run !== this.generation) return;
+      this.state.account = account;
+      this.failures = 0;
+      this.authFailures = 0;
+      await this.discover(run);
+    } catch (error) {
+      this.retry(run, error, () => this.attach(run));
+    }
   }
   private fail(error: unknown) {
     clearTimeout(this.timer);
@@ -132,6 +145,7 @@ export class YoutubeIntegration {
             auth: 'Google access expired or was revoked. Disconnect and reconnect YouTube.',
             quota:
               'YouTube API quota is exhausted. Try again after your Google project quota resets.',
+            rate_limit: 'YouTube is receiving requests too quickly. Try connecting again shortly.',
             ended: 'This broadcast chat has ended or is disabled.',
             permission:
               'YouTube access is unavailable. Check your channel, read-only permission and YouTube Data API configuration.',
@@ -165,6 +179,8 @@ export class YoutubeIntegration {
       return;
     }
     if (error instanceof YoutubeRequestError && error.kind === 'ended') {
+      this.broadcasts = this.broadcasts.filter((item) => item.id !== this.state.broadcastId);
+      this.state.broadcasts = this.broadcasts.map(({ id, title }) => ({ id, title }));
       this.state.broadcastId = null;
       this.state.messages = [];
       this.state.phase = 'waiting';
@@ -173,19 +189,25 @@ export class YoutubeIntegration {
     }
     if (
       error instanceof YoutubeRequestError &&
-      error.kind === 'unavailable' &&
+      (error.kind === 'unavailable' || error.kind === 'rate_limit') &&
       ++this.failures <= 5
     ) {
       this.state.phase = 'reconnecting';
-      this.later(run, Math.min(60000, 2000 * 2 ** this.failures), task);
+      const backoff = Math.min(60000, 2000 * 2 ** this.failures);
+      this.later(
+        run,
+        error.kind === 'rate_limit' ? Math.max(backoff, this.pollingInterval) : backoff,
+        task,
+      );
     } else this.fail(error);
   }
   private async discover(run: number) {
+    const operation = ++this.discoveryOperation;
     try {
       const access = await this.access();
-      if (run !== this.generation) return;
+      if (run !== this.generation || operation !== this.discoveryOperation) return;
       const broadcasts = await this.gateway?.broadcasts(access);
-      if (!broadcasts || run !== this.generation) return;
+      if (!broadcasts || run !== this.generation || operation !== this.discoveryOperation) return;
       this.failures = 0;
       this.authFailures = 0;
       this.broadcasts = broadcasts;
@@ -195,18 +217,20 @@ export class YoutubeIntegration {
       if (broadcasts.length === 1 && broadcasts[0]) this.select(broadcasts[0].id);
       else this.later(run, 60000, () => this.discover(run));
     } catch (error) {
-      this.retry(run, error, () => this.discover(run));
+      if (operation === this.discoveryOperation) this.retry(run, error, () => this.discover(run));
     }
   }
   select(id: string) {
     const broadcast = this.broadcasts.find((item) => item.id === id);
     if (!this.token || !broadcast || this.state.phase !== 'waiting') return false;
+    ++this.discoveryOperation;
     clearTimeout(this.timer);
     this.state.broadcastId = id;
     this.state.phase = 'connecting';
     this.state.messages = [];
     this.pageToken = undefined;
     this.firstPage = true;
+    this.pollingInterval = 10000;
     this.seen.clear();
     void this.poll(this.generation, broadcast.chatId);
     return true;
@@ -218,6 +242,7 @@ export class YoutubeIntegration {
       const page = await this.gateway?.messages(access, chatId, this.pageToken);
       if (!page || run !== this.generation) return;
       if (page.offlineAt) throw new YoutubeRequestError('ended');
+      this.pollingInterval = Math.max(10000, page.pollingIntervalMillis);
       for (const item of page.items) {
         if (this.seen.has(item.id)) continue;
         this.seen.add(item.id);
@@ -257,7 +282,7 @@ export class YoutubeIntegration {
       this.state.phase = 'connected';
       this.state.error = null;
       // REST milestone: respect Google's interval with a 10s floor to limit quota use.
-      this.later(run, Math.max(10000, page.pollingIntervalMillis), () => this.poll(run, chatId));
+      this.later(run, this.pollingInterval, () => this.poll(run, chatId));
     } catch (error) {
       this.retry(run, error, () => this.poll(run, chatId));
     }
@@ -271,6 +296,7 @@ export class YoutubeIntegration {
   }
   close() {
     ++this.generation;
+    ++this.discoveryOperation;
     clearTimeout(this.timer);
     this.pending = undefined;
     this.token = undefined;

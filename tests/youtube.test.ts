@@ -176,12 +176,97 @@ describe('YouTube authorization and lifecycle', () => {
 });
 
 describe('YouTube live chat', () => {
+  it('retries account lookup without exchanging the code again', async () => {
+    clock();
+    const { gateway } = fixture();
+    gateway.account.mockRejectedValueOnce(new YoutubeRequestError('unavailable'));
+    const integration = new YoutubeIntegration({ credentials, gateway });
+    try {
+      await integration.authorize(authorization(integration).state, 'code', false);
+      expect(integration.snapshot().phase).toBe('reconnecting');
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(integration.snapshot().phase).toBe('connected');
+      expect(gateway.exchange).toHaveBeenCalledTimes(1);
+      expect(gateway.account).toHaveBeenCalledTimes(2);
+    } finally {
+      integration.close();
+    }
+  });
+  it.each(['result', 'error'] as const)(
+    'ignores a discovery %s that arrives after a selection',
+    async (outcome) => {
+      clock();
+      const { gateway } = fixture();
+      const second = { id: 'second', title: 'Second', chatId: 'second-chat' };
+      gateway.broadcasts.mockResolvedValue([broadcast, second]);
+      const integration = new YoutubeIntegration({ credentials, gateway });
+      let finish: ((value: (typeof broadcast)[]) => void) | undefined;
+      let fail: ((error: Error) => void) | undefined;
+      try {
+        await integration.authorize(authorization(integration).state, 'code', false);
+        gateway.broadcasts.mockImplementationOnce(
+          () =>
+            new Promise((resolve, reject) => {
+              finish = resolve;
+              fail = reject;
+            }),
+        );
+        await vi.advanceTimersByTimeAsync(60000);
+        expect(integration.select(broadcast.id)).toBe(true);
+        await vi.advanceTimersByTimeAsync(0);
+        if (outcome === 'result') finish?.([second]);
+        else fail?.(new YoutubeRequestError('permission'));
+        await vi.advanceTimersByTimeAsync(0);
+        expect(integration.snapshot()).toMatchObject({
+          phase: 'connected',
+          broadcastId: broadcast.id,
+        });
+        await vi.advanceTimersByTimeAsync(10000);
+        expect(gateway.messages).toHaveBeenCalledTimes(2);
+        expect(gateway.messages.mock.calls.map((call) => call[1])).toEqual([
+          'live-chat',
+          'live-chat',
+        ]);
+      } finally {
+        integration.close();
+      }
+    },
+  );
+  it('removes an ended broadcast while keeping another choice available', async () => {
+    clock();
+    const { gateway } = fixture();
+    gateway.broadcasts.mockResolvedValue([
+      broadcast,
+      { id: 'second', title: 'Second', chatId: 'second-chat' },
+    ]);
+    gateway.messages.mockRejectedValueOnce(new YoutubeRequestError('ended'));
+    const integration = new YoutubeIntegration({ credentials, gateway });
+    try {
+      await integration.authorize(authorization(integration).state, 'code', false);
+      integration.select(broadcast.id);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(integration.snapshot().broadcasts.map((item) => item.id)).toEqual(['second']);
+      expect(integration.select(broadcast.id)).toBe(false);
+      expect(integration.select('second')).toBe(true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(integration.snapshot().broadcastId).toBe('second');
+    } finally {
+      integration.close();
+    }
+  });
   it('skips history, deduplicates, uses continuation tokens, honors intervals and moderates', async () => {
     clock();
     const { gateway } = fixture();
+    const fresh = page(['history', 'fresh', 'banned', 'keep']);
+    for (const item of fresh.items) {
+      if (item.id === 'banned')
+        item.authorDetails = { channelId: 'banned-viewer', displayName: 'Banned viewer' };
+      if (item.id === 'keep')
+        item.authorDetails = { channelId: 'other-viewer', displayName: 'Other viewer' };
+    }
     gateway.messages
       .mockResolvedValueOnce(page(['history'], 15000))
-      .mockResolvedValueOnce(page(['history', 'fresh']))
+      .mockResolvedValueOnce(fresh)
       .mockResolvedValueOnce({
         ...page(),
         items: [
@@ -193,12 +278,17 @@ describe('YouTube live chat', () => {
               messageDeletedDetails: { deletedMessageId: 'fresh' },
             },
           },
+        ],
+      })
+      .mockResolvedValueOnce({
+        ...page(),
+        items: [
           {
             id: 'ban',
             snippet: {
               type: 'userBannedEvent',
               publishedAt: new Date().toISOString(),
-              userBannedDetails: { bannedUserDetails: { channelId: 'viewer' } },
+              userBannedDetails: { bannedUserDetails: { channelId: 'banned-viewer' } },
             },
           },
         ],
@@ -211,7 +301,7 @@ describe('YouTube live chat', () => {
       await vi.advanceTimersByTimeAsync(14999);
       expect(onMessage).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(1);
-      expect(onMessage).toHaveBeenCalledTimes(1);
+      expect(onMessage).toHaveBeenCalledTimes(3);
       expect(onMessage).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'youtube:fresh', userId: 'youtube:viewer' }),
       );
@@ -221,10 +311,17 @@ describe('YouTube live chat', () => {
         'next-page',
       );
       await vi.advanceTimersByTimeAsync(10000);
-      expect(integration.snapshot().messages).toHaveLength(0);
+      expect(integration.snapshot().messages.map((message) => message.id)).toEqual([
+        'youtube:banned',
+        'youtube:keep',
+      ]);
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(integration.snapshot().messages.map((message) => message.id)).toEqual([
+        'youtube:keep',
+      ]);
       expect(onModeration.mock.calls).toEqual([
         [{ type: 'delete', id: 'youtube:fresh' }],
-        [{ type: 'clearUser', userId: 'youtube:viewer' }],
+        [{ type: 'clearUser', userId: 'youtube:banned-viewer' }],
       ]);
     } finally {
       integration.close();
@@ -343,6 +440,48 @@ describe('YouTube service boundary', () => {
 });
 
 describe('YouTube HTTP adapter', () => {
+  it.each([403, 429])(
+    'retries temporary rate limits (%i) at the last polling interval',
+    async (status) => {
+      clock();
+      const request = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(Response.json(page([], 20000)))
+        .mockResolvedValueOnce(
+          Response.json({ error: { errors: [{ reason: 'rateLimitExceeded' }] } }, { status }),
+        )
+        .mockResolvedValue(Response.json(page()));
+      const { gateway } = fixture();
+      const http = createYoutubeGateway(credentials, request);
+      gateway.messages.mockImplementation((...args) => http.messages(...args));
+      const integration = new YoutubeIntegration({ credentials, gateway });
+      try {
+        await integration.authorize(authorization(integration).state, 'code', false);
+        await vi.advanceTimersByTimeAsync(20000);
+        expect(integration.snapshot().phase).toBe('reconnecting');
+        await vi.advanceTimersByTimeAsync(19999);
+        expect(request).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(integration.snapshot().phase).toBe('connected');
+        expect(request).toHaveBeenCalledTimes(3);
+      } finally {
+        integration.close();
+      }
+    },
+  );
+  it('classifies a body-read transport error for retry, but preserves malformed JSON errors', async () => {
+    const response = Response.json(page());
+    vi.spyOn(response, 'json').mockRejectedValue(new TypeError('terminated'));
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(new Response('malformed JSON', { status: 200 }));
+    const gateway = createYoutubeGateway(credentials, request);
+    await expect(gateway.messages('access', 'chat', undefined)).rejects.toMatchObject({
+      kind: 'unavailable',
+    });
+    await expect(gateway.messages('access', 'chat', undefined)).rejects.toBeInstanceOf(SyntaxError);
+  });
   it('sends credentials only to Google, correct mutually exclusive broadcast filters and bearer headers', async () => {
     const request = vi
       .fn<typeof fetch>()
