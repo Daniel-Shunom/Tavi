@@ -7,10 +7,15 @@ import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { collectNotices } from './notices.mjs';
 import { desktopPlatform } from './platform.mjs';
+import { youtubeClientDefinition } from './youtube-client.mjs';
 
 const desktop = fileURLToPath(new URL('../', import.meta.url));
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const platform = desktopPlatform();
+// Validate before replacing generated resources. Streamers receive the app identity in
+// the installer; only Tavi's maintainer configures it when building the release.
+const youtubeClient = youtubeClientDefinition();
+if (youtubeClient === 'undefined') console.warn('YouTube sign-in is unavailable in this development build.');
 
 function runNode(args, cwd) {
   const result = spawnSync(process.execPath, args, {
@@ -44,6 +49,7 @@ const result = await build({
   target: 'node22',
   format: 'esm',
   metafile: true,
+  define: { __TAVI_YOUTUBE_CLIENT__: youtubeClient },
 });
 
 // Install exactly the packages the bundled service imports, at the root's declared ranges,

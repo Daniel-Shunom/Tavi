@@ -61,6 +61,8 @@ Tavi Studio opens on a sign-in screen: **Connect with Twitch**, or **Skip for no
 
 ## Where Tavi stores things
 
+YouTube-enabled releases include Tavi's Google Desktop OAuth identity. Streamers select **Connect YouTube** and sign in in their system browser; no client JSON download or developer configuration is required. Access tokens remain in service memory. [Maintainer configuration and current limits](../docs/YOUTUBE.md).
+
 | What                 | Where                                                          |
 | -------------------- | -------------------------------------------------------------- |
 | App files            | `%LOCALAPPDATA%\Tavi Studio\`                                  |
@@ -115,7 +117,7 @@ The version is set only in `desktop/package.json`. `tauri.conf.json` reads it fr
 
 Development: `npm run dev` (in `desktop/`) starts the root service on 4318 and Vite on 5173, then opens the native window on Vite. Close any other dev servers first. In development OBS uses `http://127.0.0.1:5173/overlay`.
 
-Icon: `npm run icon -- http://127.0.0.1:4318 icon-source.png` renders a 1024 px icon from the running overlay's mascot. Then run `npx tauri icon icon-source.png`. The macOS pipeline generates its `.icns` from the committed `icons/icon.png` with `npm run prepare:icons`. The icon adapts the CC BY 4.0 mascot artwork by alisketch (see `public/credits/`).
+Icon: `npm run icon` regenerates the desktop, installer and browser icons from `brand/logo/tavi-icon-1024.png`. Release builds use this same branding asset through `npm run prepare:icons`, including the macOS `.icns`. No running overlay is needed. The icon adapts the CC BY 4.0 mascot artwork by alisketch (see `public/credits/`).
 
 ### Verification tools
 

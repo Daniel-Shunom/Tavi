@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowUpRight, Check, ChevronDown, Copy } from 'lucide-react';
 import { TwitchPanel } from '../TwitchPanel';
+import { YoutubePanel } from '../YoutubePanel';
 import { SceneEditor } from '../StatesPanel';
 import { anchorPoint } from '../../shared/attention';
 import { anchors, movementStyles, type AnchorId } from '../../shared/locomotion';
@@ -191,12 +192,20 @@ export function SetupView({
           title="Let her hear chat"
           tag="Optional"
         >
-          <TwitchPanel
-            serviceConnected={connected}
-            onPhase={(phase) => {
-              if (phase === 'connected' && !progress.chat) onProgress({ chat: true });
-            }}
-          />
+          <div className="st-platform-connections">
+            <TwitchPanel
+              serviceConnected={connected}
+              onPhase={(phase) => {
+                if (phase === 'connected' && !progress.chat) onProgress({ chat: true });
+              }}
+            />
+            <YoutubePanel
+              serviceConnected={connected}
+              onPhase={(phase) => {
+                if (phase === 'connected' && !progress.chat) onProgress({ chat: true });
+              }}
+            />
+          </div>
         </Step>
 
         <Step

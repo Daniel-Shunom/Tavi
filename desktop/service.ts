@@ -6,9 +6,11 @@ import staticFiles from '@fastify/static';
 import { createApp } from '../server/app.js';
 import { configSchema, defaults } from '../shared/protocol.js';
 import { listenDesktop } from './listen.js';
+import { youtubeCredentials } from '../server/youtube/config.js';
 const directory = resolve(process.env['TAVI_DATA_DIR'] ?? '.data');
 // 4318 is the documented OBS overlay port. TAVI_PORT exists for testing and port conflicts.
 const preferredPort = Number(process.env['TAVI_PORT'] ?? 4318);
+const youtubeClient = await youtubeCredentials(preferredPort, directory);
 let port = 0;
 const version = process.env['TAVI_VERSION'] ?? 'development';
 let config = defaults;
@@ -29,6 +31,7 @@ const app = await createApp(
   },
   {},
   () => (port ? [`http://127.0.0.1:${String(port)}`, `http://localhost:${String(port)}`] : []),
+  youtubeClient ? { youtube: { credentials: youtubeClient } } : {},
 );
 await app.register(staticFiles, {
   root: resolve(dirname(fileURLToPath(import.meta.url)), 'dist'),
@@ -56,6 +59,8 @@ if (process.platform !== 'win32' && Number.isSafeInteger(parentPid) && parentPid
 }
 
 port = await listenDesktop(app, preferredPort);
+// OAuth must return to this session's bound port, including collision fallback.
+if (youtubeClient) youtubeClient.redirectUri = `http://127.0.0.1:${String(port)}/api/youtube/callback`;
 // The native shell reads this line from its own child's stdout before opening Studio.
 console.log(`TAVI_READY ${JSON.stringify({ port })}`);
 console.log(

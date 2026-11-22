@@ -19,8 +19,10 @@ import { AiManager, selectionSchema, type Selection } from './ai/manager.js';
 import { z } from 'zod';
 import { obsConnectSchema } from '../shared/obs.js';
 import { ObsWebcam } from './obs/webcam.js';
+import { YoutubeIntegration, type YoutubeOptions } from './youtube/integration.js';
 
 export interface AppOptions {
+  youtube?: YoutubeOptions;
   ai?: AiManager;
   catalog?: CharacterCatalog;
   /** Persists the non-secret provider/model selection. */
@@ -31,6 +33,7 @@ export interface AppOptions {
 export type AppRuntime = {
   companion: Companion;
   twitch: TwitchIntegration;
+  youtube: YoutubeIntegration;
   command: (command: Command) => Promise<void>;
 };
 const runtimes = new WeakMap<object, AppRuntime>();
@@ -120,6 +123,19 @@ export async function createApp(
       twitchOptions.onStreamEvent?.(event);
     },
   });
+  const youtube = new YoutubeIntegration({
+    ...options.youtube,
+    onMessage: (chat) => {
+      if (!active()) return;
+      void companion.chat(chat);
+      options.youtube?.onMessage?.(chat);
+    },
+    onModeration: (event) => {
+      if (!active()) return;
+      companion.moderate(event);
+      options.youtube?.onModeration?.(event);
+    },
+  });
   function isTrusted(origin: string | undefined) {
     return (
       !!origin &&
@@ -184,6 +200,57 @@ export async function createApp(
     reply.header('Cache-Control', 'no-store');
     return Promise.resolve(twitch.snapshot());
   });
+  app.get('/api/youtube', (_, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return Promise.resolve(youtube.snapshot());
+  });
+  app.post('/api/youtube/:action', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    if (!studioOnly(request) || !active())
+      return reply.code(403).send({ error: 'Open this action from Tavi Studio.' });
+    const action = (request.params as { action: string }).action;
+    if (action === 'connect') return youtube.connect();
+    if (action === 'disconnect') return youtube.disconnect();
+    if (action === 'select') {
+      const parsed = z
+        .object({ id: z.string().min(1).max(200) })
+        .strict()
+        .safeParse(request.body);
+      if (!parsed.success || !youtube.select(parsed.data.id))
+        return reply.code(400).send({ error: 'Choose an available live broadcast.' });
+      return youtube.snapshot();
+    }
+    return reply.code(404).send({ error: 'Unknown YouTube action.' });
+  });
+  app.get('/api/youtube/callback', async (request, reply) => {
+    reply
+      .header('Cache-Control', 'no-store')
+      .header('Referrer-Policy', 'no-referrer')
+      .header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    const parsed = z
+      .object({
+        state: z.string().min(1).max(200),
+        code: z.string().max(4096).optional(),
+        error: z.string().max(200).optional(),
+      })
+      .safeParse(request.query);
+    if (
+      !active() ||
+      !parsed.success ||
+      !(await youtube.authorize(parsed.data.state, parsed.data.code, !!parsed.data.error))
+    )
+      return reply
+        .code(400)
+        .type('text/plain')
+        .send(
+          'This YouTube sign-in is invalid or expired. Return to Tavi Studio and connect again.',
+        );
+    return reply
+      .type('text/plain')
+      .send(
+        'YouTube sign-in processed. Close this tab and return to Tavi Studio to see your connection status.',
+      );
+  });
   app.post('/api/twitch/:action', async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
     if (!studioOnly(request))
@@ -213,6 +280,7 @@ export async function createApp(
   app.addHook('onClose', () => {
     obs.close();
     twitch.close();
+    youtube.close();
     companion.close();
     return Promise.resolve();
   });
@@ -224,6 +292,7 @@ export async function createApp(
       microphone: false,
       ai: ai.active.kind === 'ai',
       twitch: twitch.snapshot().phase === 'connected',
+      youtube: youtube.snapshot().phase === 'connected',
     }),
   );
   app.get('/api/state', () => Promise.resolve(companion.state));
@@ -256,6 +325,6 @@ export async function createApp(
     for (const socket of clients) socket.close(1001, 'Server shutting down');
     done();
   });
-  runtimes.set(app, { companion, twitch, command });
+  runtimes.set(app, { companion, twitch, youtube, command });
   return app;
 }

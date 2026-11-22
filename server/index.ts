@@ -5,6 +5,7 @@ import staticFiles from '@fastify/static';
 import { createApp } from './app.js';
 import { AiManager, selectionSchema, settingsFromEnv } from './ai/manager.js';
 import { configSchema, defaults } from '../shared/protocol.js';
+import { youtubeCredentials } from './youtube/config.js';
 const directory = resolve('.data');
 let config = defaults;
 try {
@@ -27,6 +28,7 @@ async function atomicWrite(name: string, value: unknown) {
 // provider/model choice made in the studio.
 const port = Number(process.env['TAVI_PORT'] ?? 4318);
 const ai = new AiManager(settingsFromEnv());
+const youtubeClient = await youtubeCredentials(port);
 try {
   const saved = JSON.parse(await readFile(resolve(directory, 'ai.json'), 'utf8')) as Record<
     string,
@@ -63,6 +65,7 @@ const app = await createApp(
   [`http://127.0.0.1:${String(port)}`, `http://localhost:${String(port)}`],
   {
     ai,
+    ...(youtubeClient ? { youtube: { credentials: youtubeClient } } : {}),
     saveAi: async (selection) => {
       await atomicWrite('ai.json', selection);
     },
