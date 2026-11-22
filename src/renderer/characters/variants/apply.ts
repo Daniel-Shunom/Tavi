@@ -1,7 +1,7 @@
 // Turns a variant spec into in-memory edits of the character file: skin, eye and hair colours,
 // hidden built-in hair or glasses, build proportions and face shape. The rig contract (names,
 // control tracks, clips, joysticks, soles) is untouched: only setup-pose values and colour keys
-// change, and nothing a clip keys is edited (tests/variants.test.ts checks both).
+// change, and nothing a clip keys is edited (tests/renderer/variants.test.ts checks both).
 import type { FaceShape, Variant } from '../../../../shared/variants';
 import { retarget } from '../../attachments/color';
 import { recolorAnimation } from '../../attachments/riv/rivPatch';

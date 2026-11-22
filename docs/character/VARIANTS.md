@@ -40,7 +40,7 @@ variant ──> applyVariant(mascot-v2.riv)  in-memory edits, same byte layout o
 ```
 
 - **Rig contract.** Every component, name, type, animation, joystick and control track is
-  identical to the authored file. `tests/variants.test.ts` checks this for every preset and for
+  identical to the authored file. `tests/renderer/variants.test.ts` checks this for every preset and for
   every value of every axis. It also checks that no variant edits a property that any clip or
   control track keys, so all acting reads the same values.
 - **Body states.** Builds never change legs, feet, hip height or soles, only limb thickness, so

@@ -7,5 +7,4 @@ if ! git diff --quiet -- . ':(exclude)desktop'; then
   echo "Formatting or uncommitted changes remain. Review and commit them, then push again."
   exit 1
 fi
-npm run check
-python tools/skills.py
+node --experimental-strip-types tools/ci/push.ts

@@ -4,7 +4,7 @@ A motion-policy variant may declare `assetSource` to share another character fol
 
 Each character is one folder: `<id>/manifest.ts` plus its artwork file. The manifest is the **only**
 place renderer details (artboard, clip, state-machine input and node names) may appear;
-`tests/no-hardcoding.test.ts` fails if they leak anywhere else. Behaviours, personality, the AI
+`tests/renderer/no-hardcoding.test.ts` fails if they leak anywhere else. Behaviours, personality, the AI
 and the studio work with abstract expression ids from `shared/expressions.ts` and never change
 when a character is added.
 

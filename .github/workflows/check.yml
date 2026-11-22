@@ -1,18 +1,79 @@
 name: Checks
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  verify:
+  changes:
+    name: Select affected programs
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      suites: ${{ steps.plan.outputs.suites }}
+      quality: ${{ steps.plan.outputs.quality }}
+      webBuild: ${{ steps.plan.outputs.webBuild }}
+      installers: ${{ steps.plan.outputs.installers }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - id: plan
+        run: node tools/ci/plan.ts
+  verify:
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
-      - run: npm ci
+      - name: Install source-check dependencies
+        if: needs.changes.outputs.quality == 'true'
+        run: npm ci
+      - name: Check documentation formatting without installing the application
+        if: needs.changes.outputs.quality != 'true'
+        shell: bash
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/prettier'].version")
+          npm exec --yes --package "prettier@$version" -- prettier --check .
       - run: python tools/skills.py
-      - run: npm run check
-      - run: npm run build
+      - name: Source quality
+        if: needs.changes.outputs.quality == 'true'
+        run: |
+          npm run format:check
+          npm run lint
+      - name: Type check non-frontend changes
+        if: needs.changes.outputs.quality == 'true' && needs.changes.outputs.webBuild != 'true'
+        run: npm run typecheck
+      - name: Test affected programs
+        if: needs.changes.outputs.suites != '[]'
+        env:
+          TAVI_TEST_SCOPES: ${{ needs.changes.outputs.suites }}
+        run: npm test -- --scopes-from-env --maxWorkers=4 --testTimeout=15000
+      - name: Build affected frontend
+        if: needs.changes.outputs.webBuild == 'true'
+        run: npm run build
+  installers:
+    name: Desktop installers
+    needs: [changes, verify]
+    if: needs.changes.outputs.installers == 'true'
+    # The called workflow restricts build jobs to read access; only tag publication writes.
+    permissions:
+      contents: write
+    uses: ./.github/workflows/desktop-installers.yml
+    with:
+      validated: true
+    secrets: inherit
