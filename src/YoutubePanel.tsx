@@ -99,7 +99,7 @@ export function YoutubePanel({
     <section className="twitch-panel" aria-labelledby="youtube-title">
       <div className="panel-title">
         <h2 id="youtube-title">
-          <Video size={16} /> YouTube connection
+          <Video size={16} /> YouTube connection (beta)
         </h2>
         <span
           className={`twitch-phase ${status.phase === 'connected' ? 'online' : ''}`}
@@ -117,8 +117,8 @@ export function YoutubePanel({
       </div>
       <div className="twitch-content">
         <p className="panel-copy">
-          Connect your YouTube channel so Tavi can react to live chat on your stream. She only reads
-          chat; she does not post replies.
+          Beta: sign in with an approved Google test account, then start a broadcast with live chat
+          enabled.
         </p>
         {isJudgingSession() ? (
           <p className="small-print">YouTube is available in the local Tavi app.</p>

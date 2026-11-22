@@ -35,6 +35,7 @@ const STEP_SECONDS = 3.6;
 export function StudioBeat({ perchRef }: { perchRef: RefObject<HTMLDivElement | null> }) {
   const [active, setActive] = useState(0);
   const [chosen, setChosen] = useState(false);
+  const [keyboardSwitch, setKeyboardSwitch] = useState(false);
   const [inView, setInView] = useState(false);
   const section = useRef<HTMLElement>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -65,6 +66,7 @@ export function StudioBeat({ perchRef }: { perchRef: RefObject<HTMLDivElement | 
   }, [active, chosen, inView]);
 
   const pick = (step: number, focus = false) => {
+    setKeyboardSwitch(focus);
     setChosen(true);
     setActive(step);
     if (focus) tabs.current[step]?.focus();
@@ -97,6 +99,7 @@ export function StudioBeat({ perchRef }: { perchRef: RefObject<HTMLDivElement | 
       className="story-section story-studio story-flip"
       id="studio"
       data-cue="studio"
+      data-keyboard-switch={keyboardSwitch}
       ref={section}
     >
       <div className="story-copy">
@@ -113,6 +116,12 @@ export function StudioBeat({ perchRef }: { perchRef: RefObject<HTMLDivElement | 
           role="tablist"
           aria-label="What you do in Studio"
           aria-orientation="vertical"
+          onFocusCapture={() => {
+            setChosen(true);
+          }}
+          onPointerEnter={() => {
+            setChosen(true);
+          }}
         >
           {STEPS.map(({ id, label, detail, Icon }, i) => (
             <button

@@ -28,13 +28,8 @@ import type { Measures } from './landing/choreography';
 import { PageCompanion, type PageStation } from './landing/descent';
 import { ArtLight } from './landing/ArtLight';
 import { StudioBeat } from './landing/StudioBeat';
-import { TWITCH_GLITCH, lockup, paintDither } from './landing/dither';
+import { paintDither } from './landing/dither';
 
-/**
- * The large Twitch x Codex lockup set into the closing light: centred, high in the light's box
- * above the headline, at the same mild dot density as everything else in the dither.
- */
-const CLOSING_LOCKUP = { x: 0.5, height: 120, level: 0.54 };
 import { TaviLife, type LifeCue, type Posture } from './landing/life';
 import { AWAY, VisitorReactions } from './landing/reactions';
 import { HeroGaze, type GazeFrame } from './landing/heroGaze';
@@ -115,7 +110,6 @@ export function LandingPage() {
   const deskRef = useRef<HTMLDivElement>(null);
   const webcamRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<HTMLDivElement>(null);
-  const closingCopyRef = useRef<HTMLDivElement>(null);
   const closingFloorRef = useRef<HTMLDivElement>(null);
   const closingButtonRef = useRef<HTMLAnchorElement>(null);
   const chatPerchRef = useRef<HTMLDivElement>(null);
@@ -193,61 +187,36 @@ export function LandingPage() {
     setSceneShown(true);
   };
 
-  // The closing light, dithered like the hero's: painted once per size, never per frame, and not
-  // before it nears the viewport, so the page's first seconds go to the hero.
+  // The closing light uses the hero's dither, painted once per size near the viewport.
   useEffect(() => {
     const canvas = closingDitherRef.current;
     if (!canvas) return;
     let painted = '';
-    let cancelled = false;
     let near = false;
-    const glitch = new Image();
-    glitch.src = TWITCH_GLITCH;
-    const paint = (force = false) => {
+    const paint = () => {
       if (!near) return;
       const key = `${String(canvas.clientWidth)}x${String(canvas.clientHeight)}`;
-      if (key === painted && !force) return;
+      if (key === painted) return;
       painted = key;
-      // Smaller on narrow screens, so the lockup always fits across the light.
-      const height = Math.min(CLOSING_LOCKUP.height, canvas.clientWidth * 0.11);
-      const copyTop = closingCopyRef.current?.offsetTop ?? canvas.clientHeight * 0.3;
-      const lockupY = Math.max(
-        0.05,
-        (copyTop - canvas.offsetTop - height * 0.75) / canvas.clientHeight,
-      );
-      paintDither(
-        canvas,
-        'on',
-        { center: { x: 0.5, y: 1 }, radius: { x: 0.46, y: 0.95 }, seam: 1 },
-        2,
-        lockup(glitch, CLOSING_LOCKUP.x, lockupY, height, canvas.clientWidth),
-        // Keep the mark legible while retaining the same ordered dots as the light.
-        CLOSING_LOCKUP.level,
-      );
+      paintDither(canvas, 'on', {
+        center: { x: 0.5, y: 1 },
+        radius: { x: 0.46, y: 0.95 },
+        seam: 1,
+      });
     };
-    const size = new ResizeObserver(() => {
-      paint();
-    });
+    const size = new ResizeObserver(paint);
     size.observe(canvas);
     const approach = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
         near = true;
         approach.disconnect();
-        paint(true);
+        paint();
       },
       { rootMargin: '100% 0px' },
     );
     approach.observe(canvas);
-    void glitch
-      .decode()
-      .then(() => document.fonts.ready)
-      .then(() => {
-        if (!cancelled) paint(true);
-      })
-      .catch(() => undefined);
     return () => {
-      cancelled = true;
       size.disconnect();
       approach.disconnect();
     };
@@ -1088,7 +1057,7 @@ export function LandingPage() {
       <section className="closing-scene" id="download" data-cue="ending">
         <div className="closing-light" />
         <canvas className="closing-dither" ref={closingDitherRef} aria-hidden="true" />
-        <div className="closing-copy" ref={closingCopyRef}>
+        <div className="closing-copy">
           <h2>
             <span className="reveal-line">Make a little</span>
             <span className="reveal-line">you.</span>

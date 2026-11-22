@@ -14,7 +14,7 @@
 }
 .download-layout {
   display: grid;
-  grid-template-columns: 1fr 1.12fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
   align-items: center;
   width: min(1180px, 88%);
   min-height: 650px;
@@ -23,6 +23,7 @@
   gap: 24px;
 }
 .download-copy {
+  min-width: 0;
   position: relative;
   z-index: 1;
   padding: 64px 0;
@@ -50,6 +51,7 @@
   max-width: 410px;
 }
 .download-actions .download-status {
+  display: grid;
   color: #62576c;
   margin: 0 0 18px;
   font-size: 13px;
@@ -57,13 +59,53 @@
 }
 .download-actions .closing-button {
   margin: 0;
+  width: 100%;
+}
+.download-status > span,
+.download-button-label > span {
+  grid-area: 1 / 1;
+}
+.download-button-label {
+  display: grid;
+  min-width: 0;
+}
+.download-size {
+  visibility: hidden;
+  pointer-events: none;
+}
+/* All platform panels share a grid cell so the tallest choice reserves space.
+   Inactive panels still size the grid, but are hidden and inert to navigation. */
+.download-panels {
+  display: grid;
+}
+.download-panels > [role='tabpanel'] {
+  display: flex;
+  flex-direction: column;
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.download-panels > [aria-hidden='true'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Only the browser link fades in; installer controls keep their final layout. */
+.download-preview-link {
+  transition: opacity var(--dur-quick) var(--ease-out);
+}
+.download-panels[data-ready='false'] .download-preview-link {
+  opacity: 0;
+  pointer-events: none;
+}
+.download-native-link[data-available='false'] {
+  visibility: hidden;
 }
 .download-actions .download-web-link {
   display: flex;
   align-items: center;
   gap: 8px;
   width: fit-content;
-  margin: 18px 0 0;
+  margin: auto 0 0;
+  padding-top: 18px;
   font-size: 13px;
 }
 .download-actions a:hover {
@@ -215,6 +257,7 @@
   border-bottom: 1px solid #e6deeb;
 }
 .download-platforms button {
+  position: relative;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -230,8 +273,23 @@
   cursor: pointer;
 }
 .download-platforms button[aria-selected='true'] {
-  border-bottom-color: #705384;
   color: #292330;
+}
+.download-platforms button::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -2px;
+  height: 2px;
+  background: #705384;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-quick) var(--ease-out);
+}
+.download-platforms button[aria-selected='true']::after {
+  transform: scaleX(1);
+}
+.download-platforms[data-keyboard-switch='true'] button::after {
+  transition: none;
 }
 .download-platforms button:hover {
   color: #292330;

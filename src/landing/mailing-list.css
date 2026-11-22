@@ -44,12 +44,16 @@
   color: #382541;
   cursor: pointer;
   font-weight: 600;
-  transition: background 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    background var(--dur-press) ease,
+    transform var(--dur-press) var(--ease-out);
 }
-.mailing-list-fields button:hover {
-  background: #e5daed;
+@media (hover: hover) and (pointer: fine) {
+  .mailing-list-fields button:not(:disabled):hover {
+    background: #e5daed;
+  }
 }
-.mailing-list-fields button:active {
+.mailing-list-fields button:not(:disabled):active {
   transform: translateY(1px);
 }
 .mailing-list-fields button:disabled {
@@ -62,7 +66,8 @@
 }
 .mailing-list-consent {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  min-height: 44px;
   gap: 8px;
   margin-top: 12px;
   color: #554a60;
