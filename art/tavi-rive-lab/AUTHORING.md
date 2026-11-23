@@ -151,7 +151,9 @@ and both calves share a gentle lean inside the original thigh reach limits.
 This prevents an X as the swing foot passes the planted foot. Foot contacts,
 step order and travel are unchanged in both directions. `check_walk_calves.py`
 checks the emitted calf paths at every walking frame in both review projects.
-Use `python tools/tavi-rive-lab/preview-climbing.py walking` for walking alone.
+On Windows, use `python tools/tavi-rive-lab/preview-climbing.py walking` for walking alone.
+This helper reads `USERPROFILE` and launches `.rive/bin/rive.exe`; it requires Windows
+and that CLI installation. On other platforms, use `rive art/tavi-rive-lab/walking`.
 
 Sprinting and skipping use separate projected knee controls to
 retain high knee lifts while reducing forward/outward protrusion. The original
@@ -221,9 +223,10 @@ climbing or rear walking mode yet. The separate `turnaround` authoring draft
 explores front/side/rear poses with curved facial occlusion, a continuous crown,
 and stable garments. It needs artistic review before integration.
 
-Run `python tools/tavi-rive-lab/preview-climbing.py` to open all four native
+On Windows, run `python tools/tavi-rive-lab/preview-climbing.py` to open all four native
 previews (including rear). Add `rear` to the preview command to open only that
-view. Run `python tools/tavi-rive-lab/check_climbing.py` to check emitted
+view. On other platforms, open each project with `rive art/tavi-rive-lab/climbing-front`
+(replace `front` with `left`, `right` or `rear`). Run `python tools/tavi-rive-lab/check_climbing.py` to check emitted
 hand/foot contacts in both travel directions, leg reach, original limb lengths,
 independent action displacement, and review loop closure. Native captures live
 under `build/climbing-*-refined.png`.

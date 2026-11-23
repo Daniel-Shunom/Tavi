@@ -25,19 +25,20 @@ when a character is added.
      `controls.tuck`; optional `choreographies` (authored entrances/exits);
      `locomotion` (`procedural`, or `clip` with a walk track and speed/direction inputs);
      `motionTracks`, `inputs`, `nodes` exposed to the motion layer.
-4. Verify every track really renders: start Vite and run
+4. Register the manifest in `registry.ts` before sampling it; `getCharacter(id)` falls back to
+   Foundation for an unknown id. Add it to `studioCharacterIds` only when ready for the Studio picker.
+   `npm test` checks every bound clip exists in the shipped file.
+5. Verify every track really renders: start Vite and run
    `TAVI_TEST_URL=http://127.0.0.1:5173 node tools/rive-clip-sampler.mjs <id>`. It reports
    changed pixels per clip, whether a clip rescales the artboard, and writes contact strips to
    `test-results/clips-<id>/`. Names are not proof: many mascot face/brow/mouth tracks render
    nothing, and "wave testing folio header" permanently rescales the artboard.
-5. Optional `face`: the rig's face/head/body channels with safe ranges and per-expression acting
+6. Optional `face`: the rig's face/head/body channels with safe ranges and per-expression acting
    poses (`pose`/`strong`/`subtle`, `onset`, timed `keys`, `clip`, `towardTarget`, `living`),
    performed by the face layer (`src/renderer/face/`) through the motion hook. Bindings opt in
    with `motion: '<id>'`. Probe channels with `tools/expression-sheet/probe.mjs` and review every
    pose at overlay and large size on the expression sheet (`/tools/expression-sheet/`,
    screenshots via `tools/expression-sheet/shoot.mjs`). See `docs/character/`.
-6. Register it in `registry.ts`. With more than one character the studio shows a picker.
-   `npm test` checks every bound clip exists in the shipped file.
 
 `tests/fixtures/test-character.ts` is a minimal second manifest (different artboard, state
 machine inputs, node, authored walk cycle, three expressions) proving the contract.

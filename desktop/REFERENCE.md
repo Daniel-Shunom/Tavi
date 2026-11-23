@@ -46,12 +46,12 @@ Keep Tavi Studio open while you stream. Closing it stops the overlay.
 If Tavi selected a fallback port, use the overlay URL shown in **Setup** in place of the default below. That port stays fixed until Tavi closes; a later fallback session may use another port.
 
 1. In OBS, open the scene you want, and under **Sources** click **+**, then **Browser**.
-2. Set **URL** to `http://127.0.0.1:4318/overlay`.
+2. Set **URL** to the current overlay URL in Studio **Setup** (normally `http://127.0.0.1:4318/overlay`).
 3. Set **Width** and **Height** to your canvas size (for example 1920 x 1080).
 4. Leave **Custom CSS** at the OBS default or clear it. The overlay background is transparent.
 5. Optional: turn on **Refresh browser when scene becomes active**.
 
-Changes you make in the studio (name, personality, placement, reactions, quiet mode, tuck away) appear in OBS right away. If you start Tavi Studio after OBS, the overlay reconnects on its own; if it stays blank, right-click the source and choose **Refresh**.
+Changes you make in the studio (name, personality, placement, reactions, quiet mode, tuck away) appear in OBS right away. The overlay reconnects when Tavi starts on the same port. If the port changes after a restart, copy the current overlay URL from Studio **Setup** into the OBS Browser Source. If it stays blank, right-click the source and choose **Refresh**.
 
 In the studio, **Open the overlay** opens the overlay in your normal browser so you can preview it. Setup also gives the link for the OBS dock (`/dock`), Studio's live controls in an OBS **Custom Browser Dock**.
 
@@ -79,7 +79,7 @@ Paste a path into the File Explorer address bar to open it. Twitch sign-in is ke
 
 - **OBS still shows the old session.** Tavi prefers port 4318 and automatically selects a free session port when it is occupied. Copy the current overlay URL from Setup into the OBS Browser Source. Tavi never stops the program occupying another port.
 - **"The Tavi service stopped unexpectedly" or "did not start within 60 seconds."** Open `service.log` (path above) and look at the last lines. Antivirus software quarantining `resources\runtime\node.exe` can cause this; restore it or reinstall.
-- **OBS shows nothing.** Check that Tavi Studio is open, that the URL is exactly `http://127.0.0.1:4318/overlay`, and that the character is not tucked away or in quiet mode. Then refresh the browser source.
+- **OBS shows nothing.** Check that Tavi Studio is open, that the Browser Source URL matches the current overlay URL in Studio **Setup**, and that the character is not tucked away or in quiet mode. Then refresh the browser source.
 - **Settings did not save.** Check that `%APPDATA%\app.tavi.studio\` is writable, and look in `service.log`.
 - **Reset Tavi.** Close the app and delete `%APPDATA%\app.tavi.studio\character.json`.
 - **The window is blank.** Repair or reinstall Microsoft Edge WebView2 Runtime from Microsoft, then restart Tavi Studio.

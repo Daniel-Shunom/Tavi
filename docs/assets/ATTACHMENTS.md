@@ -28,17 +28,17 @@ come in two kinds:
 
 ## Layout
 
-| Path                                 | What                                                                                                                        |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `assets/items/<id>.json`             | One attachment spec per file (validated by `AttachmentSpec`).                                                               |
-| `assets/catalog.json`                | Registry: provenance, licence, redistribution and modification rights, status (`ready`/`converted`/`candidate`/`rejected`). |
-| `src/renderer/attachments/schema.ts` | Zod schemas: spec, catalog, slot bindings, equipped config.                                                                 |
-| `.../catalog.ts`, `bundle.ts`        | Pure validation (`parseCatalog`) and the Vite-bundled loader (`loadAttachments`).                                           |
-| `.../layer.ts`                       | Slot maths, tint resolution, springs, Canvas2D drawing (`createAttachmentLayer`).                                           |
-| `.../rive.ts`                        | Runtime glue: name slot components, read world transforms, compute the view matrix.                                         |
-| `.../recolor.ts`, `riv/`             | In-memory `.riv` recolour and hide (vendored scanner from the motion agent).                                                |
-| `.../rigs/lyla.ts`                   | Lyla's slot bindings (component indices, offsets, reference sizes).                                                         |
-| `tools/assets/`                      | Preview page, screenshot capture, authoring CLI, rig probe.                                                                 |
+| Path                                            | What                                                                                                                        |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `assets/items/<id>.json`                        | One attachment spec per file (validated by `AttachmentSpec`).                                                               |
+| `assets/catalog.json`                           | Registry: provenance, licence, redistribution and modification rights, status (`ready`/`converted`/`candidate`/`rejected`). |
+| `src/renderer/attachments/schema.ts`            | Zod schemas: spec, catalog, slot bindings, equipped config.                                                                 |
+| `.../catalog.ts`, `bundle.ts`                   | Pure validation (`parseCatalog`) and the Vite-bundled loader (`loadAttachments`).                                           |
+| `.../layer.ts`                                  | Slot maths, tint resolution, springs, Canvas2D drawing (`createAttachmentLayer`).                                           |
+| `.../rive.ts`                                   | Runtime glue: name slot components, read world transforms, compute the view matrix.                                         |
+| `.../recolor.ts`, `riv/`                        | In-memory `.riv` recolour and hide (vendored scanner from the motion agent).                                                |
+| `src/renderer/characters/mascot/attachments.ts` | Lyla's slot bindings (component indices, offsets, reference sizes).                                                         |
+| `tools/assets/`                                 | Preview page, screenshot capture, authoring CLI, rig probe.                                                                 |
 
 ## Spec format (short)
 
@@ -129,7 +129,7 @@ swings with `hair swing`), the artist authors them in the character's `.riv`:
   keys use one base colour. `recolor()` can then retarget it to any picked colour.
 - **Anchors for overlays:** export named, empty nodes `slot/<slotId>` at each slot origin (for
   example, `slot/head.top` on the head, `slot/hand.r` at the palm). That removes the
-  index-based patching in `rigs/<character>.ts`.
+  component-index bindings in each character's `attachments.ts`.
 - **Hair variants:** add `hair <style>` animations that toggle mesh groups (`hair/<style>/*`) and
   share the existing hair bones, so the `hair swing` and `hairswoop` joysticks keep working.
 - Export names: the Rive exporter strips component names unless they are marked for export. Mark
