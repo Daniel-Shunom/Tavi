@@ -18,7 +18,7 @@ html.landing-mode body #root {
      are the only longer moves. Tavi's own motion is hers and does not use these. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  --dur-press: 160ms;
+  --dur-press: 150ms;
   --dur-quick: 200ms;
   --dur-base: 280ms;
   --dur-reveal: 600ms;
@@ -114,9 +114,11 @@ html.landing-mode body #root {
 .nav-cta:active {
   transform: scale(0.97);
 }
-.nav-cta:hover {
-  border-color: #9275a6;
-  background: #f6f0fa;
+@media (hover: hover) and (pointer: fine) {
+  .nav-cta:hover {
+    border-color: #9275a6;
+    background: #f6f0fa;
+  }
 }
 
 .site-hero {
@@ -328,7 +330,8 @@ html.landing-mode body #root {
 }
 /* After the hover lift, so a press always reads (including mid-hover). */
 .button-primary:active {
-  transform: scale(0.97);
+  transform: none;
+  background: #261c31;
 }
 .button-primary:focus-visible {
   outline: 2px solid #8970b4;
@@ -602,7 +605,9 @@ html.landing-mode body #root {
 }
 .stream-meter i {
   display: block;
-  width: 21%;
+  width: 100%;
+  transform: scaleX(0.21);
+  transform-origin: left;
   height: 2px;
   background: #c6a8d6;
 }
@@ -1306,10 +1311,10 @@ html.landing-mode body #root {
 }
 @keyframes demo-progress {
   from {
-    width: 21%;
+    transform: scaleX(0.21);
   }
   to {
-    width: 100%;
+    transform: scaleX(1);
   }
 }
 @keyframes cam-glint {
@@ -1518,13 +1523,14 @@ html.landing-mode body #root {
 }
 @media (prefers-reduced-motion: reduce) {
   .tavi-site *,
+  .tavi-site *::before,
+  .tavi-site *::after,
   .page-walker,
   .page-walker *,
   .video-image,
   .scroll-cue svg {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation: none !important;
+    transition: none !important;
     scroll-behavior: auto !important;
   }
 }
@@ -1847,7 +1853,18 @@ html.landing-mode body #root {
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  transition: box-shadow var(--dur-quick) var(--ease-out);
+  transition:
+    box-shadow var(--dur-press) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+.crt-knob::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }
 @media (hover: hover) and (pointer: fine) {
   .crt-knob:hover {
@@ -2297,9 +2314,13 @@ html.landing-mode body #root {
   text-align: left;
   cursor: pointer;
   transition:
-    background var(--dur-base) var(--ease-out),
-    border-color var(--dur-base) var(--ease-out),
-    color var(--dur-base) var(--ease-out);
+    background var(--dur-press) ease,
+    border-color var(--dur-press) ease,
+    color var(--dur-press) ease;
+}
+.story-studio[data-keyboard-switch='true'] .studio-step,
+.story-studio[data-keyboard-switch='true'] .studio-mock-nav span {
+  transition: none;
 }
 .studio-step[aria-selected='true'] {
   border-color: #e5d6ee;

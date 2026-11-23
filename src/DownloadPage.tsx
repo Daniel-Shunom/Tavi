@@ -6,7 +6,7 @@ import { defaults, initialState, type State } from '../shared/protocol';
 import { DownloadOptions } from './landing/DownloadOptions';
 import { hostedPreview, studioEntryHref } from './landing/links';
 import { TaviLife, type LifeCue } from './landing/life';
-import { TWITCH_GLITCH, lockup, paintDither } from './landing/dither';
+import { paintDither } from './landing/dither';
 import './landing.css';
 import './download.css';
 
@@ -16,40 +16,23 @@ function DitherScene() {
     const element = canvas.current;
     if (!element) return;
     let active = true;
-    const glitch = new Image();
-    glitch.src = TWITCH_GLITCH;
     const paint = () => {
       if (!active) return;
-      paintDither(
-        element,
-        'on',
-        {
-          center: { x: 0.5, y: 0.9 },
-          radius: { x: 0.59, y: 0.86 },
-          seam: 0.94,
-        },
-        2,
-        lockup(glitch, 0.5, 0.17, Math.min(82, element.clientWidth * 0.14), element.clientWidth),
-        0.6,
-      );
+      paintDither(element, 'on', {
+        center: { x: 0.5, y: 0.9 },
+        radius: { x: 0.59, y: 0.86 },
+        seam: 0.94,
+      });
     };
     const observer = new ResizeObserver(paint);
     observer.observe(element);
-    void Promise.all([glitch.decode(), document.fonts.ready]).then(paint).catch(paint);
     paint();
     return () => {
       active = false;
       observer.disconnect();
     };
   }, []);
-  return (
-    <canvas
-      className="download-dither"
-      ref={canvas}
-      role="img"
-      aria-label="Twitch × Codex, set into the dithered light"
-    />
-  );
+  return <canvas className="download-dither" ref={canvas} aria-hidden="true" />;
 }
 
 // This is the actual character renderer and the landing's bounded idle behavior. No Studio
