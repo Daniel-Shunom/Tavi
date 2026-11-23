@@ -218,8 +218,16 @@ describe('scoped local pre-push checks', () => {
 describe('real git event selection', () => {
   const directory = mkdtempSync(join(tmpdir(), 'tavi-ci-selection-'));
   const script = fileURLToPath(new URL('../../tools/ci/plan.ts', import.meta.url));
+  // Git hooks export repository context. Never pass it into a disposable repository.
+  const fixtureEnv = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')),
+  );
   const git = (...args: string[]) =>
-    execFileSync('git', args, { cwd: directory, encoding: 'utf8' }).trim();
+    execFileSync('git', ['-c', 'core.hooksPath=.disabled-hooks', ...args], {
+      cwd: directory,
+      encoding: 'utf8',
+      env: fixtureEnv,
+    }).trim();
   const commit = () => {
     git('add', '--all');
     git(
@@ -236,6 +244,8 @@ describe('real git event selection', () => {
     return git('rev-parse', 'HEAD');
   };
   git('init', '-q', '--initial-branch=main');
+  if (resolve(git('rev-parse', '--show-toplevel')) !== resolve(directory))
+    throw new Error('Refusing to modify a Git repository outside the disposable fixture.');
   mkdirSync(join(directory, 'src/studio'), { recursive: true });
   writeFileSync(join(directory, 'src/studio/Panel.tsx'), 'export const value = 1;');
   const initial = commit();
@@ -264,7 +274,7 @@ describe('real git event selection', () => {
       execFileSync(process.execPath, ['--experimental-strip-types', script], {
         cwd: directory,
         env: {
-          ...process.env,
+          ...fixtureEnv,
           GITHUB_EVENT_NAME: eventName,
           GITHUB_REF: 'refs/heads/main',
           GITHUB_EVENT_PATH: eventFile,
