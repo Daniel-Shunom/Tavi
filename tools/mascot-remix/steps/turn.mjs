@@ -11,7 +11,7 @@
 //                  locks and back hair shift so the silhouette reads as turned.
 //   tavi/turnBody  the torso and hips narrow, the far shoulder and leg tuck in and the near arm
 //                  comes slightly forward.
-// It keys only properties no other timeline keys (checked by tests/turnaround.test.ts), so it
+// It keys only properties no other timeline keys (checked by tests/authoring/turnaround.test.ts), so it
 // layers with the clips, joysticks and gait cycles.
 
 /** Where the turn's parts live in the remix (RML component ids). L/R = screen-left/right. */

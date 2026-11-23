@@ -8,7 +8,7 @@ npm run build
 python tools/skills.py
 ```
 
-`npm ci` installs the pre-push hook. Run `npm run format` before committing. Tests rebuild local Rive fixtures with Python; they do not require the Rive CLI.
+`npm ci` installs the pre-push hook. Run `npm run format` before committing. Use `npm run test:web`, `npm run test:studio` or another [program suite](CI.md) while iterating; `npm test` runs everything. Only authoring tests rebuild Rive fixtures with Python; the Rive CLI is not required.
 
 ## Browser checks
 

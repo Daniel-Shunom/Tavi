@@ -22,6 +22,6 @@ Lyla uses the `mascot` character directory. Its `lylaAttachmentRig`, `lylaSlots`
 
 ## Verification
 
-Run `npm test`; attachment coverage lives in [attachments.test.ts](../../tests/attachments.test.ts). Then check alignment, retraction, peeking and transparency in the browser, OBS and the packaged app.
+Run `npm test`; attachment coverage lives in [attachments.test.ts](../../tests/renderer/attachments.test.ts). Then check alignment, retraction, peeking and transparency in the browser, OBS and the packaged app.
 
 [Attachment authoring reference](ATTACHMENTS.md)

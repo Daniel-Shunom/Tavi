@@ -1,26 +1,15 @@
 ﻿name: Desktop installers
 # Native builds only: the bundled Node runtime must match the app architecture.
 on:
+  workflow_call:
+    inputs:
+      validated:
+        description: The caller has passed the affected-program checks.
+        type: boolean
+        default: false
   workflow_dispatch:
   push:
-    branches: [main]
     tags: ['v*']
-  pull_request:
-    paths:
-      - 'desktop/**'
-      - 'server/**'
-      - 'shared/**'
-      - 'src/**'
-      - 'public/**'
-      - 'assets/**'
-      - 'tests/**'
-      - 'index.html'
-      - 'vite.config.ts'
-      - 'tsconfig*.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/desktop-installers.yml'
-      - '.github/workflows/windows-installer.yml'
 permissions:
   contents: read
 concurrency:
@@ -28,6 +17,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
+    if: inputs.validated != true
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -46,6 +36,8 @@ jobs:
       - run: npm test -- --maxWorkers=4 --testTimeout=15000
       - run: python tools/skills.py
   installer:
+    needs: validate
+    if: ${{ !cancelled() && (needs.validate.result == 'success' || (inputs.validated && needs.validate.result == 'skipped')) }}
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -152,7 +144,7 @@ jobs:
           name: tavi-studio-${{ matrix.name }}
           path: desktop/release-assets/*
           if-no-files-found: error
-          retention-days: 7
+          retention-days: ${{ github.event_name == 'pull_request' && 1 || 7 }}
           compression-level: 0
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v')
