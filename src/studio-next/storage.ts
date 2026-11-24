@@ -67,7 +67,7 @@ export function rememberRoom(on: boolean) {
   write(ROOM_KEY, on ? 'on' : 'off');
 }
 
-/** For previewing: `/studio-next?holiday=halloween` shows that holiday's season whatever the
+/** For previewing: `/studio?holiday=halloween` shows that holiday's season whatever the
  *  date, and `?holiday=none` shows no season. Nothing in Studio links to it. */
 export function readSeasonPreview(): HolidayId | 'none' | null {
   const value = new URLSearchParams(location.search).get('holiday');

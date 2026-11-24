@@ -21,10 +21,11 @@ import { trackProductEvent } from './analytics';
 
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
-const studio = location.pathname === '/studio';
-// The redesigned Studio, built beside the current one until it replaces it (src/studio-next/).
-const studioNext = location.pathname === '/studio-next';
-const StudioNext = React.lazy(() =>
+// Studio lives at /studio (src/studio-next/). Its earlier address still works.
+if (location.pathname === '/studio-next')
+  location.replace(`/studio${location.search}${location.hash}`);
+const studio = location.pathname === '/studio' || location.pathname === '/studio-next';
+const Studio = React.lazy(() =>
   import('./studio-next/StudioNext').then((module) => ({ default: module.StudioNext })),
 );
 const download = location.pathname === '/download';
@@ -45,12 +46,11 @@ const AvatarLab = React.lazy(() =>
   import('./AvatarLab').then((module) => ({ default: module.AvatarLab })),
 );
 // Landing visitors never download the studio.
-const Studio = React.lazy(() => import('./studio').then((module) => ({ default: module.Studio })));
 // The OBS dock: Studio's live controls in a narrow panel (src/studio/Dock.tsx).
 const Dock = React.lazy(() => import('./studio/Dock').then((module) => ({ default: module.Dock })));
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
 if (overlay) document.documentElement.classList.add('overlay');
-const landing = !overlay && !studio && !studioNext && !avatarLab && !dock && !rigLab && !judge;
+const landing = !overlay && !studio && !avatarLab && !dock && !rigLab && !judge;
 const prerenderedLanding = location.pathname === '/';
 if (landing) {
   document.documentElement.classList.add('landing-mode');
@@ -69,12 +69,7 @@ if (landing) {
 }
 function App() {
   if (download) return <DownloadPage />;
-  if (
-    judge ||
-    ((studio || studioNext) &&
-      import.meta.env['VITE_TAVI_JUDGING'] === 'true' &&
-      !isJudgingSession())
-  )
+  if (judge || (studio && import.meta.env['VITE_TAVI_JUDGING'] === 'true' && !isJudgingSession()))
     return <JudgeStart />;
   if (rigLab)
     return (
@@ -90,7 +85,6 @@ function App() {
     );
   if (overlay) return <OverlayApp />;
   if (studio) return <StudioApp />;
-  if (studioNext) return <StudioNextApp />;
   if (dock) return <DockApp />;
   return <LandingPage />;
 }
@@ -113,14 +107,6 @@ function DockApp() {
 function StudioApp() {
   const connection = useConnection();
   return (
-    <React.Suspense fallback={null}>
-      <Studio {...connection} />
-    </React.Suspense>
-  );
-}
-function StudioNextApp() {
-  const connection = useConnection();
-  return (
     <React.Suspense
       fallback={
         <p role="status" style={{ margin: '40vh auto 0', textAlign: 'center', opacity: 0.7 }}>
@@ -128,7 +114,7 @@ function StudioNextApp() {
         </p>
       }
     >
-      <StudioNext {...connection} />
+      <Studio {...connection} />
     </React.Suspense>
   );
 }

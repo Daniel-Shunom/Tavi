@@ -1,4 +1,4 @@
-// Walks the new Studio (/studio-next) in a real browser: the first-launch welcome, then the stage
+// Walks the new Studio (/studio) in a real browser: the first-launch welcome, then the stage
 // on later launches; the three modes, Settings, the Rehearse drawer, "Jump to anything" and a
 // narrow window. It changes nothing that is saved except quiet mode, which it puts back.
 // Run with the dev servers up: node tools/studio-next-check.mjs
@@ -42,7 +42,7 @@ try {
   const stagePieces = ['.sn-top', '.sn-scene', '.sn-deck', '.sn-inspector'];
 
   // First launch: the welcome, one step at a time, with her beside each.
-  await page.goto(`${base}/studio-next?holiday=none`);
+  await page.goto(`${base}/studio?holiday=none`);
   await expect(page.getByRole('heading', { name: 'Meet your stream companion' })).toBeVisible();
   await expect(page.locator('.sn-wz-figure canvas').first()).toBeVisible({ timeout: 15000 });
   await page.waitForTimeout(2500);
@@ -74,7 +74,7 @@ try {
   // The stage, and every later launch.
   const modes = page.getByRole('tablist', { name: 'What you are working on' });
   await expect(modes.getByRole('tab', { name: 'Live' })).toHaveAttribute('aria-selected', 'true');
-  await page.goto(`${base}/studio-next?holiday=none`);
+  await page.goto(`${base}/studio?holiday=none`);
   await page.reload();
   await expect(modes.getByRole('tab', { name: 'Live' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.sn-scene canvas').first()).toBeVisible({ timeout: 15000 });
@@ -165,7 +165,7 @@ try {
 
   // In a holiday's season its theme arrives by itself: her room, a ninth key and a countdown,
   // and nothing on the stage moves to make room.
-  await page.goto(`${base}/studio-next?holiday=christmas`);
+  await page.goto(`${base}/studio?holiday=christmas`);
   await expect(studio).toHaveAttribute('data-theme', 'christmas');
   await expect(page.locator('.sn-room-back')).toBeVisible();
   // Christmas has a 3D room, drawn on canvases behind and in front of her.
@@ -199,7 +199,7 @@ try {
   await settings.getByRole('combobox', { name: 'Colours' }).click();
   await page.getByRole('option', { name: /^Honey/ }).click();
   await page.getByRole('button', { name: 'Close Settings' }).click();
-  await page.goto(`${base}/studio-next?holiday=none`);
+  await page.goto(`${base}/studio?holiday=none`);
   await expect(studio).toHaveAttribute('data-theme', 'honey');
 
   // Quiet mode flips at once, and back.
