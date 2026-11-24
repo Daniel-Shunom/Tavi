@@ -55,8 +55,20 @@ export function createRoom(options: {
   camera.position.copy(home);
   camera.lookAt(target);
 
+  // If the second renderer cannot be made, the first is released before the error leaves.
+  const made: THREE.WebGLRenderer[] = [];
+  const makeRenderer = (canvas: HTMLCanvasElement) => {
+    try {
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      made.push(renderer);
+      return renderer;
+    } catch (error) {
+      for (const renderer of made) renderer.dispose();
+      throw error;
+    }
+  };
   const renderers = [options.back, options.front].map((canvas) => {
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    const renderer = makeRenderer(canvas);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -197,9 +209,12 @@ export function createRoom(options: {
     }
     ambient.intensity = mood === 'dark' ? 0.7 : 1.5;
     fill.intensity = mood === 'lit' ? 26 : mood === 'dim' ? 14 : 5;
-    // A little parallax as the pointer moves gives the room its depth.
-    eased.lerp(pointer, reducedMotion ? 1 : 0.12);
-    if (eased.distanceTo(pointer) > 0.002) moving = true;
+    // A little parallax as the pointer moves gives the room its depth. With reduced motion the
+    // camera stays where it is.
+    if (!reducedMotion) {
+      eased.lerp(pointer, 0.12);
+      if (eased.distanceTo(pointer) > 0.002) moving = true;
+    }
     camera.position.set(home.x + eased.x * 0.9, home.y + eased.y * 0.35, home.z);
     camera.lookAt(target);
     camera.layers.set(0);

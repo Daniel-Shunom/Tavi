@@ -10,10 +10,19 @@ export type Section = (typeof sections)[number];
  *  welcome is the guided first-run setup. */
 export type Route = { place: 'stage'; mode: Mode; settings?: Section } | { place: 'welcome' };
 
-/** Reads `#look`, `#welcome` or `#settings/layout`; anything else is the fallback. */
+/**
+ * Reads `#look`, `#welcome`, `#settings/layout` or `#look/settings/layout` (Settings open over
+ * Look); anything else is the fallback.
+ */
 export function parseRoute(hash: string, fallback: Route): Route {
-  const [first = '', second = ''] = hash.replace(/^#/, '').split('/');
+  const [first = '', second = '', third = ''] = hash.replace(/^#/, '').split('/');
   const mode = modes.find((id) => id === first);
+  if (mode && second === 'settings')
+    return {
+      place: 'stage',
+      mode,
+      settings: sections.find((id) => id === third) ?? 'connections',
+    };
   if (mode) return { place: 'stage', mode };
   if (first === 'welcome') return { place: 'welcome' };
   if (first === 'settings')
@@ -27,7 +36,10 @@ export function parseRoute(hash: string, fallback: Route): Route {
 
 export function routeHash(route: Route): string {
   if (route.place === 'welcome') return '#welcome';
-  return route.settings ? `#settings/${route.settings}` : `#${route.mode}`;
+  if (!route.settings) return `#${route.mode}`;
+  return route.mode === 'live'
+    ? `#settings/${route.settings}`
+    : `#${route.mode}/settings/${route.settings}`;
 }
 
 /** Remembered in the browser under the same key as the current Studio, so progress carries over. */

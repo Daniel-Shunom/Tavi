@@ -7,19 +7,26 @@ import { describe, expect, it } from 'vitest';
 
 const css = readFileSync(new URL('../../src/studio-next/studio-next.css', import.meta.url), 'utf8');
 
-type Declaration = { selector: string; prop: string; value: string };
+type Declaration = { selector: string; prop: string; value: string; block: number };
 
 /** Every declaration in the file, with the selector of the rule it sits in. */
 function declarations(source: string): Declaration[] {
   const found: Declaration[] = [];
   const text = source.replace(/\/\*[\s\S]*?\*\//g, '');
+  let block = 0;
   for (const rule of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    block += 1;
     const selector = (rule[1] ?? '').trim();
     if (selector.startsWith('@keyframes') || /^(from|to|\d+%)/.test(selector)) continue;
     for (const part of (rule[2] ?? '').split(';')) {
       const at = part.indexOf(':');
       if (at < 0) continue;
-      found.push({ selector, prop: part.slice(0, at).trim(), value: part.slice(at + 1).trim() });
+      found.push({
+        selector,
+        prop: part.slice(0, at).trim(),
+        value: part.slice(at + 1).trim(),
+        block,
+      });
     }
   }
   return found;
@@ -37,22 +44,29 @@ const problems = (test: (d: Declaration) => string | null) =>
 // Room props scale with the stage, so they are measured in container units, not the grid.
 const scales = (value: string) => value.includes('cqw');
 const rawPx = /-?\d*\.?\d+px/;
+const roles = ['display', 'title', 'heading', 'subhead', 'body', 'small', 'micro'];
+const sizeToken = new Set(roles.map((name) => `var(--sn-fs-${name})`));
+const lineToken = new Set(roles.map((name) => `var(--sn-lh-${name})`));
 
 describe('Studio visual system', () => {
   it('defines the tokens: type roles on the 4px grid, nine spacing steps, five shapes', () => {
     const token = (name: string) => all.find((d) => d.prop === name)?.value;
-    for (const role of ['display', 'title', 'heading', 'subhead', 'body', 'small', 'micro']) {
-      expect(token(`--sn-fs-${role}`), role).toMatch(/^\d+px$/);
-      expect(parseInt(token(`--sn-lh-${role}`) ?? '', 10) % 4, `${role} line height`).toBe(0);
+    for (const name of roles) {
+      expect(token(`--sn-fs-${name}`), name).toMatch(/^\d+px$/);
+      // A whole pixel value, more than nothing, on the 4px grid.
+      const line = token(`--sn-lh-${name}`) ?? '';
+      expect(line, `${name} line height`).toMatch(/^[1-9]\d*px$/);
+      expect(Number(line.slice(0, -2)) % 4, `${name} line height`).toBe(0);
     }
     expect(
       ['s1', 's2', 's3', 's4', 's5', 's6', 's8', 's10', 's12'].map((step) => token(`--sn-${step}`)),
     ).toEqual(['4px', '8px', '12px', '16px', '20px', '24px', '32px', '40px', '48px']);
-    expect(['sm', 'md', 'lg', 'xl'].map((size) => token(`--sn-r-${size}`))).toEqual([
+    expect(['sm', 'md', 'lg', 'xl', 'pill'].map((size) => token(`--sn-r-${size}`))).toEqual([
       '8px',
       '12px',
       '16px',
       '20px',
+      '999px',
     ]);
   });
 
@@ -71,7 +85,9 @@ describe('Studio visual system', () => {
   it('rounds every corner with a shape token', () => {
     expect(
       problems((d) =>
-        d.prop === 'border-radius' && rawPx.test(d.value) ? 'writes its own radius' : null,
+        /^border(-\w+-\w+)?-radius$/.test(d.prop) && rawPx.test(d.value)
+          ? 'writes its own radius'
+          : null,
       ),
     ).toEqual([]);
   });
@@ -80,9 +96,8 @@ describe('Studio visual system', () => {
     expect(
       problems((d) => {
         if (d.prop === 'font' && d.value !== 'inherit') return 'uses the font shorthand';
-        if (d.prop === 'font-size' && !/^var\(--sn-fs-\w+\)$/.test(d.value))
-          return 'writes its own size';
-        if (d.prop === 'line-height' && !/^var\(--sn-lh-\w+\)$/.test(d.value))
+        if (d.prop === 'font-size' && !sizeToken.has(d.value)) return 'writes its own size';
+        if (d.prop === 'line-height' && !lineToken.has(d.value))
           return 'writes its own line height';
         if (d.prop === 'font-family' && !/^var\(--sn-font-(display|text)\)$/.test(d.value))
           return 'names a font';
@@ -94,10 +109,13 @@ describe('Studio visual system', () => {
   });
 
   it('gives a size and its line height together, from the same role', () => {
-    const bySelector = new Map<string, Declaration[]>();
-    for (const d of rules) bySelector.set(d.selector, [...(bySelector.get(d.selector) ?? []), d]);
+    // Each rule block is checked by itself, so an override inside a media query cannot lean on
+    // the base rule for its other half.
+    const byBlock = new Map<number, Declaration[]>();
+    for (const d of rules) byBlock.set(d.block, [...(byBlock.get(d.block) ?? []), d]);
     const mismatched: string[] = [];
-    for (const [selector, list] of bySelector) {
+    for (const list of byBlock.values()) {
+      const selector = list[0]?.selector ?? '';
       const size = list.find((d) => d.prop === 'font-size')?.value.match(/--sn-fs-(\w+)/)?.[1];
       const line = list.find((d) => d.prop === 'line-height')?.value.match(/--sn-lh-(\w+)/)?.[1];
       if ((size || line) && size !== line)

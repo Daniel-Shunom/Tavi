@@ -76,19 +76,28 @@ export function Stage(
           </Tabs.List>
         </Tabs.Root>
         <div className="sn-top-side">
-          <button type="button" className="sn-btn sn-btn-quiet" onClick={props.onPalette}>
+          <button
+            type="button"
+            className="sn-btn sn-btn-quiet"
+            aria-label="Jump to anything"
+            onClick={props.onPalette}
+          >
             <Search size={16} aria-hidden="true" />
             <span className="sn-top-wide">Jump to anything</span>
             <kbd aria-hidden="true">Ctrl K</kbd>
           </button>
           {connected && count < 3 ? (
             <button type="button" className="sn-chip-link sn-chip-fill" onClick={props.onWelcome}>
-              Finish setup · {count} of 3
+              <span className="sn-top-label">Finish setup · </span>
+              <span className="sn-top-short" aria-hidden="true">
+                Setup{' '}
+              </span>
+              {count} of 3
             </button>
           ) : null}
           <button type="button" className="sn-chip-link" onClick={props.onSettings}>
             <i className="sn-dot" data-state={connected ? 'here' : 'warn'} />
-            {connected ? 'Settings' : 'Reconnecting'}
+            <span className="sn-top-label">{connected ? 'Settings' : 'Reconnecting'}</span>
             <Settings2 size={16} aria-hidden="true" />
           </button>
         </div>

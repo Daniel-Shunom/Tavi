@@ -139,9 +139,13 @@ export function StudioNext(connection: ReturnType<typeof useConnection>) {
     };
   }, []);
 
+  // Rehearse belongs to the Live stage: any other route closes it, however the route changed.
+  useEffect(() => {
+    if (route.place !== 'stage' || route.mode !== 'live' || route.settings) setRehearse(false);
+  }, [route]);
+
   const go = useCallback((next: Route) => {
     setRoute(next);
-    if (next.place !== 'stage' || next.mode !== 'live' || next.settings) setRehearse(false);
     history.replaceState(null, '', routeHash(next));
     document.getElementById('studio-main')?.scrollTo({ top: 0 });
   }, []);
@@ -300,7 +304,13 @@ export function StudioNext(connection: ReturnType<typeof useConnection>) {
         kind: 'Action',
         keywords: 'obs browser source url',
         run: () => {
-          void navigator.clipboard.writeText(overlayUrl).catch(() => {
+          // Outside a secure context there is no clipboard; Settings shows the link to copy.
+          const clipboard = navigator.clipboard as Clipboard | undefined;
+          if (!clipboard) {
+            openSettings('connections');
+            return;
+          }
+          void clipboard.writeText(overlayUrl).catch(() => {
             openSettings('connections');
           });
         },
@@ -365,7 +375,15 @@ export function StudioNext(connection: ReturnType<typeof useConnection>) {
   return (
     <LayerContext.Provider value={root}>
       <div className="studio sn" data-theme={scheme.id} data-tone={tone} style={vars} ref={setRoot}>
-        <a className="st-skip" href="#studio-main">
+        <a
+          className="st-skip"
+          href="#studio-main"
+          onClick={(event) => {
+            // Move focus without replacing the route in the address.
+            event.preventDefault();
+            document.getElementById('studio-main')?.focus();
+          }}
+        >
           Skip to content
         </a>
         {route.place === 'stage' ? (

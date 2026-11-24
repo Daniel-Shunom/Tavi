@@ -36,6 +36,17 @@ describe('new Studio routes', () => {
       mode: 'live',
       settings: 'layout',
     });
+    expect(parseRoute('#look/settings/preferences', stage)).toEqual({
+      place: 'stage',
+      mode: 'look',
+      settings: 'preferences',
+    });
+    expect(routeHash({ place: 'stage', mode: 'look', settings: 'preferences' })).toBe(
+      '#look/settings/preferences',
+    );
+    expect(routeHash({ place: 'stage', mode: 'live', settings: 'layout' })).toBe(
+      '#settings/layout',
+    );
     expect(parseRoute('#settings/nowhere', stage)).toEqual({
       place: 'stage',
       mode: 'live',

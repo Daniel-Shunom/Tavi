@@ -54,6 +54,11 @@ export function Wizard({
     return progress.look ? 'hello' : 'welcome';
   });
   const [name, setName] = useState(c.name);
+  const editingName = useRef(false);
+  // While the field is idle it follows the saved name (it may load, or change elsewhere).
+  useEffect(() => {
+    if (!editingName.current) setName(c.name);
+  }, [c.name]);
   const [chatConnected, setChatConnected] = useState(false);
   const index = order.indexOf(step);
   const patch = (value: Partial<Config>) => {
@@ -152,10 +157,12 @@ export function Wizard({
               maxLength={24}
               disabled={!connected}
               onChange={(event) => {
+                editingName.current = true;
                 setName(event.target.value);
                 if (event.target.value.trim()) patch({ name: event.target.value });
               }}
               onBlur={() => {
+                editingName.current = false;
                 setName(c.name);
               }}
             />
@@ -377,7 +384,9 @@ export function Wizard({
       <main className="sn-wz-main" id="studio-main" tabIndex={-1}>
         <div className="sn-wz-figure">
           <p className="sn-wz-bubble" role="status">
-            {bubble[step]}
+            {connected
+              ? bubble[step]
+              : 'I’ve lost the connection for a moment. Your choices unlock when I’m back.'}
           </p>
           <div className="sn-wz-floor" aria-hidden="true" />
           <div className="sn-wz-avatar portrait-space" aria-hidden="true">

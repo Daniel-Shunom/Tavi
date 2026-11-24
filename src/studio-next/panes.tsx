@@ -1,4 +1,4 @@
-import { useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Radio } from '@base-ui/react/radio';
 import { RadioGroup } from '@base-ui/react/radio-group';
 import { Tabs } from '@base-ui/react/tabs';
@@ -126,6 +126,11 @@ export function LookPane({ state, connected, send }: StudioProps) {
   const history = useRef<Config['variant'][]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [name, setName] = useState(c.name);
+  const editingName = useRef(false);
+  // While the field is idle it follows the saved name (it may load, or change elsewhere).
+  useEffect(() => {
+    if (!editingName.current) setName(c.name);
+  }, [c.name]);
   const hasVariants = Boolean(variantRigs[c.character]);
   const patch = (value: Partial<Config>) => {
     send({ type: 'configure', patch: value });
@@ -149,10 +154,12 @@ export function LookPane({ state, connected, send }: StudioProps) {
           maxLength={24}
           disabled={!connected}
           onChange={(event) => {
+            editingName.current = true;
             setName(event.target.value);
             if (event.target.value.trim()) patch({ name: event.target.value });
           }}
           onBlur={() => {
+            editingName.current = false;
             setName(c.name);
           }}
         />

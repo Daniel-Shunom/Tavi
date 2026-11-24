@@ -75,6 +75,25 @@ export function Scene({
         data-room3d={space.on || undefined}
         data-over-prop={overProp || undefined}
         data-reacting={(room && reacting) || undefined}
+        role="group"
+        aria-label="Her spot on the stream. Arrow keys move her; hold Shift for bigger steps."
+        tabIndex={canMove ? 0 : -1}
+        onKeyDown={(event) => {
+          if (!canMove || event.target !== event.currentTarget) return;
+          const step = event.shiftKey ? 0.1 : 0.02;
+          const move = {
+            ArrowLeft: [-step, 0],
+            ArrowRight: [step, 0],
+            ArrowUp: [0, -step],
+            ArrowDown: [0, step],
+          }[event.key];
+          if (!move) return;
+          event.preventDefault();
+          patch({
+            x: clamp(c.x + (move[0] ?? 0), 0.08, 0.92),
+            y: clamp(c.y + (move[1] ?? 0), 0.35, 0.95),
+          });
+        }}
         onPointerDown={(event) => {
           // A press on something in the 3D room belongs to the room, not to placing her.
           if (event.button === 0 && space.press(event)) return;

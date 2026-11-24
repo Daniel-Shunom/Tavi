@@ -69,7 +69,12 @@ if (landing) {
 }
 function App() {
   if (download) return <DownloadPage />;
-  if (judge || (studio && import.meta.env['VITE_TAVI_JUDGING'] === 'true' && !isJudgingSession()))
+  if (
+    judge ||
+    ((studio || studioNext) &&
+      import.meta.env['VITE_TAVI_JUDGING'] === 'true' &&
+      !isJudgingSession())
+  )
     return <JudgeStart />;
   if (rigLab)
     return (
@@ -116,7 +121,13 @@ function StudioApp() {
 function StudioNextApp() {
   const connection = useConnection();
   return (
-    <React.Suspense fallback={null}>
+    <React.Suspense
+      fallback={
+        <p role="status" style={{ margin: '40vh auto 0', textAlign: 'center', opacity: 0.7 }}>
+          Opening Studio…
+        </p>
+      }
+    >
       <StudioNext {...connection} />
     </React.Suspense>
   );
