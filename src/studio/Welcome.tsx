@@ -200,6 +200,19 @@ export function Welcome({
             Tavi only reads chat; she never posts. Chat reactions are rules, not AI.
             {returning ? null : ' You can connect any time in Setup.'}
           </p>
+          {!isJudgingSession() ? (
+            <button
+              type="button"
+              className="st-link"
+              onClick={() => {
+                rememberChoice('skipped');
+                location.hash = 'setup';
+                onDone();
+              }}
+            >
+              Streaming on YouTube? Set up YouTube
+            </button>
+          ) : null}
         </div>
       </main>
     </div>

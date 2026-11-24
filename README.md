@@ -66,6 +66,10 @@ Choose **Connect Twitch** in Studio, then approve the read-only permissions in T
 
 Twitch tokens remain in service memory. Disconnect clears them locally and attempts revocation. Judging sessions also disconnect on reset or expiration. [Connection and reaction details →](docs/STREAM-EVENT-REACTIONS.md)
 
+## Connect YouTube
+
+In a YouTube-enabled Tavi release, connect your channel in **Setup → Let her hear chat**, then sign in with Google. No client file or API setup is needed. Both platforms use the existing OBS overlay and behaviour engine. [Maintainer configuration and current limits](docs/YOUTUBE.md).
+
 ## Built with Codex
 
 Human direction shaped the character, product, visual style, and priorities. Codex helped implement and refine Studio, motion, integration code, packaging, and verification. The [development record](docs/codex/README.md) documents concrete examples, session evidence, collaborator attribution, and feature boundaries.

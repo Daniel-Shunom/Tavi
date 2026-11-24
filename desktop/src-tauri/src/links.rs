@@ -28,8 +28,8 @@ fn trusted_external(url: &Url) -> bool {
         && url.port().is_none()
         && url.username().is_empty()
         && url.password().is_none()
-        && url.host_str() == Some("www.twitch.tv")
-        && url.path() == "/activate"
+        && ((url.host_str() == Some("www.twitch.tv") && url.path() == "/activate")
+            || (url.host_str() == Some("accounts.google.com") && url.path() == "/o/oauth2/v2/auth"))
 }
 
 pub fn classify(url: &Url, origin: &str) -> Target {
@@ -66,7 +66,10 @@ mod tests {
     #[test]
     fn twitch_activation_opens_in_browser() {
         assert_eq!(check("https://www.twitch.tv/activate"), Target::Browser);
-        assert_eq!(check("https://www.twitch.tv/activate?device-code=ABC"), Target::Browser);
+        assert_eq!(
+            check("https://www.twitch.tv/activate?device-code=ABC"),
+            Target::Browser
+        );
     }
     #[test]
     fn other_external_urls_are_blocked() {
@@ -76,6 +79,11 @@ mod tests {
             "https://twitch.tv.evil.example/activate",
             "https://user@www.twitch.tv/activate",
             "https://www.twitch.tv:8443/activate",
+            "https://accounts.google.com.evil.example/o/oauth2/v2/auth",
+            "https://user@accounts.google.com/o/oauth2/v2/auth",
+            "https://accounts.google.com:8443/o/oauth2/v2/auth",
+            "http://accounts.google.com/o/oauth2/v2/auth",
+            "https://accounts.google.com/other",
             "file:///C:/Windows/System32/cmd.exe",
             "ms-settings:privacy",
             "http://127.0.0.1:5173/",
@@ -84,12 +92,27 @@ mod tests {
         }
     }
     #[test]
+    fn google_authorization_opens_in_system_browser() {
+        let url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=test&state=nonce";
+        assert_eq!(check(url), Target::Browser);
+        assert_eq!(
+            navigation(&Url::parse(url).unwrap(), ORIGIN),
+            Target::Browser
+        );
+    }
+    #[test]
     fn studio_pages() {
         assert_eq!(check("http://127.0.0.1:4318/"), Target::InApp);
         assert_eq!(check("http://127.0.0.1:4318/overlay"), Target::Browser);
-        assert_eq!(check("http://127.0.0.1:4318/credits/rive-avatar.md"), Target::Browser);
         assert_eq!(
-            navigation(&Url::parse("http://127.0.0.1:4318/overlay").unwrap(), ORIGIN),
+            check("http://127.0.0.1:4318/credits/rive-avatar.md"),
+            Target::Browser
+        );
+        assert_eq!(
+            navigation(
+                &Url::parse("http://127.0.0.1:4318/overlay").unwrap(),
+                ORIGIN
+            ),
             Target::InApp
         );
     }

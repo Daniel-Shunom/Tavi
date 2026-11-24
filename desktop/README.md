@@ -61,6 +61,8 @@ Tavi Studio opens on a sign-in screen: **Connect with Twitch**, or **Skip for no
 
 ## Where Tavi stores things
 
+YouTube-enabled releases include Tavi's Google Desktop OAuth identity. Streamers select **Connect YouTube** and sign in in their system browser; no client JSON download or developer configuration is required. Access tokens remain in service memory. [Maintainer configuration and current limits](../docs/YOUTUBE.md).
+
 | What                 | Where                                                          |
 | -------------------- | -------------------------------------------------------------- |
 | App files            | `%LOCALAPPDATA%\Tavi Studio\`                                  |

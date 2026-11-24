@@ -13,7 +13,7 @@
     "verify": "node scripts/verify-running.mjs",
     "icon": "node scripts/render-icon.mjs",
     "prepare:icons": "node scripts/prepare-icons.mjs",
-    "test:packaging": "node --test scripts/platform.test.mjs scripts/notices.test.mjs scripts/updater-manifest.test.mjs",
+    "test:packaging": "node --test scripts/platform.test.mjs scripts/notices.test.mjs scripts/updater-manifest.test.mjs scripts/youtube-client.test.mjs",
     "verify:service": "node scripts/verify-service.mjs"
   },
   "devDependencies": {
