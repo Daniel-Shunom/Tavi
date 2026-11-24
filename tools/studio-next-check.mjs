@@ -78,6 +78,38 @@ try {
   await page.waitForTimeout(2500);
   await shot('stage-live');
   const stageAt = await place(stagePieces);
+  // The visual system's alignment, measured: reaction discs share one top edge and labels one
+  // bottom edge, and the tabs sit on the window's centre line.
+  const aligned = await page.evaluate(() => {
+    const edges = (selector, edge) => [
+      ...new Set(
+        [...document.querySelectorAll(selector)].map((el) =>
+          Math.round(el.getBoundingClientRect()[edge]),
+        ),
+      ),
+    ];
+    const tabs = document.querySelector('.sn-top .sn-tabs').getBoundingClientRect();
+    return {
+      discTops: edges('.sn-deck .sn-key svg', 'top'),
+      labelBottoms: edges('.sn-deck .sn-key > span', 'bottom'),
+      capTops: edges('.sn-deck .sn-key kbd', 'top'),
+      tabsOffCentre: Math.abs(tabs.left + tabs.width / 2 - innerWidth / 2),
+      sideGap: document.querySelector('.sn-top-side').getBoundingClientRect().left - tabs.right,
+      brandGap: tabs.left - document.querySelector('.sn-top-brand').getBoundingClientRect().right,
+    };
+  });
+  if (aligned.discTops.length !== 1)
+    errors.push(`Reaction discs are at different heights: ${aligned.discTops.join(', ')}`);
+  if (aligned.labelBottoms.length !== 1)
+    errors.push(`Reaction labels end at different heights: ${aligned.labelBottoms.join(', ')}`);
+  if (aligned.capTops.length !== 1)
+    errors.push(`Key caps are at different heights: ${aligned.capTops.join(', ')}`);
+  if (aligned.sideGap < 8 || aligned.brandGap < 8)
+    errors.push(
+      `The top bar's sides crowd the tabs (gaps ${String(aligned.brandGap)}px and ${String(aligned.sideGap)}px)`,
+    );
+  if (aligned.tabsOffCentre > 1)
+    errors.push(`The tabs are ${String(aligned.tabsOffCentre)}px off the window's centre`);
   // The OBS step was left for later, so the stage offers to finish it.
   await expect(page.getByRole('button', { name: 'Finish setup · 2 of 3' })).toBeVisible();
 

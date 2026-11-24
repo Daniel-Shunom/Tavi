@@ -41,18 +41,20 @@ export function Stage(
   return (
     <div className="sn-stage">
       <header className="sn-top">
-        <a href="/" className="st-brand" aria-label="Tavi home">
-          tavi <small>Studio</small>
-        </a>
-        {/* Always there, so the tabs never shift when a holiday theme comes or goes. */}
-        <span
-          className="sn-motif"
-          role={holiday ? 'img' : undefined}
-          aria-label={holiday ? `${holiday.label} theme` : undefined}
-          title={holiday ? `${holiday.label} theme` : undefined}
-        >
-          {holiday?.icon}
-        </span>
+        <div className="sn-top-brand">
+          <a href="/" className="st-brand" aria-label="Tavi home">
+            tavi <small>Studio</small>
+          </a>
+          {/* Always there, so the tabs never shift when a holiday theme comes or goes. */}
+          <span
+            className="sn-motif"
+            role={holiday ? 'img' : undefined}
+            aria-label={holiday ? `${holiday.label} theme` : undefined}
+            title={holiday ? `${holiday.label} theme` : undefined}
+          >
+            {holiday?.icon}
+          </span>
+        </div>
         <Tabs.Root
           className="sn-modes"
           value={mode}

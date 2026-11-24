@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ToggleRow } from '../ui';
-import { countdownLine, daysUntil, type HolidayId } from './calendar';
+import { countdownParts, daysUntil, type HolidayId } from './calendar';
 import type { Room } from './rooms';
 
 /** Everything a holiday theme brings to the stage. */
@@ -19,6 +19,7 @@ export type Holiday = {
 
 /** The holiday card on the Live panel: a countdown, and the one switch for her room. */
 export function HolidayCard({ holiday }: { holiday: Holiday }) {
+  const countdown = countdownParts(holiday.label, daysUntil(holiday.id, new Date()));
   return (
     <section className="sn-holiday" aria-label={`${holiday.label} theme`}>
       <div className="sn-holiday-head">
@@ -26,8 +27,8 @@ export function HolidayCard({ holiday }: { holiday: Holiday }) {
           {holiday.icon}
         </span>
         <div>
-          <b>{countdownLine(holiday.label, daysUntil(holiday.id, new Date()))}</b>
-          <span>{holiday.label} theme</span>
+          <b>{countdown.lead}</b>
+          <span>{countdown.rest}</span>
         </div>
       </div>
       <ToggleRow

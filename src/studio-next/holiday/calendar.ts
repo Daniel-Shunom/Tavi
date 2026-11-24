@@ -78,6 +78,14 @@ export function countdownLine(label: string, days: number | null): string {
   return `${String(days)} days to ${label}`;
 }
 
+/** The countdown in two parts, so the number can lead on its own line. */
+export function countdownParts(label: string, days: number | null): { lead: string; rest: string } {
+  if (days === null) return { lead: label, rest: 'In season' };
+  if (days === 0) return { lead: 'Today', rest: `It’s ${label}` };
+  if (days === 1) return { lead: 'Tomorrow', rest: label };
+  return { lead: `${String(days)} days`, rest: `to ${label}` };
+}
+
 // ---- Seasons: when a holiday theme is on offer ----
 
 /** Days before and after the day itself that each holiday's season runs. */

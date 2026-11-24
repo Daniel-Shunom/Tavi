@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   countdownLine,
+  countdownParts,
   daysUntil,
   easter,
   holidayDate,
@@ -44,6 +45,13 @@ describe('holiday dates', () => {
     expect(countdownLine('Christmas', 1)).toBe('Christmas is tomorrow');
     expect(countdownLine('Christmas', 0)).toBe('It’s Christmas today');
     expect(countdownLine('Harvest', null)).toBe('Harvest season');
+  });
+
+  it('splits the countdown so the number leads', () => {
+    expect(countdownParts('Christmas', 31)).toEqual({ lead: '31 days', rest: 'to Christmas' });
+    expect(countdownParts('Christmas', 1)).toEqual({ lead: 'Tomorrow', rest: 'Christmas' });
+    expect(countdownParts('Christmas', 0)).toEqual({ lead: 'Today', rest: 'It’s Christmas' });
+    expect(countdownParts('Harvest', null)).toEqual({ lead: 'Harvest', rest: 'In season' });
   });
 });
 

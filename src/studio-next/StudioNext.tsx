@@ -43,6 +43,7 @@ import { rooms } from './holiday/rooms';
 import { motifIcons } from './motifs';
 import { LayerContext } from './ui';
 import { Wizard } from './Wizard';
+import '@fontsource/fraunces/400.css';
 import '../studio.css';
 import './studio-next.css';
 
