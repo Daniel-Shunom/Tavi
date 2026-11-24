@@ -14,7 +14,7 @@ import { decodeFrame } from './decode.js';
 import attachmentCatalog from '../assets/catalog.json' with { type: 'json' };
 import { itemCatalogFrom } from '../shared/wardrobe.js';
 import { TwitchIntegration, type TwitchOptions } from './twitch/integration.js';
-import { Companion } from './companion.js';
+import { Companion } from './behavior/engine.js';
 import { AiManager, selectionSchema, type Selection } from './ai/manager.js';
 import { z } from 'zod';
 import { obsConnectSchema } from '../shared/obs.js';

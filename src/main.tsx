@@ -21,7 +21,13 @@ import { trackProductEvent } from './analytics';
 
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
-const studio = location.pathname === '/studio';
+// Studio lives at /studio (src/studio-next/). Its earlier address still works.
+if (location.pathname === '/studio-next')
+  location.replace(`/studio${location.search}${location.hash}`);
+const studio = location.pathname === '/studio' || location.pathname === '/studio-next';
+const Studio = React.lazy(() =>
+  import('./studio-next/StudioNext').then((module) => ({ default: module.StudioNext })),
+);
 const download = location.pathname === '/download';
 const judge = location.pathname === '/judge';
 const rigLab = location.pathname === '/rig-lab';
@@ -40,7 +46,6 @@ const AvatarLab = React.lazy(() =>
   import('./AvatarLab').then((module) => ({ default: module.AvatarLab })),
 );
 // Landing visitors never download the studio.
-const Studio = React.lazy(() => import('./studio').then((module) => ({ default: module.Studio })));
 // The OBS dock: Studio's live controls in a narrow panel (src/studio/Dock.tsx).
 const Dock = React.lazy(() => import('./studio/Dock').then((module) => ({ default: module.Dock })));
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
@@ -102,7 +107,13 @@ function DockApp() {
 function StudioApp() {
   const connection = useConnection();
   return (
-    <React.Suspense fallback={null}>
+    <React.Suspense
+      fallback={
+        <p role="status" style={{ margin: '40vh auto 0', textAlign: 'center', opacity: 0.7 }}>
+          Opening Studio…
+        </p>
+      }
+    >
       <Studio {...connection} />
     </React.Suspense>
   );

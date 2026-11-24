@@ -23,6 +23,14 @@ Project skills are vendored under `.agents/skills/`. Use these copies instead of
 - UX and animation review (Charles): `.agents/skills/charles-ux-animation/SKILL.md`. Use for interaction audits, transitions, loading states, keyboard behavior and touch targets.
 - Matt Pocock orchestration skills and setup are installed alongside these. Run setup before invoking workflows that require issue tracker configuration; no tracker is configured yet.
 
+## Branch cleanup
+
+GitHub automatic deletion of merged pull-request branches must remain enabled.
+After each pull-request merge, switch back to `main`, update it, and delete the
+merged local branch once its work is confirmed integrated. If the branch is checked
+out in another worktree, coordinate before removing it. Never force-delete a branch
+with unmerged work.
+
 ## Ownership and integration
 
 Other agents own `experiments/` and `docs/PERSONALITY.md`. Do not modify them without coordinating with the user. Workstreams (agreed with the user on October 25, 2026):

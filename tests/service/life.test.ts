@@ -3,7 +3,7 @@ import { LifeDirector, type LifeContext } from '../../server/behavior/life';
 import { neutralAffect, type AffectSnapshot } from '../../shared/affect';
 import { defaults, type Command } from '../../shared/protocol';
 import { AiManager, settingsFromEnv } from '../../server/ai/manager';
-import { Companion } from '../../server/companion';
+import { Companion } from '../../server/behavior/engine';
 import { catalog } from '../../src/renderer/characters/registry';
 
 const context = (now: number, partial: Partial<LifeContext> = {}): LifeContext => ({

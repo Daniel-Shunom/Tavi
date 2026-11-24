@@ -35,7 +35,7 @@ import { Card, Segmented, SwitchRow, natures, quickCues, supports, type Cue } fr
 
 const frameLabels = { game: 'Game', webcam: 'Webcam', chat: 'Chat' };
 // Stream-event previews: the same rules as live Twitch events, always labelled "not real".
-const streamPreviews: {
+export const streamPreviews: {
   label: string;
   icon: React.ReactNode;
   title: string;

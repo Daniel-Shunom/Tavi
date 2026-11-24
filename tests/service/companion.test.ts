@@ -3,7 +3,7 @@ import type { Decision } from '../../shared/decision';
 import { defaults, type Config } from '../../shared/protocol';
 import { AiManager, settingsFromEnv } from '../../server/ai/manager';
 import type { DecisionContext, DecisionProvider } from '../../server/ai/types';
-import { Companion } from '../../server/companion';
+import { Companion } from '../../server/behavior/engine';
 import { catalog } from '../../src/renderer/characters/registry';
 
 const react = (partial: Partial<Decision> = {}): Decision => ({

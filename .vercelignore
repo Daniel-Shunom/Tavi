@@ -5,8 +5,6 @@
 .vercel
 .env
 .env.*
-.session_id
-.sessions
 art
 desktop/*
 !desktop/listen.ts

@@ -3,17 +3,16 @@ import {
   Affect,
   affectRules,
   baseline,
-  effectiveEnergy,
-  neutralAffect,
   restScale,
   type AffectPersona,
-} from '../../shared/affect';
+} from '../../server/behavior/affect';
+import { effectiveEnergy, neutralAffect } from '../../shared/affect';
 import { PacingDirector, pacingRules } from '../../server/behavior/pacing';
 import { StateDirector, type DirectorContext } from '../../server/behavior/states';
 import { quietSchedule } from '../../shared/states';
 import { defaults, stateSchema } from '../../shared/protocol';
 import { AiManager, settingsFromEnv } from '../../server/ai/manager';
-import { Companion } from '../../server/companion';
+import { Companion } from '../../server/behavior/engine';
 import { catalog } from '../../src/renderer/characters/registry';
 
 const cozy: AffectPersona = { personality: 'cozy', attitude: 'cheeky', energy: 40 };

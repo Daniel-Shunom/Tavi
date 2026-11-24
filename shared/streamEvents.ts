@@ -1,6 +1,6 @@
 // Twitch stream events Tavi reacts to (follows, raids, subs, gifts, cheers, hype trains and
 // channel-point redemptions). Read-only: Tavi never posts or changes anything on the channel.
-// Reactions are deterministic rules (server/behavior/streamEvents.ts), never AI.
+// Reactions are deterministic rules (server/behavior/reactions/streamEvents.ts), never AI.
 import { z } from 'zod';
 
 const name = z.string().trim().min(1).max(100);

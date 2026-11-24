@@ -1,0 +1,2101 @@
+/* The new Studio (/studio-next). It reads the theme tokens from studio.css (.studio), so all
+   three themes work, and reuses that file's styles for the panels it shares with the current
+   Studio. Everything new is prefixed sn-.
+
+   Motion: three curves and six durations, named here and used everywhere below (and mirrored
+   as constants in Stage.tsx, Scene.tsx and Setup.tsx for Motion). Movement and size changes use
+   transform and opacity only. Presses and hovers keep 150ms; menus and panes take 200ms in and
+   150ms out; the drawer 260ms in and 200ms out; her close-up 340ms. */
+
+.sn {
+  /* The visual system. These are the only sizes, gaps, shapes and type settings in this file:
+     tests/studio-system.test.ts fails if a rule writes its own. */
+  --sn-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --sn-font-text: 'DM Sans', system-ui, sans-serif;
+  /* Type: seven roles. Every line height is a multiple of 4. */
+  --sn-fs-display: 34px;
+  --sn-lh-display: 40px;
+  --sn-fs-title: 26px;
+  --sn-lh-title: 32px;
+  --sn-fs-heading: 20px;
+  --sn-lh-heading: 28px;
+  --sn-fs-subhead: 17px;
+  --sn-lh-subhead: 24px;
+  --sn-fs-body: 15px;
+  --sn-lh-body: 20px;
+  --sn-fs-small: 13px;
+  --sn-lh-small: 20px;
+  --sn-fs-micro: 12px;
+  --sn-lh-micro: 16px;
+  /* Space: a 4px grid, nine steps. */
+  --sn-s1: 4px;
+  --sn-s2: 8px;
+  --sn-s3: 12px;
+  --sn-s4: 16px;
+  --sn-s5: 20px;
+  --sn-s6: 24px;
+  --sn-s8: 32px;
+  --sn-s10: 40px;
+  --sn-s12: 48px;
+  /* Shape: four radii and the pill. A shape inside another is one step smaller. */
+  --sn-r-sm: 8px;
+  --sn-r-md: 12px;
+  --sn-r-lg: 16px;
+  --sn-r-xl: 20px;
+  --sn-r-pill: 999px;
+  --sn-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --sn-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --sn-ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+  --sn-t-press: 150ms;
+  --sn-t-pop: 200ms;
+  --sn-t-exit: 150ms;
+  --sn-t-panel: 260ms;
+  --sn-t-panel-exit: 200ms;
+  --sn-t-move: 340ms;
+  position: relative;
+  isolation: isolate;
+  flex-direction: column;
+  /* clip, not hidden: a hidden box can still be scrolled when focus lands on a panel that is
+     sliding in from outside it, which lurches the whole app sideways. */
+  overflow: clip;
+}
+.sn h1,
+.sn h2,
+.sn h3,
+.sn p {
+  margin: 0;
+}
+
+/* ---- Small pieces ---------------------------------------------------------------------- */
+
+.sn-serif,
+.sn-value {
+  font-family: var(--sn-font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.sn-serif {
+  font-size: var(--sn-fs-title);
+  line-height: var(--sn-lh-title);
+}
+.sn-value {
+  font-size: var(--sn-fs-heading);
+  line-height: var(--sn-lh-heading);
+}
+.sn-label {
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  font-weight: 600;
+  color: var(--faint);
+}
+.sn-hint {
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  color: var(--faint);
+}
+.sn-tag {
+  flex: none;
+  padding: var(--sn-s1) var(--sn-s2);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-pill);
+  font-size: var(--sn-fs-micro);
+  line-height: var(--sn-lh-micro);
+  font-weight: 600;
+  color: var(--faint);
+  white-space: nowrap;
+}
+.sn-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--good);
+}
+.sn-dot[data-state='away'] {
+  background: var(--faint);
+}
+.sn-dot[data-state='warn'] {
+  background: var(--warn);
+}
+.sn kbd {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 var(--sn-s1);
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-sm);
+  font-family: var(--sn-font-text);
+  font-weight: 600;
+  font-size: var(--sn-fs-micro);
+  line-height: var(--sn-lh-micro);
+  color: var(--faint);
+}
+.sn-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s2);
+}
+.sn-divide {
+  padding-top: var(--sn-s4);
+  border-top: 1px solid var(--line);
+}
+.sn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sn-s2) var(--sn-s3);
+}
+.sn-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s1);
+}
+.sn-field-narrow {
+  max-width: 420px;
+}
+
+/* Buttons. A press scales to 0.96 and glides back if released early. */
+.sn-btn,
+.sn-icon-btn,
+.sn-chip-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sn-s2);
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    transform var(--sn-t-press) var(--sn-ease-out),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+.sn-btn {
+  padding: 0 var(--sn-s4);
+  border-radius: var(--sn-r-md);
+}
+.sn-btn:active:not(:disabled),
+.sn-icon-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.sn-btn-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.sn-btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--sub);
+}
+.sn-wide {
+  width: 100%;
+}
+.sn-icon-btn {
+  width: 44px;
+  padding: 0;
+  border-radius: var(--sn-r-md);
+}
+.sn-chip-link.sn-chip-fill {
+  border-color: transparent;
+  background: var(--second, var(--accent));
+  color: var(--bg);
+  font-weight: 600;
+}
+.sn-chip-link {
+  min-height: 40px;
+  padding: 0 var(--sn-s3);
+  border-radius: var(--sn-r-pill);
+  color: var(--sub);
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+}
+
+/* Solid buttons: round, fully filled, with heavier icons, and a solid disc for closing things.
+   The shared panels from the current Studio take the same shape and fill here. */
+.sn-btn,
+.sn .secondary-button,
+.sn .primary-button,
+.sn .st-button {
+  border-radius: var(--sn-r-pill);
+  font-weight: 600;
+}
+.sn-btn:not(.sn-btn-primary, .sn-btn-quiet),
+.sn-chip-link:not(.sn-chip-fill),
+.sn .secondary-button,
+.sn .st-button:not(.st-primary) {
+  border-color: transparent;
+  background: var(--raised);
+}
+.sn-chip-link {
+  font-weight: 600;
+}
+.sn-btn svg,
+.sn-icon-btn svg,
+.sn-key svg {
+  stroke-width: 2.6;
+}
+.sn-btn:not(.sn-btn-primary, .sn-btn-quiet) svg {
+  color: var(--second, var(--accent));
+}
+.sn-icon-btn {
+  border-color: transparent;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Switch row: the whole row is the target. */
+.sn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sn-s4);
+  min-height: 52px;
+  cursor: pointer;
+}
+.sn-row b {
+  display: block;
+  font-weight: 500;
+}
+.sn-row > span:first-child > span {
+  display: block;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  color: var(--faint);
+}
+.sn-switch {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  border-radius: var(--sn-r-pill);
+  background: var(--line);
+  transition: background-color 150ms ease;
+}
+.sn-switch[data-checked] {
+  background: var(--accent);
+}
+.sn-switch[data-disabled] {
+  opacity: 0.45;
+}
+.sn-switch-thumb {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform var(--sn-t-pop) var(--sn-ease-move);
+}
+.sn-switch-thumb[data-checked] {
+  transform: translateX(20px);
+}
+
+/* Segmented choice and tabs: one pill slides to the chosen option. */
+.sn-seg,
+.sn-tabs {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  padding: var(--sn-s1);
+  border-radius: var(--sn-r-lg);
+  background: var(--raised);
+}
+.sn-seg-pill,
+.sn-tabs-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: var(--sn-r-md);
+  background: var(--panel);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+.sn-seg-pill {
+  left: 4px;
+  width: calc((100% - 8px) / var(--n));
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform var(--sn-t-pop) var(--sn-ease-move);
+}
+.sn-tabs-pill {
+  left: 0;
+  width: var(--active-tab-width);
+  translate: var(--active-tab-left) 0;
+  transition: translate var(--sn-t-pop) var(--sn-ease-move);
+}
+.sn-seg-item,
+.sn-tab {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  padding: 0 var(--sn-s1);
+  border-radius: var(--sn-r-md);
+  background: transparent;
+  color: var(--sub);
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.sn-seg-item[data-checked],
+.sn-tab[data-active] {
+  color: var(--text);
+}
+.sn-seg-item[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Chips. */
+.sn-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sn-s2);
+}
+.sn-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--sn-s3);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-md);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform var(--sn-t-press) var(--sn-ease-out),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.sn-chip:active:not(:disabled, [data-disabled]) {
+  transform: scale(0.96);
+}
+.sn-chip[data-checked] {
+  border-color: var(--accent);
+  background: var(--raised);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.sn-chip[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Dial: the thumb stays 1:1 under the pointer, with no easing. */
+.sn-dial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s1);
+}
+.sn-dial-head,
+.sn-dial-ends {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sn-s3);
+}
+.sn-dial-ends {
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  color: var(--faint);
+}
+.sn-slider {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  touch-action: none;
+  cursor: pointer;
+}
+.sn-slider[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sn-slider-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: var(--sn-r-pill);
+  background: var(--raised);
+}
+.sn-slider-fill {
+  border-radius: var(--sn-r-pill);
+  background: var(--accent);
+}
+.sn-slider-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 1px 3px rgb(0 0 0 / 0.3);
+}
+.sn-slider-thumb:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Expander: grid rows, never height. */
+.sn-exp {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--sn-t-panel) var(--sn-ease-move);
+}
+.sn-exp[data-open] {
+  grid-template-rows: 1fr;
+}
+.sn-exp > div {
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0s linear var(--sn-t-panel);
+}
+.sn-exp[data-open] > div {
+  visibility: visible;
+  transition: visibility 0s;
+}
+
+/* Copy field, with an icon that swaps in place. */
+.sn-copy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sn-s2);
+}
+.studio .sn-copy input {
+  flex: 999 1 220px;
+  width: auto;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+}
+.sn-swap {
+  display: inline-grid;
+}
+.sn-swap > * {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--sn-t-pop) var(--sn-ease-out),
+    transform var(--sn-t-pop) var(--sn-ease-out),
+    filter var(--sn-t-pop) var(--sn-ease-out);
+}
+.sn-swap > :last-child,
+.sn-swap[data-done] > :first-child {
+  opacity: 0;
+  transform: scale(0.3);
+  filter: blur(3px);
+}
+.sn-swap[data-done] > :last-child {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* ---- The stage ------------------------------------------------------------------------- */
+
+.sn-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sn-top {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sn-s2) var(--sn-s5);
+  padding: var(--sn-s2) var(--sn-s6);
+  border-bottom: 1px solid var(--line);
+}
+.sn-top-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s4);
+}
+.sn-top .st-brand {
+  padding: 0;
+}
+/* A holiday theme's festive mark: small, still, in the second colour. Its slot is always
+   there, so the tabs never shift when a holiday theme comes or goes. */
+.sn-motif {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--second, var(--accent));
+}
+.sn-motif svg {
+  width: 24px;
+  height: 24px;
+}
+.sn-modes {
+  width: 400px;
+  max-width: 100%;
+}
+.sn-top-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sn-s2);
+}
+.sn-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sn-s5) var(--sn-s6);
+  padding: var(--sn-s5) var(--sn-s6) var(--sn-s8);
+  outline: none;
+}
+.sn-error {
+  flex: 1 1 100%;
+}
+.sn-main-col {
+  flex: 999 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s4);
+}
+/* The preview and the keys under it share one width, sized so both fit without scrolling. */
+.sn-main-col > * {
+  width: 100%;
+  max-width: max(520px, calc((100vh - 332px) * 16 / 9));
+  margin-inline: auto;
+}
+.sn-inspector {
+  position: sticky;
+  top: 0;
+  flex: 1 1 340px;
+  min-width: 0;
+  max-width: 420px;
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: var(--sn-s5);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-xl);
+  background: var(--panel);
+}
+.sn-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s4);
+}
+
+/* The preview: what viewers see. */
+.sn-scene {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--sn-r-xl);
+  background: var(--raised);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 24px 60px -28px var(--shadow);
+  touch-action: none;
+  user-select: none;
+}
+.sn-scene[data-movable] {
+  cursor: crosshair;
+}
+.sn-scene-stream {
+  position: absolute;
+  inset: 0;
+  transition:
+    opacity var(--sn-t-move) var(--sn-ease-move),
+    transform var(--sn-t-move) var(--sn-ease-move);
+}
+/* Look mode: the stream view steps back while her close-up arrives. */
+.sn-scene[data-close-up] .sn-scene-stream {
+  opacity: 0;
+  transform: scale(1.06);
+}
+.sn-scene-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 110%, var(--glow), transparent 60%),
+    radial-gradient(circle at center, var(--line) 1px, transparent 1.5px) 0 0 / 24px 24px;
+  pointer-events: none;
+}
+.sn-scene-frame {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  padding: var(--sn-s2) var(--sn-s3);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-md);
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: var(--faint);
+  font-size: var(--sn-fs-micro);
+  line-height: var(--sn-lh-micro);
+  font-weight: 500;
+}
+.sn-scene .avatar-renderer {
+  z-index: 1;
+}
+.sn-scene-ring {
+  position: absolute;
+  z-index: 2;
+  width: 15%;
+  aspect-ratio: 1 / 1.25;
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+  border-radius: var(--sn-r-xl);
+  transform: translate(-50%, -96%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--sn-t-pop) var(--sn-ease-out);
+}
+.sn-scene-drop {
+  position: absolute;
+  z-index: 3;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 8px var(--glow);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.sn-scene-portrait {
+  position: absolute;
+  inset: 3% 22% 0;
+  z-index: 2;
+}
+.sn-scene-floor {
+  position: absolute;
+  left: 50%;
+  bottom: 5%;
+  width: 70%;
+  height: 9%;
+  border-radius: 50%;
+  background: var(--panel);
+  transform: translateX(-50%);
+}
+.sn-scene-touch {
+  position: absolute;
+  z-index: 2;
+  left: 24%;
+  top: 14%;
+  width: 52%;
+  height: 80%;
+  border-radius: 45%;
+  background: transparent;
+}
+.sn-scene-tag,
+.sn-scene-now,
+.sn-scene-hint {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sn-s2);
+  padding: var(--sn-s1) var(--sn-s3);
+  border-radius: var(--sn-r-pill);
+  background: var(--scrim);
+  backdrop-filter: blur(8px);
+  color: #f4f0f7;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  font-weight: 500;
+  pointer-events: none;
+}
+.sn-scene-tag {
+  left: 14px;
+  top: 14px;
+}
+.sn-scene-now {
+  right: 14px;
+  top: 14px;
+}
+.sn-scene-hint {
+  right: 14px;
+  bottom: 14px;
+  opacity: 0;
+  transition: opacity var(--sn-t-pop) var(--sn-ease-out);
+}
+.sn-scene[data-dragging] .sn-scene-hint,
+.sn-scene[data-dragging] .sn-scene-ring {
+  opacity: 1;
+}
+.sn-scene-back {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 16px;
+  translate: -50% 0;
+}
+
+/* ---- Her holiday room (src/studio-next/holiday/) ------------------------------------------
+   The stage becomes a room: a wall and floor behind her, props in front of her. It is drawn
+   over the stage, so nothing moves to make room for it. The room follows her: lit while she
+   is here, dim in quiet mode, dark on a break, and it joins in while she reacts. */
+.sn-room {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  container-type: inline-size;
+}
+.sn-room-back {
+  z-index: 0;
+}
+.sn-room-front {
+  z-index: 2;
+}
+.sn-room-wall {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(90% 70% at 50% 62%, var(--glow), transparent 70%),
+    linear-gradient(var(--raised), color-mix(in srgb, var(--raised) 82%, var(--bg)));
+}
+.sn-room-floor {
+  position: absolute;
+  inset: 75% 0 0;
+  border-top: 2px solid var(--line);
+  background: linear-gradient(
+    color-mix(in srgb, var(--bg) 62%, var(--raised)),
+    color-mix(in srgb, var(--bg) 88%, var(--raised))
+  );
+}
+.sn-room-rug {
+  position: absolute;
+  left: 30%;
+  top: 82%;
+  width: 40%;
+  height: 13%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 24%, var(--panel));
+  box-shadow: inset 0 0 0 0.6cqw color-mix(in srgb, var(--second, var(--accent)) 26%, var(--panel));
+}
+/* The 3D room draws on two canvases, one behind her and one in front. */
+.sn-room3d {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.sn-scene[data-room3d] .sn-scene-frame {
+  border: 1px solid color-mix(in srgb, var(--text) 26%, transparent);
+  background: color-mix(in srgb, var(--panel) 46%, transparent);
+  box-shadow: none;
+  backdrop-filter: blur(3px);
+}
+.sn-scene[data-over-prop] {
+  cursor: pointer;
+}
+/* With a room on, the plain dotted backdrop steps aside and the layout hangs on the wall. */
+.sn-scene[data-room] .sn-scene-backdrop {
+  background: none;
+  z-index: 1;
+}
+.sn-scene[data-room]:not([data-room3d]) .sn-scene-frame {
+  border: 3px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 0.8cqw 1.8cqw -0.6cqw rgb(0 0 0 / 0.5);
+}
+.sn-prop {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -100%);
+  transition:
+    filter 400ms ease,
+    opacity 400ms ease;
+}
+.sn-prop[data-place='hang'] {
+  transform: translateX(-50%);
+  transform-origin: 50% 0;
+}
+.sn-prop img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0.5cqw 0.6cqw rgb(0 0 0 / 0.35));
+}
+.sn-prop-thread {
+  display: block;
+  width: 1px;
+  margin-inline: auto;
+  background: var(--faint);
+}
+/* A window on the wall: an arched frame with the night outside. */
+.sn-prop[data-window] {
+  padding: 1.6cqw 1.2cqw 1.2cqw;
+  border: 0.5cqw solid var(--line);
+  border-radius: 50% 50% 8% 8% / 34% 34% 6% 6%;
+  background: #0d0c1a;
+  box-sizing: content-box;
+}
+.sn-room-front .sn-prop img {
+  filter: drop-shadow(0 0.7cqw 0.8cqw rgb(0 0 0 / 0.45));
+}
+/* Lit: lanterns, candles and stars glow. */
+.sn-scene[data-room='lit'] .sn-prop[data-glow] img,
+.sn-scene[data-room='dim'] .sn-prop[data-glow] img {
+  filter: drop-shadow(0 0 1.2cqw color-mix(in srgb, var(--second, var(--accent)) 80%, #fff));
+}
+.sn-scene[data-room='dim'] .sn-prop {
+  filter: brightness(0.72);
+}
+.sn-scene[data-room='dark'] .sn-prop {
+  filter: brightness(0.42) saturate(0.55);
+}
+.sn-scene[data-room='dark'] .sn-prop[data-glow] img {
+  filter: none;
+}
+/* While she reacts the room joins in. Only then: nothing here moves while she is at rest. */
+.sn-scene[data-reacting] .sn-prop[data-move='twinkle'] img {
+  animation: sn-twinkle 900ms ease-in-out infinite;
+}
+.sn-scene[data-reacting] .sn-prop[data-move='flicker'] img {
+  transform-origin: 50% 100%;
+  animation: sn-flicker 240ms ease-in-out infinite alternate;
+}
+.sn-scene[data-reacting] .sn-prop[data-move='bob'] {
+  animation: sn-bob 900ms ease-in-out infinite alternate;
+}
+.sn-scene[data-reacting] .sn-prop[data-move='flutter'] {
+  animation: sn-flutter 300ms ease-in-out infinite alternate;
+}
+.sn-scene[data-reacting] .sn-prop:nth-child(2n) {
+  animation-delay: 220ms;
+}
+.sn-scene[data-reacting] .sn-prop:nth-child(3n) img {
+  animation-delay: 440ms;
+}
+@keyframes sn-twinkle {
+  50% {
+    opacity: 0.45;
+  }
+}
+@keyframes sn-flicker {
+  to {
+    opacity: 0.8;
+  }
+}
+@keyframes sn-bob {
+  to {
+    translate: 0 0.7cqw;
+  }
+}
+@keyframes sn-flutter {
+  from {
+    rotate: -5deg;
+  }
+  to {
+    rotate: 5deg;
+  }
+}
+
+/* The holiday card on the Live panel. */
+.sn-holiday {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s1);
+  padding: var(--sn-s3) var(--sn-s3) var(--sn-s1);
+  border-radius: var(--sn-r-lg);
+  background: var(--raised);
+}
+.sn-holiday-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s3);
+}
+.sn-holiday-mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--second, var(--accent));
+  color: var(--bg);
+}
+.sn-holiday-mark svg {
+  width: 24px;
+  height: 24px;
+}
+.sn-holiday-head b {
+  display: block;
+  font-weight: 600;
+  font-size: var(--sn-fs-subhead);
+  line-height: var(--sn-lh-subhead);
+  font-variant-numeric: tabular-nums;
+}
+.sn-holiday-head .sn-holiday-mark {
+  color: var(--bg);
+}
+.sn-holiday-head div > span {
+  display: block;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  color: var(--sub);
+}
+
+/* The reaction keys. */
+.sn-deck-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s2);
+}
+.sn-deck-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sn-s2) var(--sn-s3);
+}
+.sn-deck-head h2 {
+  font-size: var(--sn-fs-subhead);
+  line-height: var(--sn-lh-subhead);
+  font-weight: 600;
+}
+.sn-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: var(--sn-s2);
+}
+.sn-key {
+  position: relative;
+  height: 104px;
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-lg);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+  transition:
+    transform var(--sn-t-press) var(--sn-ease-out),
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+/* Each reaction's icon sits on a solid disc in the second colour, top left. */
+.sn-key svg {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 36px;
+  height: 36px;
+  padding: var(--sn-s2);
+  border-radius: 50%;
+  background: var(--second, var(--accent));
+  color: var(--bg);
+}
+/* The label: bottom left, two lines reserved, text sitting on the lower one. */
+.sn-key > span {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  height: 40px;
+  display: flex;
+  align-items: flex-end;
+  font-size: var(--sn-fs-body);
+  line-height: var(--sn-lh-body);
+}
+/* Some themes tint the keys, repeating in fours. */
+.sn-key:nth-child(4n + 1) {
+  background: var(--k1, var(--panel));
+}
+.sn-key:nth-child(4n + 2) {
+  background: var(--k2, var(--panel));
+}
+.sn-key:nth-child(4n + 3) {
+  background: var(--k3, var(--panel));
+}
+.sn-key:nth-child(4n) {
+  background: var(--k4, var(--panel));
+}
+.sn-key kbd {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+.sn-key:active:not(:disabled) {
+  transform: scale(0.96);
+  border-color: var(--accent);
+}
+.sn-key-holiday {
+  border-color: var(--second, var(--accent));
+  box-shadow: 0 0 0 1px var(--second, var(--accent));
+}
+.sn-key-stop svg {
+  background: var(--raised);
+  color: var(--sub);
+}
+
+/* Live panel. */
+.sn-now {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s3);
+}
+.sn-now-line {
+  display: block;
+  font-family: var(--sn-font-display);
+  font-weight: 400;
+  font-size: var(--sn-fs-title);
+  line-height: var(--sn-lh-title);
+  letter-spacing: -0.01em;
+}
+.sn-now > div {
+  min-width: 0;
+}
+.sn-now-line,
+.sn-now span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sn-now span {
+  display: block;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  color: var(--sub);
+}
+/* Always two lines tall, so the switches below never move while she reacts. */
+.sn-last-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(2 * 1.45em);
+}
+.sn-last .sn-label {
+  color: var(--second, var(--faint));
+}
+.sn-last {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s1);
+  padding: var(--sn-s3) var(--sn-s3);
+  border-radius: var(--sn-r-lg);
+  background: var(--raised);
+  color: var(--text);
+}
+
+/* Look panel. */
+.sn-parts,
+.sn-look-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s5);
+}
+.sn-look-body {
+  outline-offset: 4px;
+}
+
+/* Personality panel. */
+.sn-natures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s2);
+}
+.sn-nature {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s3);
+  padding: var(--sn-s3) var(--sn-s3);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-lg);
+  background: var(--bg);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow var(--sn-t-pop) ease;
+}
+.sn-nature[data-checked] {
+  border-color: var(--accent);
+  background: var(--raised);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 40px var(--glow);
+}
+.sn-nature[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sn-nature-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--sn-r-lg);
+  background: var(--raised);
+  color: var(--accent);
+}
+.sn-nature[data-checked] .sn-nature-icon {
+  background: var(--panel);
+}
+.sn-nature-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.sn-nature b {
+  display: block;
+  font-weight: 600;
+}
+.sn-nature span span {
+  display: block;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  color: var(--sub);
+}
+
+/* ---- Layers: the Rehearse drawer and "Jump to anything" --------------------------------- */
+
+.sn-drawer {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  /* As wide as the panel column it covers, so the stage stays in full view. */
+  width: min(392px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s5);
+  padding: var(--sn-s5) var(--sn-s6) var(--sn-s8);
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: -24px 0 60px -32px var(--shadow);
+  transition: transform var(--sn-t-panel) var(--sn-ease-out);
+}
+.sn-drawer[data-starting-style],
+.sn-drawer[data-ending-style] {
+  transform: translateX(100%);
+}
+/* It leaves the way it came, a little faster. */
+.sn-drawer[data-ending-style] {
+  transition: transform var(--sn-t-panel-exit) var(--sn-ease-in);
+}
+.sn-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sn-s3);
+}
+.sn-say {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s2);
+}
+.sn-say button {
+  align-self: flex-start;
+}
+.sn-answer {
+  padding: var(--sn-s3) var(--sn-s3);
+  border-radius: var(--sn-r-lg);
+  background: var(--raised);
+}
+
+.sn-backdrop {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  background: rgb(0 0 0 / 0.5);
+  transition: opacity var(--sn-t-pop) var(--sn-ease-out);
+}
+.sn-palette {
+  position: absolute;
+  z-index: 9;
+  top: min(96px, 12vh);
+  left: 50%;
+  translate: -50% 0;
+  width: min(560px, calc(100% - 32px));
+  padding: var(--sn-s2);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-xl);
+  background: var(--panel);
+  box-shadow: 0 32px 80px -24px rgb(0 0 0 / 0.7);
+  transform-origin: 50% 0;
+  transition:
+    opacity var(--sn-t-pop) var(--sn-ease-out),
+    transform var(--sn-t-pop) var(--sn-ease-out);
+}
+.sn-backdrop[data-starting-style],
+.sn-backdrop[data-ending-style] {
+  opacity: 0;
+}
+.sn-palette[data-starting-style],
+.sn-palette[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.97);
+}
+.sn-backdrop[data-ending-style],
+.sn-palette[data-ending-style] {
+  transition-duration: var(--sn-t-exit);
+  transition-timing-function: var(--sn-ease-in);
+}
+.sn-palette-search {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s2);
+  padding: 0 var(--sn-s3);
+  color: var(--faint);
+}
+.studio .sn-palette-search input {
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--sn-fs-subhead);
+  line-height: var(--sn-lh-subhead);
+  outline: none;
+}
+.sn-palette-list {
+  height: min(420px, 56vh);
+  overflow-y: auto;
+  padding-top: var(--sn-s2);
+  border-top: 1px solid var(--line);
+}
+/* The highlight follows the keys with no transition. */
+.sn-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sn-s3);
+  min-height: 44px;
+  padding: 0 var(--sn-s3);
+  border-radius: var(--sn-r-md);
+  cursor: pointer;
+}
+.sn-palette-item span {
+  font-size: var(--sn-fs-micro);
+  line-height: var(--sn-lh-micro);
+  font-weight: 600;
+  color: var(--faint);
+}
+.sn-palette-item[aria-selected='true'] {
+  background: var(--raised);
+}
+.sn-palette-empty {
+  padding: var(--sn-s4) var(--sn-s3);
+  color: var(--sub);
+}
+
+/* ---- The welcome: a guided first meeting ------------------------------------------------- */
+
+.sn-wz {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.sn-wz-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sn-s4);
+  /* One height whether or not "Skip setup" is showing. */
+  min-height: 72px;
+  padding: var(--sn-s4) var(--sn-s8) var(--sn-s2);
+}
+.sn-wz-top .st-brand {
+  padding: 0;
+}
+.sn-wz-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1168px;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sn-s8) var(--sn-s12);
+  padding: var(--sn-s4) var(--sn-s6) var(--sn-s12);
+  outline: none;
+  --wz-h: clamp(460px, calc(100vh - 170px), 620px);
+}
+/* She stands beside every step. */
+.sn-wz-figure {
+  position: relative;
+  flex: 1 1 340px;
+  max-width: 460px;
+  height: var(--wz-h);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-xl);
+  background: radial-gradient(90% 60% at 50% 80%, var(--glow), transparent 70%), var(--panel);
+}
+.sn-wz-avatar {
+  position: absolute;
+  inset: 13% 4% 104px;
+}
+.sn-wz-floor {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  width: 64%;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--raised);
+  transform: translateX(-50%);
+}
+.sn-wz-bubble {
+  position: absolute;
+  z-index: 2;
+  top: 28px;
+  left: 50%;
+  translate: -50% 0;
+  max-width: 84%;
+  padding: var(--sn-s2) var(--sn-s3);
+  border-radius: var(--sn-r-lg);
+  background: #fffaf2;
+  color: #2a2232;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 6px 18px rgb(10 8 20 / 0.3);
+}
+.sn-wz-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  padding: 0 var(--sn-s4);
+  text-align: center;
+}
+.sn-wz-name b {
+  display: block;
+  font-family: var(--sn-font-display);
+  font-weight: 400;
+  font-size: var(--sn-fs-title);
+  line-height: var(--sn-lh-title);
+  letter-spacing: -0.01em;
+}
+.sn-wz-name span {
+  display: block;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  color: var(--faint);
+}
+.sn-wz-side {
+  flex: 1.3 1 420px;
+  min-width: 0;
+  max-width: 600px;
+  height: var(--wz-h);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s6);
+}
+
+/* Three stops joined by a line; the line into a reached stop turns green. */
+.sn-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: opacity var(--sn-t-pop) var(--sn-ease-out);
+}
+.sn-stepper[data-hidden] {
+  opacity: 0;
+  visibility: hidden;
+}
+.sn-stepper li {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s2);
+  color: var(--faint);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--sn-t-pop) ease;
+}
+.sn-stepper li:not(:first-child) {
+  flex: 1;
+}
+.sn-stepper li:not(:first-child)::before {
+  content: '';
+  flex: 1;
+  min-width: 16px;
+  height: 2px;
+  margin-right: var(--sn-s1);
+  border-radius: var(--sn-r-sm);
+  background: var(--raised);
+  transition: background-color 300ms ease;
+}
+.sn-stepper li[data-state]::before {
+  background: var(--good);
+}
+.sn-stepper i {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--sub);
+  font-style: normal;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  font-weight: 600;
+  transition:
+    background-color var(--sn-t-pop) ease,
+    color var(--sn-t-pop) ease;
+}
+.sn-stepper li[data-state='current'] {
+  color: var(--text);
+}
+.sn-stepper li[data-state='current'] i {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.sn-stepper li[data-state='done'] {
+  color: var(--sub);
+}
+.sn-stepper li[data-state='done'] i {
+  background: var(--good);
+  color: var(--bg);
+}
+
+.sn-wz-panes {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.sn-wz-pane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.sn-wz-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s5);
+  padding: var(--sn-s1) var(--sn-s2) var(--sn-s4) var(--sn-s1);
+}
+/* The buttons sit on one line at the foot of every step. */
+.sn-wz-foot {
+  flex: none;
+  height: 72px;
+  padding-top: var(--sn-s4);
+  border-top: 1px solid var(--line);
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.sn-wz-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s2);
+}
+.sn-wz-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sn-s3);
+}
+.sn-wz-title {
+  font-family: var(--sn-font-display);
+  font-weight: 400;
+  font-size: var(--sn-fs-display);
+  line-height: var(--sn-lh-display);
+  letter-spacing: -0.01em;
+}
+.sn-wz-title-big {
+  font-size: var(--sn-fs-display);
+  line-height: var(--sn-lh-display);
+}
+.sn-wz-lede {
+  max-width: 520px;
+  color: var(--sub);
+  font-size: var(--sn-fs-body);
+  line-height: var(--sn-lh-body);
+}
+.sn-wz-how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: how;
+}
+.sn-wz-how li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--sn-s3);
+  color: var(--sub);
+}
+.sn-wz-how li::before {
+  counter-increment: how;
+  content: counter(how);
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--sn-r-sm);
+  background: var(--raised);
+  color: var(--text);
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  font-weight: 600;
+}
+.sn-wz-how li > span {
+  padding-top: var(--sn-s1);
+}
+.sn-wz-how b {
+  color: var(--text);
+  font-weight: 600;
+}
+.sn-providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s2);
+}
+.sn-provider {
+  padding: var(--sn-s4);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-lg);
+  background: var(--panel);
+}
+.studio .sn-provider .panel-title h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s2);
+  font-size: var(--sn-fs-subhead);
+  line-height: var(--sn-lh-subhead);
+  font-weight: 600;
+}
+.sn-wz-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s3);
+  max-width: 480px;
+  margin: 0;
+  padding: var(--sn-s4) var(--sn-s5);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-lg);
+  background: var(--panel);
+}
+.sn-wz-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sn-s4);
+}
+.sn-wz-summary dt {
+  color: var(--sub);
+}
+.sn-wz-summary dd {
+  margin: 0;
+  font-weight: 500;
+}
+.sn-btn-big {
+  min-height: 52px;
+  padding: 0 var(--sn-s6);
+  font-size: var(--sn-fs-body);
+  line-height: var(--sn-lh-body);
+}
+.sn-btn-wide {
+  padding: 0 var(--sn-s6);
+}
+.sn-linkish {
+  min-height: 44px;
+  padding: 0 var(--sn-s1);
+  background: none;
+  color: var(--sub);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+}
+
+/* The finishing check. The one rare moment: it draws in, then a ring leaves. */
+.sn-done-check {
+  position: relative;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--good) 16%, transparent);
+  color: var(--good);
+}
+.sn-done-check svg {
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 30;
+}
+.sn-done-check[data-celebrate] svg {
+  animation: sn-draw 420ms var(--sn-ease-out) 160ms backwards;
+}
+.sn-done-check[data-celebrate]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--good);
+  opacity: 0;
+  animation: sn-ring 500ms var(--sn-ease-out) 480ms;
+}
+@keyframes sn-draw {
+  from {
+    stroke-dashoffset: 30;
+  }
+}
+@keyframes sn-ring {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+/* ---- Settings: a panel over the stage ----------------------------------------------------- */
+
+.sn-settings {
+  position: absolute;
+  z-index: 9;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(1040px, calc(100% - 48px));
+  height: min(760px, calc(100% - 48px));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-xl);
+  background: var(--bg);
+  box-shadow: 0 32px 80px -24px rgb(0 0 0 / 0.7);
+  transition:
+    opacity var(--sn-t-panel) var(--sn-ease-out),
+    transform var(--sn-t-panel) var(--sn-ease-out);
+}
+.sn-settings[data-starting-style],
+.sn-settings[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.97);
+}
+.sn-settings[data-ending-style] {
+  transition-duration: var(--sn-t-panel-exit);
+  transition-timing-function: var(--sn-ease-in);
+}
+.sn-settings-tabs {
+  display: flex;
+  height: 100%;
+}
+.sn-settings-side {
+  flex: none;
+  width: 236px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s5);
+  padding: var(--sn-s6) var(--sn-s4) var(--sn-s5);
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+.sn-settings-side .sn-serif {
+  padding: 0 var(--sn-s3);
+}
+.sn-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s1);
+}
+.sn-settings-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s3);
+  min-height: 44px;
+  padding: 0 var(--sn-s3);
+  border-radius: var(--sn-r-md);
+  background: transparent;
+  color: var(--sub);
+  font-weight: 500;
+  text-align: left;
+}
+.sn-settings-tab svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+.sn-settings-tab[data-active] {
+  background: var(--raised);
+  color: var(--text);
+}
+.sn-settings-again {
+  margin-top: auto;
+}
+.sn-settings-body {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--sn-s6) var(--sn-s8) var(--sn-s8);
+}
+.sn-settings-close {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  right: 16px;
+}
+.sn-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s5);
+  outline-offset: 4px;
+}
+.sn-settings-panel .st-card h3 {
+  font-size: var(--sn-fs-subhead);
+  line-height: var(--sn-lh-subhead);
+  font-weight: 600;
+}
+.sn-room-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s1);
+  padding-right: var(--sn-s12);
+}
+.sn-room-head h2 {
+  font-family: var(--sn-font-display);
+  font-weight: 400;
+  font-size: var(--sn-fs-title);
+  line-height: var(--sn-lh-title);
+  letter-spacing: -0.01em;
+}
+.sn-room-head p {
+  color: var(--sub);
+}
+
+/* ---- Theme picker (Settings › Preferences): one dropdown and a tone ------------------------ */
+
+.sn-theme {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sn-s4) var(--sn-s5);
+}
+.sn-theme > .sn-group {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+/* A tiny picture of a scheme: its canvas with its two colours. */
+.sn-theme-sample {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s1);
+  width: 44px;
+  height: 28px;
+  padding: 0 var(--sn-s1);
+  border: 1px solid;
+  border-radius: var(--sn-r-sm);
+}
+.sn-theme-sample i {
+  flex: 1;
+  height: 16px;
+  border-radius: var(--sn-r-sm);
+}
+.sn-select {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s3);
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--sn-s3);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-lg);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.sn-select-value {
+  flex: 1;
+}
+.sn-select-icon {
+  display: grid;
+  color: var(--faint);
+  transition: transform var(--sn-t-pop) var(--sn-ease-move);
+}
+.sn-select[data-popup-open] .sn-select-icon {
+  transform: rotate(180deg);
+}
+.sn-select-layer {
+  z-index: 12;
+}
+/* The menu grows from its button, and closes faster than it opens. */
+.sn-select-popup {
+  min-width: var(--anchor-width);
+  max-height: min(420px, var(--available-height));
+  overflow-y: auto;
+  padding: var(--sn-s1);
+  border: 1px solid var(--line);
+  border-radius: var(--sn-r-lg);
+  background: var(--panel);
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.5);
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity var(--sn-t-pop) var(--sn-ease-out),
+    transform var(--sn-t-pop) var(--sn-ease-out);
+}
+.sn-select-popup[data-starting-style],
+.sn-select-popup[data-ending-style] {
+  opacity: 0;
+  transform: scale(0.97);
+}
+.sn-select-popup[data-ending-style] {
+  transition-duration: var(--sn-t-exit);
+  transition-timing-function: var(--sn-ease-in);
+}
+.sn-select-group + .sn-select-group {
+  margin-top: var(--sn-s1);
+  padding-top: var(--sn-s1);
+  border-top: 1px solid var(--line);
+}
+.sn-select-heading {
+  padding: var(--sn-s1) var(--sn-s2) var(--sn-s1);
+  font-size: var(--sn-fs-micro);
+  line-height: var(--sn-lh-micro);
+  font-weight: 600;
+  color: var(--faint);
+}
+/* The highlight follows the keys with no transition. */
+.sn-select-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sn-s3);
+  min-height: 52px;
+  padding: var(--sn-s1) var(--sn-s2);
+  border-radius: var(--sn-r-md);
+  cursor: pointer;
+  outline: none;
+}
+.sn-select-item[data-highlighted] {
+  background: var(--raised);
+}
+.sn-select-text {
+  flex: 1;
+  font-weight: 500;
+}
+.sn-select-text > span {
+  display: block;
+  font-size: var(--sn-fs-small);
+  line-height: var(--sn-lh-small);
+  font-weight: 400;
+  color: var(--sub);
+}
+.sn-select-check {
+  display: grid;
+  color: var(--accent);
+}
+
+/* ---- Hover, only where a real pointer hovers -------------------------------------------- */
+
+@media (hover: hover) and (pointer: fine) {
+  .sn-btn:hover:not(:disabled, .sn-btn-primary, .sn-btn-quiet),
+  .sn-chip-link:not(.sn-chip-fill):hover,
+  .sn .secondary-button:hover:not(:disabled),
+  .sn .st-button:not(.st-primary):hover:not(:disabled) {
+    background: color-mix(in srgb, var(--raised) 84%, var(--text));
+    color: var(--text);
+  }
+  .sn-icon-btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 84%, var(--bg));
+  }
+  .sn-key:hover:not(:disabled) {
+    border-color: var(--faint);
+  }
+  .sn-btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 88%, var(--text));
+  }
+  .sn-btn-quiet:hover:not(:disabled),
+  .sn-settings-tab:hover {
+    background: var(--raised);
+    color: var(--text);
+  }
+  .sn-linkish:hover {
+    color: var(--text);
+    text-decoration-color: currentColor;
+  }
+  .sn-chip:hover:not(:disabled, [data-disabled], [data-checked]),
+  .sn-nature:hover:not([data-disabled], [data-checked]),
+  .sn-select:hover {
+    border-color: var(--faint);
+  }
+  .sn-seg-item:hover:not([data-disabled]),
+  .sn-tab:hover {
+    color: var(--text);
+  }
+  .sn-scene[data-movable]:hover .sn-scene-hint,
+  .sn-scene[data-movable]:hover .sn-scene-ring {
+    opacity: 1;
+  }
+}
+
+/* ---- Narrow windows --------------------------------------------------------------------- */
+
+/* The search button keeps its label only where the bar's right side has room beside the centred
+   tabs; below that it is the icon and its key. */
+@media (max-width: 1560px) {
+  .sn-top-wide {
+    display: none;
+  }
+}
+/* On a phone the top bar keeps every control but drops their words: the names stay for screen
+   readers, and the tabs take their own row. */
+.sn-top-short {
+  display: none;
+}
+@media (max-width: 560px) {
+  .sn-top-short {
+    display: inline;
+  }
+  .sn-top-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sn-top .st-brand small,
+  .sn-top-side kbd {
+    display: none;
+  }
+  .sn-top-side {
+    min-width: 0;
+  }
+}
+@media (max-width: 860px) {
+  .sn-top,
+  .sn-body {
+    padding-inline: var(--sn-s4);
+  }
+  .sn-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .sn-modes {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: auto;
+  }
+  .sn-inspector {
+    position: static;
+    max-width: none;
+    height: auto;
+  }
+  .sn-main-col > * {
+    max-width: none;
+  }
+  .sn-wz-top {
+    padding-inline: var(--sn-s4);
+  }
+  .sn-wz-main {
+    padding: var(--sn-s2) var(--sn-s4) var(--sn-s10);
+  }
+  .sn-wz-figure {
+    height: 340px;
+  }
+  .sn-wz-side {
+    height: auto;
+  }
+  .sn-wz-scroll {
+    overflow: visible;
+  }
+  .sn-wz-foot {
+    height: auto;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .sn-wz-title {
+    font-size: var(--sn-fs-title);
+    line-height: var(--sn-lh-title);
+  }
+  .sn-wz-title-big {
+    font-size: var(--sn-fs-display);
+    line-height: var(--sn-lh-display);
+  }
+  .sn-stepper li span {
+    display: none;
+  }
+  .sn-settings {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  .sn-settings-tabs {
+    flex-direction: column;
+  }
+  .sn-settings-side {
+    width: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sn-s2) var(--sn-s3);
+    padding: var(--sn-s3) var(--sn-s12) var(--sn-s3) var(--sn-s4);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .sn-settings-nav {
+    order: 3;
+    flex: 1 1 100%;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .sn-settings-tab {
+    flex: none;
+  }
+  .sn-settings-again {
+    margin: 0 0 0 auto;
+  }
+  .sn-settings-body {
+    padding: var(--sn-s5) var(--sn-s4) var(--sn-s8);
+  }
+  .sn-settings-close {
+    top: 10px;
+    right: 10px;
+  }
+  .sn-room-head {
+    padding-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sn *,
+  .sn *::before,
+  .sn *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
