@@ -76,4 +76,6 @@ jobs:
     uses: ./.github/workflows/desktop-installers.yml
     with:
       validated: true
+      # Intel Mac builds nightly, on tags and on manual runs (see desktop-installers.yml).
+      skip_intel: true
     secrets: inherit
