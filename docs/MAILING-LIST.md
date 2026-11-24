@@ -52,7 +52,7 @@ Open http://127.0.0.1:4180. This renders the three list emails and the five invi
 
 `renderInvite(variant, links, { channel, from })` in `supabase/functions/_shared/templates.tsx` renders an invitation for a streamer to try Tavi. There are five wordings (`says-it`, `for-chat`, `chat-talks`, `from-the-maker`, `plain-note`); `npm run email:preview` shows each one. `channel` is the streamer's channel name and `from` signs the two personal wordings; both are optional.
 
-Invitations go to people who have not signed up, so they are not part of the mailing list and nothing here sends them: the outbox only writes to confirmed subscribers. Send each one individually, with a working unsubscribe link and the real mailing address. The footer reads "A one-time invitation. Unsubscribe" and, when the email shows the character, links to her credit at `/credits/rive-avatar.md` on the website (CC BY 4.0 requires the credit to be reachable).
+Invitations go to people who have not signed up, so they are not part of the mailing list and nothing here sends them: the outbox only carries the list's own emails (confirmation, welcome, and releases to confirmed subscribers). Send each one individually, with a working unsubscribe link and the real mailing address. The footer reads "A one-time invitation. Unsubscribe" and, when the email shows the character, links to her credit at `/credits/rive-avatar.md` on the website (CC BY 4.0 requires the credit to be reachable).
 
 The wording presents Tavi as an addition to the stream the person already runs. Subject lines follow published outreach studies (BuzzStream, Belkins, Reply.io, Yesware): state what she does instead of teasing it, put it in the first three words, stay near five words, and name the channel where possible.
 
