@@ -22,6 +22,11 @@ import { trackProductEvent } from './analytics';
 installMotionLayer(motionRigs);
 const overlay = location.pathname === '/overlay';
 const studio = location.pathname === '/studio';
+// The redesigned Studio, built beside the current one until it replaces it (src/studio-next/).
+const studioNext = location.pathname === '/studio-next';
+const StudioNext = React.lazy(() =>
+  import('./studio-next/StudioNext').then((module) => ({ default: module.StudioNext })),
+);
 const download = location.pathname === '/download';
 const judge = location.pathname === '/judge';
 const rigLab = location.pathname === '/rig-lab';
@@ -45,7 +50,7 @@ const Studio = React.lazy(() => import('./studio').then((module) => ({ default: 
 const Dock = React.lazy(() => import('./studio/Dock').then((module) => ({ default: module.Dock })));
 if (avatarLab) document.documentElement.classList.add('avatar-lab-mode');
 if (overlay) document.documentElement.classList.add('overlay');
-const landing = !overlay && !studio && !avatarLab && !dock && !rigLab && !judge;
+const landing = !overlay && !studio && !studioNext && !avatarLab && !dock && !rigLab && !judge;
 const prerenderedLanding = location.pathname === '/';
 if (landing) {
   document.documentElement.classList.add('landing-mode');
@@ -80,6 +85,7 @@ function App() {
     );
   if (overlay) return <OverlayApp />;
   if (studio) return <StudioApp />;
+  if (studioNext) return <StudioNextApp />;
   if (dock) return <DockApp />;
   return <LandingPage />;
 }
@@ -104,6 +110,14 @@ function StudioApp() {
   return (
     <React.Suspense fallback={null}>
       <Studio {...connection} />
+    </React.Suspense>
+  );
+}
+function StudioNextApp() {
+  const connection = useConnection();
+  return (
+    <React.Suspense fallback={null}>
+      <StudioNext {...connection} />
     </React.Suspense>
   );
 }

@@ -24,6 +24,18 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Tool worktrees, generated builds and the desktop shell hold hundreds of thousands of
+    // files that are not part of the web app. Watching them stalls the dev server for minutes.
+    watch: {
+      ignored: [
+        '**/.claude/**',
+        '**/.codex/**',
+        '**/.tmp/**',
+        '**/.data/**',
+        '**/build/**',
+        '**/desktop/**',
+      ],
+    },
     proxy: { '/api': 'http://127.0.0.1:4318', '/ws': { target: 'ws://127.0.0.1:4318', ws: true } },
   },
 });
