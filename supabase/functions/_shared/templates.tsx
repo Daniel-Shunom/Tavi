@@ -86,7 +86,7 @@ function Frame({
   preview: string;
   links: EmailLinks;
   /** Left out, the email is a plain letter with no pictures. */
-  art?: Art;
+  art?: Art | undefined;
   footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
