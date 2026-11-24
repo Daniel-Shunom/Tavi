@@ -3,7 +3,11 @@ import {
   createMailingHandler,
   type MailingSettings,
 } from '../../supabase/functions/_shared/mailing-handler';
-import { renderEmail } from '../../supabase/functions/_shared/templates';
+import {
+  inviteVariants,
+  renderEmail,
+  renderInvite,
+} from '../../supabase/functions/_shared/templates';
 
 const settings: MailingSettings = {
   supabaseUrl: 'https://example.supabase.co',
@@ -55,6 +59,33 @@ describe('email delivery', () => {
       expect(result.html).not.toContain('<script>untrusted</script>');
       expect(result.html.length).toBeLessThan(100000);
     }
+  });
+
+  it('renders every invitation with a short subject, a way out and the credits link', async () => {
+    const links = {
+      siteUrl: settings.siteUrl,
+      postalAddress: settings.postalAddress,
+      unsubscribeUrl: 'https://example.com/unsubscribe',
+    };
+    for (const variant of inviteVariants) {
+      const invite = await renderInvite(variant, links, { channel: '<b>Chan</b>', from: 'Sam' });
+      // Research on outreach favours subjects of about five words.
+      expect(invite.subject.split(' ').length).toBeLessThanOrEqual(6);
+      expect(invite.text).toContain('Unsubscribe');
+      expect(invite.text).toContain(settings.postalAddress);
+      expect(invite.text).toContain('example.com');
+      expect(invite.html).not.toContain('<b>Chan</b>');
+      expect(invite.html).not.toContain('little life');
+      expect(invite.html).not.toContain('You requested');
+      // Pictures of her carry a link to the artist's credit; the plain letter has neither.
+      const pictures = invite.html.includes('/media/email/tavi-');
+      expect(pictures).toBe(variant !== 'plain-note');
+      expect(invite.html.includes('/credits/rive-avatar.md')).toBe(pictures);
+    }
+    const unnamed = await renderInvite('from-the-maker', links);
+    expect(unnamed.subject).toBe('Try Tavi on your stream?');
+    const signed = await renderInvite('plain-note', links, { from: 'Sam' });
+    expect(signed.text).toContain('Sam');
   });
 
   it('never consumes confirmation or unsubscribe tokens on GET', async () => {

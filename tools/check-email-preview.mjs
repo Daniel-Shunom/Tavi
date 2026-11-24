@@ -6,9 +6,19 @@ try {
   const page = await browser.newPage();
   for (const width of [700, 390]) {
     await page.setViewportSize({ width, height: 1000 });
-    for (const kind of ['confirmation', 'welcome', 'release']) {
+    for (const kind of [
+      'confirmation',
+      'welcome',
+      'release',
+      'invite-says-it',
+      'invite-for-chat',
+      'invite-chat-talks',
+      'invite-from-the-maker',
+      'invite-plain-note',
+    ]) {
       await page.goto(`http://127.0.0.1:4180/${kind}`);
-      await expect(page.locator('img')).toHaveCount(4);
+      // The plain note is a letter with no pictures.
+      await expect(page.locator('img')).toHaveCount(kind === 'invite-plain-note' ? 0 : 4);
       expect(
         await page
           .locator('img')
@@ -24,7 +34,7 @@ try {
       });
     }
   }
-  console.log('All three email designs passed image, mobile width, and unsubscribe-link checks.');
+  console.log('All email designs passed image, mobile width, and unsubscribe-link checks.');
 } finally {
   await browser.close();
 }
