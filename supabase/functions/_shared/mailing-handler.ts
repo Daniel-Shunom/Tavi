@@ -95,7 +95,7 @@ export function createMailingHandler(settings: MailingSettings, request: typeof 
         if (req.method === 'GET') {
           return action === 'confirm'
             ? page(
-                'A little news from Tavi.',
+                'Confirm your email',
                 'Confirm that you want Tavi releases and updates by email.',
                 'Confirm my email',
               )
