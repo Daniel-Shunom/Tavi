@@ -150,3 +150,25 @@ describe('holiday rooms', () => {
     expect(roomMood({ ...here, connected: false })).toBe('dark');
   });
 });
+
+describe('3D holiday rooms', () => {
+  it('bundles every model a room uses, and credits the packs', async () => {
+    const { existsSync, readFileSync } = await import('node:fs');
+    const { modelsInUse, layouts, has3dRoom } =
+      await import('../src/studio-next/holiday/room3d/layouts');
+    expect(has3dRoom('halloween')).toBe(true);
+    expect(has3dRoom('easter')).toBe(false);
+    const missing = modelsInUse().filter((model) => !existsSync(`public/rooms/${model}`));
+    expect(missing).toEqual([]);
+    const credits = readFileSync('public/credits/holiday-rooms.md', 'utf8');
+    for (const pack of new Set(modelsInUse().map((model) => model.split('/')[0])))
+      expect(credits).toContain(`rooms/${pack ?? ''}/`);
+    // Every room leaves the middle of the floor clear for her, and sizes everything it places.
+    for (const layout of Object.values(layouts))
+      for (const item of layout.items) {
+        expect(item.h ?? item.w, item.model).toBeGreaterThan(0);
+        if (!item.model.includes('rug_'))
+          expect(Math.abs(item.x) > 2.5 || item.z < -3 || item.z > 3, item.model).toBe(true);
+      }
+  });
+});

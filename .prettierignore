@@ -14,3 +14,6 @@ docs/PERSONALITY.md
 
 # Rive CLI art sources (third-party and generated RML)
 art/
+
+# Third-party 3D models for the holiday rooms, bundled unchanged
+public/rooms/

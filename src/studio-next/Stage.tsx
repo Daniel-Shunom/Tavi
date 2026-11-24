@@ -8,6 +8,7 @@ import { quickCues, supports } from '../studio/parts';
 import type { StudioProps } from '../studio/types';
 import { modes, stepsDone, type Mode, type SetupProgress } from './model';
 import type { Holiday } from './holiday/HolidayCard';
+import { has3dRoom } from './holiday/room3d/layouts';
 import { LivePane, LookPane, PersonalityPane } from './panes';
 import { Scene } from './Scene';
 
@@ -18,6 +19,9 @@ const modeLabels: Record<Mode, string> = { live: 'Live', look: 'Look', personali
 // Motion tokens (seconds), matching --sn-t-pop and --sn-t-exit in studio-next.css.
 const ENTER = { duration: 0.2, ease: [0.32, 0.72, 0, 1] } as const;
 const EXIT = { duration: 0.15, ease: [0.55, 0, 1, 0.45] } as const;
+
+// Holidays with a 3D room use it; `?room=2d` in the address keeps the picture room instead.
+const pictureRoomOnly = new URLSearchParams(location.search).get('room') === '2d';
 
 export function Stage(
   props: StudioProps & {
@@ -102,6 +106,7 @@ export function Stage(
             livePosition={livePosition}
             reacting={performing !== null}
             {...(holiday?.roomOn ? { room: holiday.room } : {})}
+            room3d={holiday && has3dRoom(holiday.id) && !pictureRoomOnly ? holiday.id : null}
           />
           <section className="sn-deck-wrap" aria-labelledby="deck-title">
             <div className="sn-deck-head">

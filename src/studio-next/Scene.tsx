@@ -4,7 +4,9 @@ import { Move } from 'lucide-react';
 import { Avatar } from '../renderer/Avatar';
 import type { Config } from '../../shared/protocol';
 import type { StudioProps } from '../studio/types';
+import type { HolidayId } from './holiday/calendar';
 import { RoomBack, RoomFront } from './holiday/HolidayRoom';
+import { useRoom3d } from './holiday/room3d/useRoom3d';
 import { roomMood, type Room } from './holiday/rooms';
 import type { Mode } from './model';
 
@@ -27,11 +29,14 @@ export function Scene({
   mode,
   livePosition,
   room,
+  room3d = null,
   reacting,
 }: StudioProps & {
   mode: Mode;
   /** Her holiday room, when a holiday theme is on and the room is switched on. */
   room?: Room;
+  /** The holiday whose room is drawn in 3D instead of with pictures, when it has one. */
+  room3d?: HolidayId | null;
   /** True while a reaction plays, so the room can join in. */
   reacting: boolean;
   /** Where her feet are right now, kept for "stand here". */
@@ -43,6 +48,9 @@ export function Scene({
   const dragging = useRef(false);
   const [drop, setDrop] = useState<{ x: number; y: number } | null>(null);
   const closeUp = mode === 'look';
+  const mood = roomMood({ connected, retracted: state.retracted, quiet: state.quiet });
+  const space = useRoom3d(room ? room3d : null, mood, reacting);
+  const [overProp, setOverProp] = useState(false);
   const canMove = connected && !state.retracted && !closeUp;
   const patch = (value: Partial<Config>) => {
     send({ type: 'configure', patch: value });
@@ -63,17 +71,20 @@ export function Scene({
         data-close-up={closeUp || undefined}
         data-dragging={drop ? 'true' : undefined}
         data-movable={canMove || undefined}
-        data-room={
-          room ? roomMood({ connected, retracted: state.retracted, quiet: state.quiet }) : undefined
-        }
+        data-room={room ? mood : undefined}
+        data-room3d={space.on || undefined}
+        data-over-prop={overProp || undefined}
         data-reacting={(room && reacting) || undefined}
         onPointerDown={(event) => {
+          // A press on something in the 3D room belongs to the room, not to placing her.
+          if (event.button === 0 && space.press(event)) return;
           if (!canMove || event.button !== 0) return;
           dragging.current = true;
           event.currentTarget.setPointerCapture(event.pointerId);
           setDrop(spot(event));
         }}
         onPointerMove={(event) => {
+          if (space.on && !dragging.current) setOverProp(space.hover(event));
           if (dragging.current) setDrop(spot(event));
         }}
         onPointerUp={(event) => {
@@ -89,7 +100,11 @@ export function Scene({
         }}
       >
         <div className="sn-scene-stream" inert={closeUp}>
-          {room ? <RoomBack room={room} /> : null}
+          {space.on ? (
+            <canvas ref={space.back} className="sn-room3d sn-room-back" aria-hidden="true" />
+          ) : room ? (
+            <RoomBack room={room} />
+          ) : null}
           <div className="sn-scene-backdrop" aria-hidden="true">
             {(['game', 'webcam', 'chat'] as const).map((frame) => {
               const rect = c.scene[frame];
@@ -130,7 +145,11 @@ export function Scene({
               aria-hidden="true"
             />
           ) : null}
-          {room ? <RoomFront room={room} /> : null}
+          {space.on ? (
+            <canvas ref={space.front} className="sn-room3d sn-room-front" aria-hidden="true" />
+          ) : room ? (
+            <RoomFront room={room} />
+          ) : null}
         </div>
 
         <AnimatePresence initial={false}>
