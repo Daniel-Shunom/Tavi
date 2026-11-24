@@ -21,7 +21,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: desktop-installers-${{ github.ref }}
+  # The event is part of the group so a push to main cannot cancel the nightly Intel build.
+  group: desktop-installers-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   validate:
