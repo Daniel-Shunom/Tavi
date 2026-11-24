@@ -46,7 +46,15 @@ The function has a public [configuration status endpoint](https://ijobzdgyesoqom
 npm run email:preview
 ```
 
-Open http://127.0.0.1:4180. This renders three designs with example content and local copies of the Tavi branding assets. It never sends emails. Rendered HTML, plain text, and screenshots live in the Git-ignored `.data/email-previews/` directory. After editing a template, rerun `npx tsx tools/email-preview.ts` to regenerate the HTML; the running preview server reads the refreshed files. Character artwork provenance and license attribution are recorded in `public/media/email/CREDITS.md` and retained in every email footer.
+Open http://127.0.0.1:4180. This renders the three list emails and the five invitations with example content and local copies of the Tavi branding assets. It never sends emails. Rendered HTML, plain text, and screenshots live in the Git-ignored `.data/email-previews/` directory. After editing a template, rerun `npx tsx tools/email-preview.ts` to regenerate the HTML; the running preview server reads the refreshed files. Character artwork provenance and license attribution are recorded in `public/media/email/CREDITS.md` and retained in every email footer.
+
+## Invitations
+
+`renderInvite(variant, links, { channel, from })` in `supabase/functions/_shared/templates.tsx` renders an invitation for a streamer to try Tavi. There are five wordings (`says-it`, `for-chat`, `chat-talks`, `from-the-maker`, `plain-note`); `npm run email:preview` shows each one. `channel` is the streamer's channel name and `from` signs the two personal wordings; both are optional.
+
+Invitations go to people who have not signed up, so they are not part of the mailing list and nothing here sends them: the outbox only writes to confirmed subscribers. Send each one individually, with a working unsubscribe link and the real mailing address. The footer reads "A one-time invitation. Unsubscribe" and, when the email shows the character, links to her credit at `/credits/rive-avatar.md` on the website (CC BY 4.0 requires the credit to be reachable).
+
+The wording presents Tavi as an addition to the stream the person already runs. Subject lines follow published outreach studies (BuzzStream, Belkins, Reply.io, Yesware): state what she does instead of teasing it, put it in the first three words, stay near five words, and name the channel where possible.
 
 ## Review and queue a release
 
