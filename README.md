@@ -22,7 +22,7 @@ An expressive companion for Twitch streamers. Give Tavi a place in OBS, a person
 | [Submission checklist](docs/JUDGING.md#before-submitting) | Public demo video and Devpost project links are **pending**.                                                                                     |
 | [Checks and architecture](docs/DEVELOPMENT.md#validate)   | Validation commands; [source map](docs/REPOSITORY-LAYOUT.md) and [asset credits](brand/CREDITS.md).                                              |
 
-**Primary Codex session:** `01a17704-cc9a-7d01-822a-754a6062ab3c` · [All recorded sessions](.sessions)
+**Primary Codex session:** `01a17704-cc9a-7d01-822a-754a6062ab3c` · [All recorded sessions](docs/codex/README.md)
 
 The landing animation and illustrated chat below are authored demonstrations. Test events are labeled; live Twitch operation requires channel authorization. Microphone input and spoken voice are not implemented.
 

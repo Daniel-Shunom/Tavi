@@ -6,7 +6,7 @@ The browser uses only a publishable key. Anonymous visitors can insert an email 
 
 ## Local and production configuration
 
-The local `.env.local` is configured for Tavi and is ignored by Git. For another environment, copy `.env.example` to `.env.local` and set:
+The local `.env.local` is configured for Tavi and is ignored by Git. For another environment, create `.env.local` and set:
 
 ```dotenv
 VITE_SUPABASE_URL=https://your-project.supabase.co
