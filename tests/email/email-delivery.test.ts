@@ -58,7 +58,7 @@ describe('email delivery', () => {
       expect(result.text).toContain('Unsubscribe');
       expect(result.html).not.toContain('<script>untrusted</script>');
       // Plain wording: no "a little ..." phrases.
-      expect(result.text).not.toMatch(/little/i);
+      expect(result.text.toLowerCase()).not.toContain('little');
       expect(result.html.length).toBeLessThan(100000);
     }
   });
