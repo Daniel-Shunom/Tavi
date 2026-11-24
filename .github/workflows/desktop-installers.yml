@@ -7,13 +7,22 @@ on:
         description: The caller has passed the affected-program checks.
         type: boolean
         default: false
+      skip_intel:
+        description: Leave the Intel Mac build to the nightly run.
+        type: boolean
+        default: false
   workflow_dispatch:
   push:
     tags: ['v*']
+  # The Intel Mac build is the slow one, so pull requests and pushes to main skip it and it
+  # runs here every night instead. Tags and manual runs still build every platform.
+  schedule:
+    - cron: '17 7 * * *'
 permissions:
   contents: read
 concurrency:
-  group: desktop-installers-${{ github.ref }}
+  # The event is part of the group so a push to main cannot cancel the nightly Intel build.
+  group: desktop-installers-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   validate:
@@ -44,15 +53,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: windows-x64
-            runner: windows-latest
-          - name: linux-x64
-            runner: ubuntu-22.04
-          - name: macos-intel
-            runner: macos-15-intel
-          - name: macos-apple-silicon
-            runner: macos-15
+        # Nightly: Intel Mac only. Called with skip_intel: everything else. Otherwise: all four.
+        include: >-
+          ${{ fromJSON(
+            github.event_name == 'schedule'
+              && '[{"name":"macos-intel","runner":"macos-15-intel"}]'
+            || inputs.skip_intel == true
+              && '[{"name":"windows-x64","runner":"windows-latest"},{"name":"linux-x64","runner":"ubuntu-22.04"},{"name":"macos-apple-silicon","runner":"macos-15"}]'
+            || '[{"name":"windows-x64","runner":"windows-latest"},{"name":"linux-x64","runner":"ubuntu-22.04"},{"name":"macos-intel","runner":"macos-15-intel"},{"name":"macos-apple-silicon","runner":"macos-15"}]'
+          ) }}
     env:
       APPIMAGE_EXTRACT_AND_RUN: '1'
     steps:
