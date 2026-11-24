@@ -324,6 +324,19 @@
         "RECIPES.md": "21ff63d84391db8d96ecdf9170095f55a42c836ccc36fd3269c4772bab031ba2",
         "SKILL.md": "b8ede161270458e6ae2e45e8a1985373515d4c63de5568ddb0f9012d7634356c"
       }
+    },
+    {
+      "name": "charles-ux-animation",
+      "repository": "LemonFace0309/charles-skills",
+      "commit": "ed6ee949c70550e63408bb7b1c6f22ae36c85f96",
+      "path": "skills/drops/charles-ux-animation",
+      "files": {
+        "examples/principles.jpg": "3963c19546e55a3d7a8ae5b4907fc055efb90287d84913131b5603c041abafc1",
+        "README.md": "85f4e182b10913e55115c81da215e4144125f9c0c325eaab8fc49618a1d623aa",
+        "references/recipes.md": "a1837bf477a97a74d6698f8ff1b6c0a14f392bbb8e3e9fbb02d960dd3595eb2f",
+        "references/techniques.md": "3e0ecb63abe930cd7f75a299dfeb7641a9339f40ad56316015c63f38ef283ff6",
+        "SKILL.md": "4e25dffa3caf4b15590aea0173d0cc8b789cfeb46cc3d00e688a63c77cb0b4a9"
+      }
     }
   ],
   "notices": [
@@ -410,6 +423,13 @@
       "path": "LICENSE",
       "destination": ".agents/licenses/emilkowalski--skills-LICENSE",
       "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+    },
+    {
+      "repository": "LemonFace0309/charles-skills",
+      "commit": "ed6ee949c70550e63408bb7b1c6f22ae36c85f96",
+      "path": "LICENSE",
+      "destination": ".agents/licenses/LemonFace0309--charles-skills-LICENSE",
+      "sha256": "e7f6e8ffc218aea2e0a3492ef00eb5b4ba0ed774e3eaf64aa3c53c43684571db"
     }
   ]
 }

@@ -41,7 +41,7 @@ Open points: the renderer has no clip mask, so climbing/sinking fades by depth i
 ## Grounding contract (for expression acting and body states)
 
 The character stands on a floor. Every system that adds body motion must respect this; it is
-enforced in `motion.ts` and tested in `tests/motion-grounding.test.ts`.
+enforced in `motion.ts` and tested in `tests/renderer/motion-grounding.test.ts`.
 
 - **Never translate the root for acting.** Body acting is hips/torso/arms over planted feet:
   `bob` (hips down = knees bend, + down), `shift` (hips over one foot), `lean`, `headTilt`/`headY`,

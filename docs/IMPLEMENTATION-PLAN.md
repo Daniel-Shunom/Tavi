@@ -8,8 +8,6 @@ Tavi is a customizable, expressive human/chibi companion for Twitch streamers. I
 
 The streamer comes first. Quiet, retract, stop, and listening controls must be immediate. Voice output is optional; understanding the streamer's speech and expressing a contextual response are part of the intended first implementation.
 
-Delivery constraint: eight total days, solo development; target a complete end-to-end build by day four and use the remaining four days for refinement and testing. The checkpoints below organize remaining work and do not restart the original eight-day clock. Reassess against actual remaining time before assigning calendar dates.
-
 ## 1. Current implementation and gaps
 
 | Area              | Observed state                                                                                                                             | Remaining gap                                                                                                                                                              |
@@ -73,9 +71,9 @@ Use the same cue and clock contract for studio and OBS. A newly connected overla
 
 ## 4. Priority and delivery policy
 
-- **P0 - complete demo:** required for the end-to-end hackathon experience.
-- **P1 - refinement:** polish and reliability during the remaining refinement days, after P0 works.
-- **P2 - product roadmap:** worthwhile scope that must not delay the demonstration.
+- **P0 - core experience:** required for a dependable end-to-end companion.
+- **P1 - refinement:** polish and reliability after P0 works.
+- **P2 - product roadmap:** optional scope after the core experience is verified.
 
 At every checkpoint, keep a working manual/demo path. Finish and test a vertical slice before starting the next. If time contracts, reduce the expression/catalog scope and optional integrations before sacrificing reliability or mislabeling simulated input as live behavior.
 
@@ -204,9 +202,9 @@ At every checkpoint, keep a working manual/demo path. Finish and test a vertical
 | 3          | D: microphone through transcription to a local reaction | 2                                             | Streamer speech produces a real response                                |
 | 4          | E + F: contextual decision through the same policy      | 3                                             | Streamer-first AI companion with limited live viewer interaction        |
 | 5          | G + H + I minimums                                      | 2; proceed alongside 3-4 with clear ownership | One convincing OBS scene, honest customization, understandable controls |
-| 6          | J: installed demo and rehearsal                         | 4-5                                           | End-to-end hackathon build ready for refinement                         |
+| 6          | J: installed demo and rehearsal                         | 4-5                                           | End-to-end companion ready for refinement                               |
 
-This is the four-day build target, not a promise that every P1/P2 item fits it. Use the remaining four days for stronger performances, art, latency/behavior tuning, recovery tests, installer/OBS verification, and submission preparation.
+Complete the core slice before expanding P1/P2 scope. Refine performances, latency, recovery and installed OBS behavior after each milestone.
 
 Suggested boundaries: renderer agent owns performance and rig changes; app/service agent owns cue protocol, input adapters, policy, and studio feedback; desktop agent owns Tauri and packaging. The user remains the product decision-maker. Shared protocol edits need one designated owner and explicit coordination.
 
@@ -246,11 +244,11 @@ Release gates:
 
 ## 9. Decisions still needed
 
-1. Listening: approve push-to-talk as the first checkpoint, then decide whether continuous listening is required for the judged demo.
+1. Listening: approve push-to-talk as the first checkpoint, then decide whether continuous listening is required for the next milestone.
 2. AI/transcription: provider, available keys, acceptable spend, and offline fallback expectations.
-3. Character: keep the current attributed Rive asset for the hackathon or invest time in a compatible original rig. Decide based on tested expressive capability, not cosmetic preference alone.
+3. Character: keep the current attributed Rive asset or invest time in a compatible original rig. Decide based on tested expressive capability, not cosmetic preference alone.
 4. Captions: whether short captions appear on stream by default or only in the studio.
-5. Scope cutoff: identify the remaining P0 items that fit the real time left; do not silently promote every refinement to a requirement.
+5. Scope cutoff: identify the P0 items for the next milestone; do not silently promote every refinement to a requirement.
 
 Voice output, voice cloning, gameplay/screen understanding, autonomous desktop control, a character marketplace, cloud accounts, and multi-platform expansion are P2 unless explicitly reprioritized. They do not block proving the core companion experience.
 

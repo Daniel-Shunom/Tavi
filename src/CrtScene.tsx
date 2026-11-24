@@ -1,13 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { createScreenPainter, GLASS } from './landing/crtScreen';
 import { TvChannels } from './landing/tvChannels';
-import {
-  TWITCH_GLITCH,
-  lockup,
-  paintDither,
-  type DitherLayer,
-  type DitherMark,
-} from './landing/dither';
+import { paintDither, type DitherLayer } from './landing/dither';
 
 /**
  * The dithered light in its own box (see .crt-dither: 2.1 stages wide, 2.1 tall, from 0.55 left
@@ -19,13 +13,6 @@ const LIGHT = {
   seam: 0.696,
 };
 const DITHER_LAYERS: DitherLayer[] = ['off', 'on', 'seam'];
-/**
- * A footnote set into the light on the wall just above the TV, centred over it: the Twitch glitch
- * (official asset, Twitch brand pack), a times sign, and Codex. In the dither box the set's centre
- * is at x 0.5 and its top at about y 0.28; the lockup sits a little above that.
- */
-const FOOTNOTE = { x: 0.5, y: 0.253, height: 30 };
-
 // The CC0 Poly Haven CRT and table, pre-rendered from the 3D scene by tools/crt-layers in the
 // same lighting and camera, then stacked in 2D: table, Tavi when she is behind the TV, the live
 // screen, the TV housing with its glass cut out. No WebGL here; the layers are tiny WebP files.
@@ -125,29 +112,17 @@ export function CrtScene({
         target.style.height = `${String(box.height)}%`;
       }
     };
-    // The dithered light is painted once per size (a few milliseconds), never per frame, and
-    // once more when the footnote's logo has loaded.
+    // The dithered light is painted once per size, never per frame.
     let painted = '';
-    const glitch = new Image();
-    glitch.src = TWITCH_GLITCH;
-    const marks = (): DitherMark[] =>
-      lockup(glitch, FOOTNOTE.x, FOOTNOTE.y, FOOTNOTE.height, dither.current[0]?.clientWidth ?? 1);
-    const light = (force = false) => {
+    const light = () => {
       const key = `${String(element.clientWidth)}x${String(element.clientHeight)}`;
-      if (key === painted && !force) return;
+      if (key === painted) return;
       painted = key;
       DITHER_LAYERS.forEach((name, i) => {
         const canvas = dither.current[i];
-        if (canvas) paintDither(canvas, name, LIGHT, 2, name === 'seam' ? [] : marks());
+        if (canvas) paintDither(canvas, name, LIGHT);
       });
     };
-    void glitch
-      .decode()
-      .then(() => document.fonts.ready)
-      .then(() => {
-        if (!cancelled) light(true);
-      })
-      .catch(() => undefined);
     const size = new ResizeObserver(() => {
       place();
       light();

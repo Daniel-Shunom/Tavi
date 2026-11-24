@@ -20,6 +20,7 @@ Project skills are vendored under `.agents/skills/`. Use these copies instead of
 - Deterministic procedural animation (timing, seeding, reduced motion): `.agents/skills/procedural-canvas-animation/SKILL.md`.
 - UI design, critique and polish (Impeccable 4.8.0): `.agents/skills/impeccable/SKILL.md`. Its launcher downloads a checksum-verified engine binary into `scripts/bin/` or `~/.impeccable` on first run; do not commit that binary.
 - Interface motion (Emil Kowalski's `animate`: whether to animate, curves, durations, interruption, reduced motion): `.agents/skills/animate/SKILL.md`. Use it for page and UI transitions; character motion stays with `character-motion`.
+- UX and animation review (Charles): `.agents/skills/charles-ux-animation/SKILL.md`. Use for interaction audits, transitions, loading states, keyboard behavior and touch targets.
 - Matt Pocock orchestration skills and setup are installed alongside these. Run setup before invoking workflows that require issue tracker configuration; no tracker is configured yet.
 
 ## Branch cleanup

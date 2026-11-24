@@ -34,6 +34,8 @@ export function MailingListSignup() {
     }
   }
 
+  if (!config) return null;
+
   return (
     <form
       className="mailing-list-signup"
@@ -56,7 +58,7 @@ export function MailingListSignup() {
           disabled={status === 'saving' || status === 'success'}
           placeholder="you@example.com"
         />
-        <button type="submit" disabled={!config || status === 'saving' || status === 'success'}>
+        <button type="submit" disabled={status === 'saving' || status === 'success'}>
           {status === 'saving' ? 'Joining…' : status === 'success' ? 'Joined' : 'Join the list'}
         </button>
       </div>
@@ -74,7 +76,7 @@ export function MailingListSignup() {
         <input name="website" tabIndex={-1} autoComplete="off" />
       </label>
       <p className="mailing-list-status" role="status" data-error={status === 'error'}>
-        {!config ? 'Signups are temporarily unavailable.' : message}
+        {message}
       </p>
     </form>
   );

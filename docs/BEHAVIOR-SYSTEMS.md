@@ -202,7 +202,7 @@ Your controls always win and never break the loop; life pauses and resumes on it
 | A stream event                                                               | while she reacts                          | 20 s later                                 |
 | Many big events in a row (pacing relaxing)                                   | never stops her                           | she keeps walking, calmer, no play         |
 
-Tested in `tests/life.test.ts` (manual controls pause autonomous life, then it resumes).
+Tested in `tests/service/life.test.ts` (manual controls pause autonomous life, then it resumes).
 
 ## Roadmap
 

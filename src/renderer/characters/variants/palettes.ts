@@ -1,5 +1,5 @@
 // Variant palettes: the skin-tone ramp with undertones, hair colours and eye colours.
-// Rules (docs/character/VARIANTS-RESEARCH.md section 7, enforced by tests/variants.test.ts):
+// Rules (docs/character/VARIANTS-RESEARCH.md section 7, enforced by tests/renderer/variants.test.ts):
 // skin shades rotate hue toward red and keep chroma (never mixed toward grey or black),
 // highlights stay warm, features keep one shape and one hue for every tone.
 import {

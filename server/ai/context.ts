@@ -19,6 +19,9 @@ export class ConversationContext {
   removeSource(source: ContextEvent['source']) {
     this.events = this.events.filter((event) => event.source !== source);
   }
+  removeUser(userId: string) {
+    this.events = this.events.filter((event) => event.source !== 'chat' || event.userId !== userId);
+  }
   recent(now: number): ContextEvent[] {
     this.trim(now);
     return [...this.events];

@@ -441,7 +441,7 @@ reaction ever references a body, and nothing jiggles for comedy.
   - **highlight**: the face gradient's light end
 - Undertones (warm, neutral, cool, olive) shift hue and saturation and never desaturate below the
   floor.
-- Rules enforced by `tests/variants.test.ts` (measured in OKLCH, a perceptual colour space):
+- Rules enforced by `tests/renderer/variants.test.ts` (measured in OKLCH, a perceptual colour space):
   - Lightness decreases from Tone 1 to Tone 10 in steps of more than 0.035 L, for every undertone.
   - The shade is darker than the base by more than 0.05 L. Its hue is the same or rotated toward
     red by less than 16°, and its chroma is at least 95% of the base's. **Never ashy:** chroma

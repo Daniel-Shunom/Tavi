@@ -86,6 +86,7 @@ interface Pending {
   eventId: string;
   priority: number;
   deadline: number;
+  userId: string | undefined;
 }
 const MOVE_COOLDOWN_MS = 45_000;
 /** Viewers can scold her at most this often. */
@@ -102,6 +103,7 @@ export class Companion {
   private readonly listeners = new Set<(state: State) => void>();
   private readonly context = new ConversationContext();
   private pending: Pending | null = null;
+  private activeChatUserId: string | undefined;
   private lastChatReaction = -Infinity;
   private lastSupportReaction = -Infinity;
   private readonly seenSupport = new Set<string>();
@@ -282,6 +284,7 @@ export class Companion {
     script: ExpressionScript,
     phase: State['performance']['phase'],
     note: string,
+    userId?: string,
   ): boolean {
     const active = this.activeScript();
     if (active && active.id !== script.id && active.priority > script.priority) return false;
@@ -290,6 +293,7 @@ export class Companion {
       this.perform({ note: note + ' Nothing this character can perform.' });
       return false;
     }
+    this.activeChatUserId = script.source === 'chat' ? userId : undefined;
     this.perform({ script, phase, note });
     return true;
   }
@@ -769,13 +773,22 @@ export class Companion {
   ) {
     this.feel('moderation');
     const script = this.current.performance.script;
-    const affected = (eventId: string | undefined) =>
-      change.type === 'delete' ? eventId === change.id : eventId !== undefined;
+    const affected = (eventId: string | undefined, userId: string | undefined) =>
+      change.type === 'delete'
+        ? eventId === change.id
+        : change.type === 'clearUser'
+          ? userId === change.userId
+          : eventId !== undefined;
     if (change.type === 'delete') this.context.remove(change.id);
+    else if (change.type === 'clearUser') this.context.removeUser(change.userId);
     else this.context.removeSource('chat');
-    if (this.pending && this.pending.priority === priorities.chat && affected(this.pending.eventId))
+    if (
+      this.pending &&
+      this.pending.priority === priorities.chat &&
+      affected(this.pending.eventId, this.pending.userId)
+    )
       this.abortPending('Message removed by moderation.');
-    if (script && script.source === 'chat' && affected(script.sourceEventId))
+    if (script && script.source === 'chat' && affected(script.sourceEventId, this.activeChatUserId))
       this.perform({
         script: null,
         phase: 'idle',
@@ -823,6 +836,7 @@ export class Companion {
       id: message.id,
       source: 'chat',
       author: message.author,
+      userId: message.userId,
       text: message.text,
       at: message.receivedAt,
       simulated,
@@ -869,7 +883,7 @@ export class Companion {
         ],
         settle: false,
       });
-      this.schedule(script, 'thinking', `Thinking about ${label}...`);
+      this.schedule(script, 'thinking', `Thinking about ${label}...`, event.userId);
     }
     const controller = new AbortController();
     const pending: Pending = {
@@ -877,6 +891,7 @@ export class Companion {
       eventId: event.id,
       priority,
       deadline: event.at + MAX_DECISION_AGE_MS,
+      userId: event.userId,
     };
     this.pending = pending;
     const now = this.now();
@@ -972,7 +987,7 @@ export class Companion {
       ],
       settle: true,
     });
-    this.schedule(script, 'reacting', 'Got told off: sulking by the webcam.');
+    this.schedule(script, 'reacting', 'Got told off: sulking by the webcam.', event.userId);
     this.setBody('sit', {
       source,
       decidedBy,
@@ -1012,7 +1027,7 @@ export class Companion {
       ],
       settle: true,
     });
-    this.schedule(script, 'reacting', 'Made up: back to her old self.');
+    this.schedule(script, 'reacting', 'Made up: back to her old self.', event.userId);
   }
   private clearLocal(eventId: string, note: string) {
     const script = this.current.performance.script;
@@ -1061,6 +1076,7 @@ export class Companion {
         decision.sequence ?? decision.beats.map((value) => value.expression).join(' > '),
         resolution,
       ) + ` Reacting to ${label}.${fallback}`,
+      event.userId,
     );
     if (!accepted)
       this.clearLocal(
