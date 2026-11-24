@@ -13,8 +13,8 @@ const links = {
 };
 const release = {
   id: 'design-preview',
-  title: 'A little more life, coming soon.',
-  body: 'This is a design preview of a Tavi release email. Your real release notes will appear here.\n\nA short introduction, a few things worth knowing, and a way to see what’s new. Just enough news to keep you in the loop.',
+  title: 'An example release title',
+  body: 'This is a design preview of a Tavi release email. Your real release notes will appear here.\n\nA short introduction, a few things worth knowing, and a way to see what’s new. Then a link to the full notes.',
   url: 'https://example.invalid/tavi-release',
 };
 const pages = new Map<string, string>();
@@ -35,7 +35,7 @@ for (const variant of inviteVariants) {
   );
 }
 const index =
-  '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Tavi email previews</title><style>body{background:#f3eff6;color:#30203c;font:16px/1.6 system-ui;margin:48px auto;padding:24px;max-width:680px}h1{font:48px Georgia}a{display:block;margin:16px 0;padding:20px;background:white;border-radius:12px;color:inherit;text-decoration:none}a:hover{outline:2px solid #b9a5db}</style><h1>A little news from Tavi.</h1><p>Email design previews. Nothing is sent from this page.</p><a href="/confirmation">Confirmation email</a><a href="/welcome">Welcome email</a><a href="/release">Release newsletter · example content</a>' +
+  '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Tavi email previews</title><style>body{background:#f3eff6;color:#30203c;font:16px/1.6 system-ui;margin:48px auto;padding:24px;max-width:680px}h1{font:48px Georgia}a{display:block;margin:16px 0;padding:20px;background:white;border-radius:12px;color:inherit;text-decoration:none}a:hover{outline:2px solid #b9a5db}</style><h1>Tavi email previews</h1><p>Email design previews. Nothing is sent from this page.</p><a href="/confirmation">Confirmation email</a><a href="/welcome">Welcome email</a><a href="/release">Release newsletter · example content</a>' +
   inviteVariants
     .map((variant) => `<a href="/invite-${variant}">Invitation · ${variant}</a>`)
     .join('') +

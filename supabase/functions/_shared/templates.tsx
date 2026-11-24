@@ -50,7 +50,6 @@ const small = { color: '#625670', fontSize: '12px', lineHeight: '16px' };
 function ListFooter({ links }: { links: EmailLinks }) {
   return (
     <>
-      <Text style={small}>A little life in the corner.</Text>
       <Text style={small}>
         You requested Tavi releases and updates.{' '}
         <Link href={links.unsubscribeUrl} style={{ color: '#625670' }}>
@@ -204,11 +203,7 @@ export function ConfirmationEmail({
       links={links}
       art={['hmm', 'ooh', 'wave']}
     >
-      <Heading style={heading}>
-        A little news.
-        <br />
-        Only if you want it.
-      </Heading>
+      <Heading style={heading}>Confirm your email for Tavi updates.</Heading>
       <Text style={paragraph}>Confirm your email to hear about new Tavi releases and updates.</Text>
       <Button href={confirmationUrl} style={button}>
         Confirm my email
@@ -223,22 +218,16 @@ export function ConfirmationEmail({
 export function WelcomeEmail({ links }: { links: EmailLinks }) {
   return (
     <Frame
-      preview="You’re on the list. A little company is on its way."
+      preview="You’ll hear about new Tavi releases and updates."
       links={links}
       art={['smug', 'lol', 'wave']}
     >
-      <Heading style={heading}>
-        There’s room
-        <br />
-        for one more.
-      </Heading>
+      <Heading style={heading}>You’re on the list.</Heading>
       <Text style={paragraph}>
-        You’re on the list for Tavi releases and updates. We’ll write when there’s something new to
-        share.
+        Thanks for confirming. We’ll write when there’s a new Tavi release or update, and not
+        otherwise.
       </Text>
-      <Text style={paragraph}>
-        Until then, meet the little companion who’s making a home beside your stream.
-      </Text>
+      <Text style={paragraph}>In the meantime, you can see what Tavi does on a stream.</Text>
       <Button href={links.siteUrl} style={button}>
         Meet Tavi
       </Button>
@@ -256,9 +245,7 @@ export interface ReleaseContent {
 export function ReleaseEmail({ links, release }: { links: EmailLinks; release: ReleaseContent }) {
   return (
     <Frame preview={release.title} links={links} art={['hype', 'cheer', 'ooh']}>
-      <Text style={{ color: '#795693', fontSize: '14px', margin: '0 0 16px' }}>
-        A little news from Tavi
-      </Text>
+      <Text style={{ color: '#795693', fontSize: '14px', margin: '0 0 16px' }}>New from Tavi</Text>
       <Heading style={heading}>{release.title}</Heading>
       {release.body.split(/\n\s*\n/).map((text, index) => (
         <Text key={index} style={paragraph}>
@@ -462,7 +449,7 @@ export async function renderEmail(
     subject = 'Confirm your Tavi updates';
   } else if (kind === 'welcome') {
     template = <WelcomeEmail links={links} />;
-    subject = 'Welcome to Tavi’s little corner';
+    subject = 'You’re on the list for Tavi updates';
   } else if (kind === 'release' && release) {
     template = <ReleaseEmail links={links} release={release} />;
     subject = release.title;
