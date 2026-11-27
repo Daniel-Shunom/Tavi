@@ -6,7 +6,7 @@ import { ArrowUpRight, Check, Cloud, Coffee, Sparkles } from 'lucide-react';
 import { Avatar } from '../renderer/Avatar';
 import { TwitchPanel } from '../TwitchPanel';
 import { YoutubePanel } from '../YoutubePanel';
-import { useOverlayUrl } from '../judging/Session';
+import { judgingDockUrl, useOverlayUrl } from '../judging/Session';
 import type { Config } from '../../shared/protocol';
 import { natures } from '../studio/parts';
 import type { StudioProps } from '../studio/types';
@@ -351,6 +351,17 @@ export function Wizard({
               <dd>{chatConnected ? 'Connected' : 'Not yet'}</dd>
             </div>
           </dl>
+          <section className="sn-wz-extra" aria-labelledby="wizard-dock">
+            <div className="sn-wz-title-row">
+              <h2 id="wizard-dock">Cue her from inside OBS</h2>
+              <span className="sn-tag">Optional</span>
+            </div>
+            <p className="sn-hint">
+              In OBS, open <b>Docks</b> › <b>Custom Browser Docks</b>, name it Tavi and paste this
+              link. It is also in Settings.
+            </p>
+            <CopyField label="Dock link" value={judgingDockUrl()} />
+          </section>
         </div>
         <div className="sn-actions sn-wz-foot">
           <button type="button" className="sn-btn sn-btn-primary sn-btn-big" onClick={onDone}>

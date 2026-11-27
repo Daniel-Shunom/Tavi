@@ -66,6 +66,8 @@ try {
   await holdsStill('Welcome, chat', wizardPieces, wizardAt);
   await page.getByRole('button', { name: 'Skip for now' }).click();
   await expect(page.getByRole('heading', { name: /is here$/ })).toBeVisible();
+  // The last step offers the optional OBS dock link.
+  await expect(page.getByRole('textbox', { name: 'Dock link' })).toHaveValue(/\/dock(\?|$)/);
   await page.waitForTimeout(1200);
   await shot('welcome-done');
   await holdsStill('Welcome, done', wizardPieces, wizardAt);
