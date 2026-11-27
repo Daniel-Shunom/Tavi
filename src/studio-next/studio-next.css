@@ -1611,6 +1611,19 @@
   margin: 0;
   font-weight: 500;
 }
+/* An optional extra under the summary: the OBS dock link. */
+.sn-wz-extra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sn-s2);
+  max-width: 480px;
+}
+.sn-wz-extra h2 {
+  margin: 0;
+  font-size: var(--sn-fs-body);
+  line-height: var(--sn-lh-body);
+  font-weight: 600;
+}
 .sn-btn-big {
   min-height: 52px;
   padding: 0 var(--sn-s6);

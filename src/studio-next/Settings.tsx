@@ -129,10 +129,6 @@ export function Settings({
                     Preview the overlay <ArrowUpRight size={14} aria-hidden="true" />
                   </a>
                 </section>
-                <section className="st-card st-platform-connections" aria-label="Chat">
-                  <TwitchPanel serviceConnected={connected} onPhase={heard} />
-                  <YoutubePanel serviceConnected={connected} onPhase={heard} />
-                </section>
                 <section className="st-card" aria-labelledby="conn-dock">
                   <div className="st-card-head">
                     <h3 id="conn-dock">OBS dock</h3>
@@ -150,6 +146,10 @@ export function Settings({
                       onProgress({ dock });
                     }}
                   />
+                </section>
+                <section className="st-card st-platform-connections" aria-label="Chat">
+                  <TwitchPanel serviceConnected={connected} onPhase={heard} />
+                  <YoutubePanel serviceConnected={connected} onPhase={heard} />
                 </section>
               </Tabs.Panel>
 
